@@ -15,6 +15,8 @@ pub struct ZuulSymbol {
     role_dirs: DashMap<String, PathBuf>,
     vars: DashMap<String, Vec<VariableInfo>>,
     jobs: DashMap<String, Vec<StringLoc>>,
+
+    role_docs: DashMap<String, Option<String>>,
 }
 
 impl ZuulSymbol {
@@ -30,13 +32,18 @@ impl ZuulSymbol {
         &self.jobs
     }
 
+    pub fn role_docs(&self) -> &DashMap<String, Option<String>> {
+        &self.role_docs
+    }
+
     pub fn initialize(&self) {
         let work_dir = get_work_dir(None);
         let repo_dirs = get_role_repo_dirs(&work_dir, None);
-        let role_dirs: Vec<(String, PathBuf)> = list_roles(&repo_dirs);
+        let role_dirs = list_roles(&repo_dirs);
 
-        role_dirs.into_iter().for_each(|(name, path)| {
-            self.role_dirs.insert(name, path);
+        role_dirs.into_iter().for_each(|(name, path, doc)| {
+            self.role_dirs.insert(name.clone(), path);
+            self.role_docs.insert(name, doc);
         });
 
         let vars = list_work_dir_vars_group(&work_dir, None);

@@ -26,22 +26,21 @@ pub struct Backend {
 #[tower_lsp::async_trait]
 impl LanguageServer for Backend {
     async fn initialize(&self, _: InitializeParams) -> Result<InitializeResult> {
-        // todo!()
+        let mut trigger_chars: Vec<char> = ('a'..='z').collect();
+        ['/', '-', '_', '.']
+            .iter()
+            .for_each(|c| trigger_chars.push(*c));
+
         Ok(InitializeResult {
             server_info: None,
             capabilities: ServerCapabilities {
                 text_document_sync: Some(TextDocumentSyncCapability::Kind(
                     TextDocumentSyncKind::FULL,
                 )),
-                // TODO: implement it
                 completion_provider: Some(CompletionOptions {
                     resolve_provider: Some(false),
                     trigger_characters: Some(
-                        ('a'..='z')
-                            .chain(std::iter::once('/'))
-                            .chain(std::iter::once('.'))
-                            .map(|x| x.to_string())
-                            .collect(),
+                        trigger_chars.into_iter().map(|c| c.to_string()).collect(),
                     ),
                     work_done_progress_options: Default::default(),
                     all_commit_characters: None,

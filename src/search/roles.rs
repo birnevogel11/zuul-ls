@@ -6,6 +6,18 @@ use log;
 use crate::path::{get_role_repo_dirs, shorten_path, to_path};
 use crate::safe_println;
 
+fn get_role_doc(base_dir: &str, role_name: &str) -> Option<String> {
+    let role_dir = PathBuf::from(base_dir).join(role_name);
+    ["README.rst", "README.md"]
+        .into_iter()
+        .map(|name| role_dir.clone().join(name))
+        .find_map(|path| {
+            path.is_file()
+                .then_some(std::fs::read_to_string(path).ok())
+                .flatten()
+        })
+}
+
 fn get_roles_prefix_dir(repo_dir: &Path) -> String {
     let mut raw_path: String = repo_dir.to_str().unwrap().into();
     raw_path.push_str(if raw_path.ends_with('/') {
@@ -58,7 +70,7 @@ fn list_role_dir_from_repo_dir(repo_dir: &Path) -> Vec<PathBuf> {
     list_role_dir(&repo_dir.join("roles"))
 }
 
-pub fn list_roles(repo_dirs: &[PathBuf]) -> Vec<(String, PathBuf)> {
+pub fn list_roles(repo_dirs: &[PathBuf]) -> Vec<(String, PathBuf, Option<String>)> {
     let mut xs = repo_dirs
         .iter()
         .map(|repo_dir| {
@@ -77,7 +89,8 @@ pub fn list_roles(repo_dirs: &[PathBuf]) -> Vec<(String, PathBuf)> {
                         .trim_end_matches("/tasks")
                         .trim_end_matches("/meta")
                         .to_string();
-                    (role_name, path)
+                    let role_doc = get_role_doc(raw_path, &role_name);
+                    (role_name, path, role_doc)
                 })
                 .collect()
         })
@@ -91,11 +104,11 @@ pub fn list_roles(repo_dirs: &[PathBuf]) -> Vec<(String, PathBuf)> {
 pub fn list_roles_cli(work_dir: &PathBuf, config_path: Option<PathBuf>, is_local: bool) {
     let repo_dirs = get_role_repo_dirs(work_dir, config_path);
 
-    let mut role_dirs: Vec<(String, PathBuf)> = list_roles(&repo_dirs);
+    let mut role_dirs: Vec<(String, PathBuf, Option<String>)> = list_roles(&repo_dirs);
     if is_local {
         let sw = to_path(work_dir.to_str().unwrap());
         let sw = sw.to_str().unwrap();
-        role_dirs.retain(|(_, path)| {
+        role_dirs.retain(|(_, path, _)| {
             let s = to_path(path.to_str().unwrap());
             s.to_str().unwrap().starts_with(sw)
         });
@@ -105,7 +118,7 @@ pub fn list_roles_cli(work_dir: &PathBuf, config_path: Option<PathBuf>, is_local
     log::debug!("work_dir: {}", work_dir.display());
     log::debug!("role_repo_dirs: {:#?}", repo_dirs);
 
-    for (name, path) in role_dirs {
+    for (name, path, _) in role_dirs {
         safe_println!("{}\t{}", name, shorten_path(&path).display());
     }
 }

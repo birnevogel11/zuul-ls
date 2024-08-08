@@ -1,16 +1,23 @@
 use std::path::Path;
 use std::path::PathBuf;
 
+use phf::phf_map;
 use ropey::Rope;
 use tower_lsp::lsp_types::{
     CompletionContext, CompletionItem, CompletionItemKind, CompletionResponse,
-    CompletionTriggerKind, Position,
+    CompletionTriggerKind, Documentation, Position,
 };
 
 use super::parser::{parse_token, TokenType};
 use super::symbols::ZuulSymbol;
 
 use super::parser::AutoCompleteToken;
+
+static ZUUL_PROPERTY: phf::Map<&'static str, &[&'static str]> = phf_map! {
+    "job" => &["abstract", "description", "name", "nodeset", "parent",
+               "post-run", "pre-run", "required-projects", "roles", "run", "vars", "voting"],
+    "project-template" => &["name", "queue"],
+};
 
 pub fn get_trigger_char(context: Option<CompletionContext>) -> Option<String> {
     let context = context?;
@@ -48,36 +55,66 @@ pub fn complete_items(
 
     match &token.token_type {
         TokenType::Role => {
-            let mut role_names = symbols
-                .role_dirs()
+            let role_docs = symbols
+                .role_docs()
                 .iter()
-                .map(|entry| entry.key().clone())
-                .filter(|x| x.starts_with(&token.value))
-                .collect::<Vec<_>>();
-            role_names.sort();
+                .filter(|entry| entry.key().starts_with(&token.value))
+                .map(|entry| (entry.key().clone(), entry.value().clone()));
 
-            return Some((
+            Some((
                 CompletionResponse::Array(
-                    role_names
-                        .into_iter()
-                        .map(|name| CompletionItem {
-                            label: name.clone(),
-                            insert_text: Some(name.clone()),
+                    role_docs
+                        .map(|(name, doc)| CompletionItem {
+                            label: name,
+                            documentation: doc.map(Documentation::String),
                             kind: Some(CompletionItemKind::FUNCTION),
-                            sort_text: Some(name),
                             ..CompletionItem::default()
                         })
                         .collect(),
                 ),
                 token,
-            ));
+            ))
         }
-        TokenType::Job => {}
-        TokenType::Variable => {}
-        TokenType::VariableWithPrefix(_) => {}
-        TokenType::ZuulProperty(_) => {}
-        TokenType::Playbook => {}
-    };
+        TokenType::Job => {
+            let jobs = symbols
+                .jobs()
+                .iter()
+                .filter(|entry| entry.key().starts_with(&token.value))
+                .map(|entry| (entry.key().clone()));
 
-    None
+            Some((
+                CompletionResponse::Array(
+                    jobs.map(|name| CompletionItem {
+                        label: name,
+                        kind: Some(CompletionItemKind::CLASS),
+                        ..CompletionItem::default()
+                    })
+                    .collect(),
+                ),
+                token,
+            ))
+        }
+        TokenType::ZuulProperty(zuul_config_name) => {
+            ZUUL_PROPERTY.get(zuul_config_name).map(|keys| {
+                (
+                    CompletionResponse::Array(
+                        keys.iter()
+                            .map(|name| CompletionItem {
+                                label: name.to_string(),
+                                kind: Some(CompletionItemKind::PROPERTY),
+                                ..CompletionItem::default()
+                            })
+                            .collect(),
+                    ),
+                    token,
+                )
+            })
+        }
+        TokenType::Playbook => None,
+        // TODO: implement it
+        // TokenType::Variable => {}
+        // TokenType::VariableWithPrefix(_) => {}
+        // TokenType::Playbook => {}
+        _ => None,
+    }
 }
