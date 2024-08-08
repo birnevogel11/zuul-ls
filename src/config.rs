@@ -195,7 +195,7 @@ fn get_key_content<'a>(raw_config: &'a Yaml, key: &str) -> Option<&'a Yaml> {
 }
 
 fn filter_valid_paths(xs: Vec<PathBuf>) -> Vec<PathBuf> {
-    xs.iter().map_while(|x| fs::canonicalize(x).ok()).collect()
+    xs.iter().filter_map(|x| fs::canonicalize(x).ok()).collect()
 }
 
 #[cfg(test)]

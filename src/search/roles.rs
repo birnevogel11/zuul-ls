@@ -24,7 +24,7 @@ fn list_role_dir(repo_dir: &Path) -> Vec<PathBuf> {
 
     let role_dir = repo_dir.join("roles");
     if let Ok(dir_iter) = role_dir.read_dir() {
-        for entry in dir_iter.map_while(|x| x.ok()) {
+        for entry in dir_iter.filter_map(|x| x.ok()) {
             let path = entry.path();
             if path.join("tasks").is_dir() {
                 xs.push(path);

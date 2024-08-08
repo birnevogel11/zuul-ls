@@ -25,7 +25,7 @@ fn _tranversal_dirs(base_dir: PathBuf, check_dir_name: &str) -> Vec<PathBuf> {
             return xs;
         }
 
-        for entry in dir_iter.map_while(|x| x.ok()) {
+        for entry in dir_iter.filter_map(|x| x.ok()) {
             let path = entry.path();
             if _should_visit_dir(&path) {
                 xs.append(&mut (_tranversal_dirs(path, check_dir_name)));
@@ -50,10 +50,10 @@ pub fn list_roles_impl(repo_dirs: &[PathBuf]) -> Vec<PathBuf> {
     let role_dir_iters = repo_dirs
         .iter()
         .map(|x| x.join("roles").read_dir())
-        .map_while(|x| x.ok());
+        .filter_map(|x| x.ok());
 
     for dir_iter in role_dir_iters {
-        for entry in dir_iter.map_while(|x| x.ok()) {
+        for entry in dir_iter.filter_map(|x| x.ok()) {
             let path = entry.path();
             if path.join("tasks").is_dir() {
                 xs.push(path);

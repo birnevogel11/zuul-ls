@@ -141,7 +141,7 @@ pub fn $name(self) -> Vec<$t> {
 );
 
 #[derive(Clone, PartialEq, PartialOrd, Debug, Eq, Ord, Hash, Default)]
-pub struct ZuulConfigElement {
+pub struct ZuulConfigElements {
     jobs: Vec<Job>,
     project_templates: Vec<ProjectTemplate>,
     nodesets: Vec<Nodeset>,
@@ -150,9 +150,9 @@ pub struct ZuulConfigElement {
     secrets: Vec<Secret>,
 }
 
-impl ZuulConfigElement {
-    pub fn new(ps: Vec<ZuulConfigParsedElement>) -> ZuulConfigElement {
-        let mut zuul = ZuulConfigElement::default();
+impl ZuulConfigElements {
+    pub fn new(ps: Vec<ZuulConfigParsedElement>) -> ZuulConfigElements {
+        let mut zuul = ZuulConfigElements::default();
 
         for p in ps {
             match p {
@@ -186,15 +186,15 @@ impl ZuulConfigElement {
 fn parse_doc(doc: &YValue, path: &Rc<PathBuf>) -> Vec<ZuulConfigParsedElement> {
     if let YValueYaml::Array(xs) = doc.value() {
         xs.iter()
-            .map_while(|x| ZuulConfigParsedElement::parse(x, path))
+            .filter_map(|x| ZuulConfigParsedElement::parse(x, path))
             .collect()
     } else {
         vec![]
     }
 }
 
-pub fn parse_zuul(paths: &[Rc<PathBuf>]) -> ZuulConfigElement {
-    ZuulConfigElement::new(
+pub fn parse_zuul(paths: &[Rc<PathBuf>]) -> ZuulConfigElements {
+    ZuulConfigElements::new(
         paths
             .iter()
             .map(|path| {

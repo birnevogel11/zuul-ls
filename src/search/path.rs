@@ -60,7 +60,7 @@ pub fn traversal_dirs(base_dir: PathBuf, check_dir_name: &str) -> Vec<PathBuf> {
                 vec![base_dir]
             } else {
                 let mut xs = Vec::new();
-                for entry in dir_iter.map_while(|x| x.ok()) {
+                for entry in dir_iter.filter_map(|x| x.ok()) {
                     let path = entry.path();
                     if should_visit_dir(&path) {
                         xs.append(&mut (traversal_dirs(path, check_dir_name)));
