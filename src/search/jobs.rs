@@ -304,6 +304,20 @@ pub fn list_job_hierarchy_names(name: &str, zuul_jobs: &ZuulJobs) -> Vec<StringL
         .collect()
 }
 
+fn show_playbooks(name: &str, pbs: &[PlaybookInfo]) {
+    if pbs.is_empty() {
+        return;
+    }
+    for pb in pbs {
+        println!(
+            "{}\t{}\t{}",
+            shorten_path(&pb.path).display(),
+            name,
+            pb.job_name
+        );
+    }
+}
+
 pub fn list_jobs_playbooks_cli(
     job_name: String,
     work_dir: Option<PathBuf>,
@@ -314,7 +328,12 @@ pub fn list_jobs_playbooks_cli(
     let zuul_jobs = ZuulJobs::from_paths(&yaml_paths);
     let jps = list_job_playbooks(&job_name, &zuul_jobs);
 
-    println!("{:#?}", &jps);
+    show_playbooks("pre-run", &jps.pre_run);
+    show_playbooks("run", &jps.run);
+    show_playbooks("post-run", &jps.post_run);
+    show_playbooks("clean-run", &jps.clean_run);
+
+    // println!("{:#?}", &jps);
 }
 
 pub fn list_jobs_vars_cli(
@@ -331,11 +350,11 @@ pub fn list_jobs_vars_cli(
         println!(
             "{}\t{}\t{}\t{}\t{}\t{}",
             var_name,
+            var_info.job_name.value,
             var_info.value,
             shorten_path(&var_info.name.path).display(),
             var_info.name.line,
             var_info.name.col,
-            var_info.job_name.value
         )
     }
 }
