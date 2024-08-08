@@ -8,6 +8,7 @@ use tower_lsp::lsp_types::{GotoDefinitionResponse, Location, Position, Range, Ur
 use crate::ls::parser::{AutoCompleteToken, TokenFileType, TokenType};
 use crate::ls::symbols::ZuulSymbol;
 use crate::parser::ansible::defaults::parse_defaults_vars;
+use crate::parser::ansible::playbook::parse_playbook_vars;
 use crate::parser::ansible::tasks::parse_task_vars;
 use crate::parser::var_table::{merge_var_group, VarGroup};
 use crate::path::{retrieve_repo_path, to_path};
@@ -26,10 +27,8 @@ where
     let mut var_group = var_group;
     if let Some(path) = path {
         let content = content.unwrap_or(fs::read_to_string(path).unwrap_or_default());
-        let ys = parse_fun(&content, path, "", &PathBuf::default());
-        if let Some(ys) = ys {
-            var_group = merge_var_group(var_group, ys);
-        }
+        let sub_var_group = parse_fun(&content, path, "", &PathBuf::default());
+        var_group = merge_var_group(var_group, sub_var_group.unwrap_or_default());
     }
 
     var_group
@@ -38,7 +37,14 @@ where
 fn parse_local_vars_ansible(path: &Path, content: &Rope, token: &AutoCompleteToken) -> VarGroup {
     let mut var_group: VarGroup = VarGroup::new();
     match &token.file_type {
-        TokenFileType::Playbooks => {}
+        TokenFileType::Playbooks => {
+            var_group = append_ansible_vars(
+                var_group,
+                &Some(path.to_path_buf()),
+                Some(content.to_string()),
+                parse_playbook_vars,
+            );
+        }
         TokenFileType::AnsibleRoleDefaults => {
             var_group = append_ansible_vars(
                 var_group,

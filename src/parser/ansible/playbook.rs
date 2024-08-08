@@ -58,7 +58,7 @@ fn parse_playbook_role_vars_internal(
     Some(var_group)
 }
 
-pub fn parse_playbook_vars(content: &str, path: &Path) -> Option<VarGroup> {
+pub fn parse_playbook_vars(content: &str, path: &Path, _: &str, _: &Path) -> Option<VarGroup> {
     let source = VariableSource::from_playbook(path);
     let docs = load_yvalue_from_str(content).ok()?;
     let mut var_group = HashMap::new();
