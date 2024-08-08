@@ -4,48 +4,17 @@ use tower_lsp::lsp_types::Position;
 use hashlink::LinkedHashMap;
 use yaml_rust2::yaml::{Yaml, YamlLoader};
 
-use super::key_stack::{insert_search_word, parse_value, SEARCH_PATTERN};
+use super::key_stack::{insert_search_word, parse_value, ARRAY_INDEX_KEY, SEARCH_PATTERN};
 use super::utils::{find_name_word, find_path_word};
 use super::{AutoCompleteToken, TokenFileType, TokenSide, TokenType};
 
-fn retrieve_config_attribute(
-    config: &LinkedHashMap<Yaml, Yaml>,
-    key_stack: Vec<String>,
-) -> Option<(Vec<String>, Option<Vec<String>>, TokenSide)> {
-    let mut key_stack = key_stack;
-
-    for (key, value) in config {
-        if key.as_str()?.contains(SEARCH_PATTERN) {
-            return Some((key_stack, None, TokenSide::Left));
-        }
-
-        if let Some((var_stack, token_side)) = parse_value(value, Vec::new()) {
-            key_stack.push(key.as_str()?.to_string());
-            let var_stack = if var_stack.is_empty() {
-                None
-            } else {
-                Some(var_stack)
-            };
-            return Some((key_stack, var_stack, token_side));
-        }
-    }
-
-    None
-}
-
-pub fn retrieve_zuul_key_stack(
-    content: &Rope,
-    line: usize,
-    col: usize,
-) -> Option<(Vec<String>, Option<Vec<String>>, TokenSide)> {
+fn retrieve_key_stack(content: &Rope, line: usize, col: usize) -> Option<(Vec<String>, TokenSide)> {
     let search_rope = insert_search_word(content, line, col);
     let content = search_rope.to_string();
     let docs = YamlLoader::load_from_str(&content).ok()?;
     for doc in docs {
         let zuul_config_units = doc.as_vec()?;
         for zuul_config_unit in zuul_config_units {
-            let mut key_stack: Vec<String> = Vec::new();
-
             // Each zuul config item only contains one key (e.g. job)
             let raw_zuul_name = zuul_config_unit.as_hash()?;
             if raw_zuul_name.keys().len() != 1 {
@@ -56,16 +25,67 @@ pub fn retrieve_zuul_key_stack(
             let zuul = *raw_zuul_name.keys().collect::<Vec<_>>().first()?;
             let zuul_name = zuul.as_str()?;
             if zuul_name.contains(SEARCH_PATTERN) {
-                return Some((key_stack, None, TokenSide::Left));
+                return Some((Vec::new(), TokenSide::Left));
             }
-            key_stack.push(zuul_name.to_string());
 
-            // Traverse all attributes and values of this zuul config
-            let zuul_config = raw_zuul_name.get(zuul).unwrap().as_hash()?;
-            let token = retrieve_config_attribute(zuul_config, key_stack);
+            // Get the token
+            let value = raw_zuul_name.get(zuul).unwrap();
+            let token = parse_value(value, Some(vec![zuul_name.to_string()]));
             if token.is_some() {
                 return token;
             }
+        }
+    }
+
+    None
+}
+
+fn parse_project_token(
+    content: &Rope,
+    position: &Position,
+    file_type: TokenFileType,
+    token_side: TokenSide,
+    mut key_stack: Vec<String>,
+) -> Option<AutoCompleteToken> {
+    if key_stack.len() < 3 {
+        return None;
+    }
+
+    if key_stack[2] == "jobs" {
+        if (key_stack.len() == 4 && key_stack[3] == ARRAY_INDEX_KEY)
+            || (key_stack.len() >= 5 && key_stack[4] == "dependencies")
+        {
+            return Some(AutoCompleteToken::new(
+                find_name_word(content, position)?,
+                file_type,
+                TokenType::Job,
+                token_side,
+                key_stack,
+            ));
+        } else if key_stack.len() >= 5 && key_stack[4] == "vars" {
+            let mut var_stack = None;
+            if key_stack.len() >= 6 {
+                var_stack = Some(key_stack[5..].to_vec());
+                key_stack = key_stack[..5].to_vec();
+            }
+
+            let token = find_name_word(content, position)?;
+            return Some(match token_side {
+                TokenSide::Left => AutoCompleteToken::new(
+                    token,
+                    file_type,
+                    TokenType::VariableWithPrefix(var_stack.unwrap_or_default()),
+                    token_side,
+                    key_stack,
+                ),
+                TokenSide::Right => AutoCompleteToken::new(
+                    token,
+                    file_type,
+                    TokenType::Variable,
+                    token_side,
+                    key_stack,
+                ),
+            });
         }
     }
 
@@ -77,8 +97,7 @@ fn parse_job_token(
     position: &Position,
     file_type: TokenFileType,
     token_side: TokenSide,
-    key_stack: Vec<String>,
-    var_stack: Option<Vec<String>>,
+    mut key_stack: Vec<String>,
 ) -> Option<AutoCompleteToken> {
     if key_stack.len() < 2 {
         return None;
@@ -96,6 +115,12 @@ fn parse_job_token(
             ))
         }
         "vars" => {
+            let mut var_stack = None;
+            if key_stack.len() >= 3 {
+                var_stack = Some(key_stack[2..].to_vec());
+                key_stack = key_stack[..2].to_vec();
+            }
+
             let token = find_name_word(content, position)?;
             Some(match token_side {
                 TokenSide::Left => AutoCompleteToken::new(
@@ -133,8 +158,8 @@ pub fn parse_token_zuul_config(
     content: &Rope,
     position: &Position,
 ) -> Option<AutoCompleteToken> {
-    let (key_stack, var_stack, token_side) =
-        retrieve_zuul_key_stack(content, position.line as usize, position.character as usize)?;
+    let (key_stack, token_side) =
+        retrieve_key_stack(content, position.line as usize, position.character as usize)?;
     log::info!(
         "key_stack: {:#?}, token_side: {:#?}",
         &key_stack,
@@ -156,39 +181,34 @@ pub fn parse_token_zuul_config(
         ));
     }
 
-    if key_stack[0] == "job" {
-        return parse_job_token(
-            content, position, file_type, token_side, key_stack, var_stack,
-        );
+    match key_stack[0].as_str() {
+        "job" => parse_job_token(content, position, file_type, token_side, key_stack),
+        "project" | "project_template" => {
+            parse_project_token(content, position, file_type, token_side, key_stack)
+        }
+        _ => None,
     }
-
-    None
-}
-
-pub fn parse_token_zuul_project(
-    file_type: TokenFileType,
-    content: &Rope,
-    position: &Position,
-) -> Option<AutoCompleteToken> {
-    let search_rope =
-        insert_search_word(content, position.line as usize, position.character as usize);
-    let content = search_rope.to_string();
-
-    let docs = YamlLoader::load_from_str(&content).ok()?;
-    if docs.len() != 1 {
-        return None;
-    }
-    let doc = &docs[0];
-    let doc = doc.as_vec()?;
-    log::info!("doc: {:#?}", doc);
-    log::info!("file_type: {:#?}", file_type);
-
-    None
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_parse_token_zuul_project() {
+        let content = r#"
+- project:
+    check:
+      jobs:
+        - check_job1
+        - check_job2:
+            dependencies:
+               - dependencies_job_1
+            voting: false
+    "#;
+        let xs = retrieve_key_stack(&Rope::from_str(content), 7, 22);
+        println!("xs: {:#?}", xs);
+    }
 
     #[test]
     fn test_retrieve_property_stack() {
@@ -197,7 +217,7 @@ mod tests {
     name: test-job
     parent: parent-job
     "#;
-        let xs = retrieve_zuul_key_stack(&Rope::from_str(content), 3, 12);
+        let xs = retrieve_key_stack(&Rope::from_str(content), 3, 12);
         assert_eq!(
             xs,
             Some((
@@ -205,7 +225,6 @@ mod tests {
                     .iter()
                     .map(|x| x.to_string())
                     .collect::<Vec<_>>(),
-                None,
                 TokenSide::Right
             ))
         );
@@ -221,20 +240,14 @@ mod tests {
         test_var:
           nested_var: value
     "#;
-        let xs = retrieve_zuul_key_stack(&Rope::from_str(content), 6, 14);
+        let xs = retrieve_key_stack(&Rope::from_str(content), 6, 14);
         assert_eq!(
             xs,
             Some((
-                (["job", "vars"])
+                (["job", "vars", "test_var"])
                     .iter()
                     .map(|x| x.to_string())
                     .collect::<Vec<_>>(),
-                Some(
-                    ["test_var"]
-                        .iter()
-                        .map(|x| x.to_string())
-                        .collect::<Vec<_>>()
-                ),
                 TokenSide::Left
             ))
         );

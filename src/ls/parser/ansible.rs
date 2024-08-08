@@ -17,7 +17,7 @@ fn parse_var(
     position: &Position,
     key_stack: Option<Vec<String>>,
 ) -> Option<AutoCompleteToken> {
-    if let Some((var_stack, token_side)) = parse_value(value, Vec::new()) {
+    if let Some((var_stack, token_side)) = parse_value(value, None) {
         let token_type = match token_side {
             TokenSide::Left => TokenType::VariableWithPrefix(var_stack),
             TokenSide::Right => TokenType::Variable,
@@ -62,7 +62,7 @@ fn parse_ansible_tasks(
                 }
                 // Check value
                 _ => {
-                    if let Some((value_stack, token_side)) = parse_value(value, Vec::new()) {
+                    if let Some((value_stack, token_side)) = parse_value(value, None) {
                         key_stack.push(key_name.to_string());
 
                         let token = match key_name {
@@ -142,7 +142,7 @@ fn parse_roles(
                 ));
             }
 
-            if let Some((var_stack, token_side)) = parse_value(value, Vec::new()) {
+            if let Some((var_stack, token_side)) = parse_value(value, None) {
                 if key_name == "role" && token_side == TokenSide::Right {
                     return Some(AutoCompleteToken::new(
                         find_role_word(content, position)?,

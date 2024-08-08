@@ -9,7 +9,7 @@ use ropey::Rope;
 use tower_lsp::lsp_types::Position;
 
 use self::ansible::parse_token_ansible;
-use self::zuul::{parse_token_zuul_config, parse_token_zuul_project};
+use self::zuul::parse_token_zuul_config;
 use crate::path::{retrieve_repo_path, to_path};
 
 fn get_exist_path(path: PathBuf) -> Option<PathBuf> {
@@ -25,7 +25,6 @@ pub enum TokenFileType {
     #[default]
     Unknown,
     ZuulConfig,
-    ZuulProject,
     Playbooks,
     AnsibleRoleDefaults,
     AnsibleRoleTasks {
@@ -89,11 +88,6 @@ impl TokenFileType {
                     },
                     None => None,
                 });
-        }
-
-        let project_path = repo_path.join("zuul.d").join("project.yaml");
-        if path.to_str().unwrap() == project_path.to_str().unwrap() {
-            return Some(TokenFileType::ZuulProject);
         }
 
         None
@@ -165,7 +159,6 @@ pub fn parse_token(path: &Path, content: &Rope, position: &Position) -> Option<A
             parse_token_ansible(file_type, content, position)
         }
         TokenFileType::ZuulConfig => parse_token_zuul_config(file_type, content, position),
-        TokenFileType::ZuulProject => parse_token_zuul_project(file_type, content, position),
         TokenFileType::Unknown => None,
     }
 }

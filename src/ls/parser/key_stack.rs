@@ -4,35 +4,38 @@ use crate::ls::parser::TokenSide;
 use yaml_rust2::yaml::Yaml;
 
 pub const SEARCH_PATTERN: &str = "SeRpAt";
+pub const ARRAY_INDEX_KEY: &str = "ArRaY_InDeX";
 
-pub fn parse_value(value: &Yaml, key_stack: Vec<String>) -> Option<(Vec<String>, TokenSide)> {
+fn parse_value_internal(value: &Yaml, key_stack: &mut Vec<String>) -> Option<TokenSide> {
     match value {
         Yaml::String(s) => {
             if s.contains(SEARCH_PATTERN) {
-                return Some((key_stack.clone(), TokenSide::Right));
+                return Some(TokenSide::Right);
             }
         }
         Yaml::Hash(xs) => {
             for (key, value) in xs {
                 let key_name = key.as_str()?;
                 if key_name.contains(SEARCH_PATTERN) {
-                    return Some((key_stack, TokenSide::Left));
+                    return Some(TokenSide::Left);
                 }
 
-                let mut new_key_stack = key_stack.clone();
-                new_key_stack.push(key_name.to_string());
-                let sub_value = parse_value(value, new_key_stack);
+                key_stack.push(key_name.to_string());
+                let sub_value = parse_value_internal(value, key_stack);
                 if sub_value.is_some() {
                     return sub_value;
                 }
+                key_stack.pop();
             }
         }
         Yaml::Array(xs) => {
             for x in xs {
-                let sub_value = parse_value(x, key_stack.clone());
+                key_stack.push(ARRAY_INDEX_KEY.to_string());
+                let sub_value = parse_value_internal(x, key_stack);
                 if sub_value.is_some() {
-                    return Some((key_stack.clone(), TokenSide::Right));
+                    return sub_value;
                 }
+                key_stack.pop();
             }
         }
         _ => {
@@ -41,6 +44,15 @@ pub fn parse_value(value: &Yaml, key_stack: Vec<String>) -> Option<(Vec<String>,
     }
 
     None
+}
+
+pub fn parse_value(
+    value: &Yaml,
+    key_stack: Option<Vec<String>>,
+) -> Option<(Vec<String>, TokenSide)> {
+    let mut key_stack = key_stack.unwrap_or_default();
+    let token_side = parse_value_internal(value, &mut key_stack)?;
+    Some((key_stack, token_side))
 }
 
 pub fn insert_search_word(content: &Rope, line: usize, col: usize) -> Rope {
