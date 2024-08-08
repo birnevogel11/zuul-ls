@@ -6,8 +6,8 @@ use tower_lsp::lsp_types::{Location, Position, Range, Url};
 
 use crate::parser::yaml::{YValue, YValueYaml};
 
-static STRING_POOL: StringPool = StringPool::new();
-static PATH_POOL: PathPool = PathPool::new();
+pub static STRING_POOL: StringPool = StringPool::new();
+pub static PATH_POOL: PathPool = PathPool::new();
 
 pub trait ZuulParse<T> {
     fn parse(xs: &LinkedHashMap<YValue, YValue>, path: &Path) -> Result<T, ZuulParseError>;

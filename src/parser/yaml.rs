@@ -420,23 +420,10 @@ pub enum LoadYValueError {
 }
 
 pub fn load_yvalue(path: &Path) -> Result<Vec<YValue>, LoadYValueError> {
-    let content = match std::fs::read_to_string(path) {
-        Ok(content) => Ok(content),
-        Err(err) => Err(LoadYValueError::FileError(err)),
-    };
-
-    match content {
-        Ok(content) => match YValueLoader::load_from_str(&content) {
-            Ok(docs) => Ok(docs),
-            Err(err) => Err(LoadYValueError::ParseError(err)),
-        },
-        Err(err) => Err(err),
-    }
+    let file_content = std::fs::read_to_string(path).map_err(LoadYValueError::FileError)?;
+    YValueLoader::load_from_str(&file_content).map_err(LoadYValueError::ParseError)
 }
 
 pub fn load_yvalue_from_str(content: &str) -> Result<Vec<YValue>, LoadYValueError> {
-    match YValueLoader::load_from_str(content) {
-        Ok(docs) => Ok(docs),
-        Err(err) => Err(LoadYValueError::ParseError(err)),
-    }
+    YValueLoader::load_from_str(content).map_err(LoadYValueError::ParseError)
 }

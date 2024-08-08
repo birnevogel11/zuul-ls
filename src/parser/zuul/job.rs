@@ -7,73 +7,10 @@ use crate::parser::common::{
     parse_optional_string_value, parse_string_value, StringLoc, ZuulParse, ZuulParseError,
 };
 use crate::parser::yaml::{YValue, YValueYaml};
+use crate::parser::zuul::var_table::VarTable;
 use crate::path::retrieve_repo_path;
 
-#[derive(Clone, PartialEq, PartialOrd, Debug, Eq, Ord, Hash)]
-pub enum VarValue {
-    Null,
-    Integer(i64),
-    Boolean(bool),
-    Real(String),
-    String(String),
-    Array(Vec<Self>),
-    Hash(VarTable),
-}
-
-impl VarValue {
-    pub fn to_show_value(&self) -> String {
-        match self {
-            VarValue::Null => "null".to_string(),
-            VarValue::Integer(v) => v.to_string(),
-            VarValue::Boolean(v) => v.to_string(),
-            VarValue::Real(v) => v.clone(),
-            VarValue::String(v) => v.clone(),
-            VarValue::Array(v) => {
-                let s = v
-                    .iter()
-                    .map(|x| x.to_show_value())
-                    .collect::<Vec<_>>()
-                    .join(", ");
-                ["[", &s, "]"].join("")
-            }
-            VarValue::Hash(v) => format!("{:?}", v),
-        }
-    }
-
-    pub fn from_yvalue(
-        value: &YValue,
-        path: &Path,
-        field_name: &str,
-    ) -> Result<VarValue, ZuulParseError> {
-        Ok(match value.value() {
-            YValueYaml::Real(v) => VarValue::Real(v.clone()),
-            YValueYaml::Integer(v) => VarValue::Integer(*v),
-            YValueYaml::String(v) => VarValue::String(v.clone()),
-            YValueYaml::Boolean(v) => VarValue::Boolean(*v),
-            YValueYaml::Array(vs) => {
-                let mut xs = Vec::new();
-                for v in vs {
-                    xs.push(VarValue::from_yvalue(v, path, field_name)?);
-                }
-                VarValue::Array(xs)
-            }
-            YValueYaml::Hash(vs) => {
-                let mut xs = VarTable::new();
-                for (key, value) in vs {
-                    let key = parse_string_value(key, path, field_name)?;
-                    let value = VarValue::from_yvalue(value, path, key.as_str())?;
-                    xs.insert(key, value);
-                }
-                VarValue::Hash(xs)
-            }
-            YValueYaml::Null => VarValue::Null,
-            YValueYaml::Alias(_) => unreachable!(),
-            YValueYaml::BadValue => unreachable!(),
-        })
-    }
-}
-
-pub type VarTable = LinkedHashMap<StringLoc, VarValue>;
+use super::var_table::parse_var_table;
 
 #[derive(Clone, PartialEq, PartialOrd, Debug, Eq, Ord, Hash)]
 pub struct Job {
@@ -176,31 +113,6 @@ impl Job {
             .map(|x| (x.1, x.0))
             .collect())
     }
-
-    fn parse_variables(
-        values: &YValue,
-        path: &Path,
-        field_name: &str,
-    ) -> Result<VarTable, ZuulParseError> {
-        if let Some(values) = values.as_hash() {
-            let mut vs = VarTable::new();
-            for (key, value) in values {
-                let key = parse_string_value(key, path, field_name)?;
-                let value = VarValue::from_yvalue(value, path, key.as_str())?;
-                vs.insert(key, value);
-            }
-
-            Ok(vs)
-        } else {
-            Err(ZuulParseError::from(
-                format!("Failed to parse the value of {}", field_name)
-                    .to_string()
-                    .as_str(),
-                values,
-                path,
-            ))
-        }
-    }
 }
 
 impl ZuulParse<Job> for Job {
@@ -239,7 +151,7 @@ impl ZuulParse<Job> for Job {
                         clean_run_playbooks = Job::parse_playbooks(value, path, "clean-run")?;
                     }
                     "vars" => {
-                        vars = Job::parse_variables(value, path, "vars")?;
+                        vars = parse_var_table(value, path, "vars")?;
                     }
                     // "roles" => todo!(),
                     _ => {}

@@ -1,7 +1,8 @@
 use crate::parser::common::StringLoc;
 use crate::parser::zuul::project_template::ProjectTemplate;
+use crate::parser::zuul::var_table::VariableInfo;
+use crate::parser::zuul::var_table::VariableSource;
 use crate::path::shorten_path;
-use crate::search::vars::VariableInfo;
 
 #[macro_export]
 macro_rules! safe_println {
@@ -18,15 +19,20 @@ macro_rules! safe_println {
 
 pub fn print_var_info_list(vars: &[VariableInfo]) {
     for var_info in vars {
-        println!(
-            "{}\t{}\t{}\t{}\t{}\t{}",
-            var_info.name.value,
-            var_info.job_name.value,
-            var_info.value,
-            shorten_path(&var_info.name.path).display(),
-            var_info.name.line,
-            var_info.name.col,
-        )
+        match &var_info.source {
+            VariableSource::Job(job_name) => {
+                println!(
+                    "{}\t{}\t{}\t{}\t{}\t{}",
+                    var_info.name.value,
+                    job_name.value,
+                    var_info.value,
+                    shorten_path(&var_info.name.path).display(),
+                    var_info.name.line,
+                    var_info.name.col,
+                )
+            }
+            _ => {}
+        }
     }
 }
 

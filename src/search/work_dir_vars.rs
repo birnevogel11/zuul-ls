@@ -1,17 +1,14 @@
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
-use std::rc::Rc;
 
-use crate::parser::common::StringLoc;
-use crate::parser::zuul::job::{VarTable, VarValue};
+use crate::parser::zuul::var_table::{VarTable, VarValue, VariableInfo, VariableSource};
 use crate::search::jobs::list_jobs;
 use crate::search::report_print::print_var_info_list;
-use crate::search::vars::VariableInfo;
 
 fn expand_vars(
     name_prefix: &str,
     job_vars: &VarTable,
-    job_name: &Rc<StringLoc>,
+    source: &VariableSource,
 ) -> HashSet<VariableInfo> {
     let mut vs: HashSet<VariableInfo> = HashSet::new();
     for (job_var, value) in job_vars {
@@ -23,12 +20,12 @@ fn expand_vars(
 
         match value {
             VarValue::Hash(value) => {
-                vs.extend(expand_vars(&var_name, value, job_name));
+                vs.extend(expand_vars(&var_name, value, source));
             }
             _ => {
                 vs.insert(VariableInfo {
                     name: job_var.clone_loc(var_name),
-                    job_name: job_name.clone(),
+                    source: source.clone(),
                     value: value.to_show_value(),
                 });
             }
@@ -52,8 +49,8 @@ pub fn list_work_dir_vars(work_dir: &Path, config_path: Option<PathBuf>) -> Hash
 
     let mut vars: HashSet<VariableInfo> = HashSet::new();
     for job in ordered_jobs {
-        let job_name = Rc::new(job.name().clone());
-        vars.extend(expand_vars("", job.vars(), &job_name));
+        let job_name = job.name().clone();
+        vars.extend(expand_vars("", job.vars(), &VariableSource::Job(job_name)));
     }
 
     vars

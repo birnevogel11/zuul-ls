@@ -9,30 +9,15 @@ use tower_lsp::{Client, LanguageServer, LspService};
 use crate::config::get_work_dir;
 use crate::ls::parser::{parse_word_type, WordType};
 use crate::parser::common::StringLoc;
+use crate::parser::zuul::var_table::VariableInfo;
 use crate::path::{get_role_repo_dirs, retrieve_repo_path, to_path};
 use crate::search::jobs::list_job_locs_by_name;
 use crate::search::roles::list_roles;
-use crate::search::vars::VariableInfo;
 use crate::search::work_dir_vars::list_work_dir_vars_group;
 
 struct TextDocumentItem {
     uri: Url,
     text: String,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-struct VariableItem {
-    pub name: StringLoc,
-    pub value: String,
-}
-
-impl From<VariableInfo> for VariableItem {
-    fn from(var_info: VariableInfo) -> Self {
-        VariableItem {
-            name: var_info.name,
-            value: var_info.value,
-        }
-    }
 }
 
 #[derive(Debug)]
@@ -41,7 +26,7 @@ pub struct Backend {
     document_map: DashMap<String, Rope>,
 
     role_dirs: DashMap<String, PathBuf>,
-    vars: DashMap<String, Vec<VariableItem>>,
+    vars: DashMap<String, Vec<VariableInfo>>,
     jobs: DashMap<String, Vec<StringLoc>>,
 }
 
@@ -127,8 +112,7 @@ impl Backend {
 
         let vars = list_work_dir_vars_group(&work_dir, None);
         vars.into_iter().for_each(|(name, var_info)| {
-            self.vars
-                .insert(name, var_info.into_iter().map(VariableItem::from).collect());
+            self.vars.insert(name, var_info);
         });
 
         let jobs = list_job_locs_by_name(&work_dir, None);
