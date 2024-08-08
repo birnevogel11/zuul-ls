@@ -117,7 +117,7 @@ impl ZuulJobs {
         let mut collect_names: HashSet<String> = HashSet::new();
 
         let mut search_names: VecDeque<String> = VecDeque::new();
-        if let Some(value) = jobs.get(name) {
+        if jobs.contains_key(name) {
             search_names.push_back(name.to_string());
         }
 

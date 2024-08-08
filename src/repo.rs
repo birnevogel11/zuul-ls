@@ -1,4 +1,3 @@
-use std::path::Path;
 use std::path::PathBuf;
 
 fn _should_visit_dir(path: &PathBuf) -> bool {

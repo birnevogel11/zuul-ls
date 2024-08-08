@@ -3,7 +3,6 @@ use std::rc::Rc;
 
 use hashlink::LinkedHashMap;
 
-use crate::parser::common::parse_string_or_list_string;
 use crate::parser::common::parse_string_value;
 use crate::parser::common::StringLoc;
 use crate::parser::common::ZuulParse;

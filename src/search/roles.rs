@@ -1,7 +1,6 @@
 use std::path::Path;
 use std::path::PathBuf;
 
-use crate::config::Config;
 use crate::search::path::get_role_repo_dirs;
 use crate::search::path::traversal_dirs;
 

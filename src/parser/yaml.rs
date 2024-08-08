@@ -1,9 +1,8 @@
 use std::path::Path;
-use std::{collections::BTreeMap, convert::TryFrom, mem, ops::Index, ops::IndexMut};
+use std::{collections::BTreeMap, mem};
 
 use yaml_rust2::parser::{Event, MarkedEventReceiver, Parser, Tag};
 use yaml_rust2::scanner::{Marker, ScanError, TScalarStyle};
-use yaml_rust2::yaml::LoadError;
 
 use hashlink::LinkedHashMap;
 

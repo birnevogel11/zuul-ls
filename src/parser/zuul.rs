@@ -5,7 +5,6 @@ pub mod project_template;
 pub mod queue;
 pub mod secret;
 
-use std::path::Path;
 use std::path::PathBuf;
 use std::rc::Rc;
 
@@ -22,7 +21,7 @@ use crate::parser::zuul::queue::Queue;
 use crate::parser::zuul::secret::Secret;
 
 #[derive(Clone)]
-enum ZuulParseType {
+pub enum ZuulParseType {
     Job,
     ProjectTemplate,
     Nodeset,
@@ -57,7 +56,7 @@ impl ZuulParseType {
 }
 
 #[derive(Clone, PartialEq, PartialOrd, Debug, Eq, Ord, Hash)]
-enum ZuulConfigParsedElement {
+pub enum ZuulConfigParsedElement {
     Job(Job),
     ProjectTemplate(ProjectTemplate),
     Nodeset(Nodeset),

@@ -1,12 +1,9 @@
-mod config;
-mod golden_key_test;
-mod parser;
-mod repo;
-mod search;
-
 use std::path::PathBuf;
 
 use clap::Parser;
+
+use zuul_parser::search::roles;
+use zuul_parser::search::jobs;
 
 #[derive(Parser)]
 #[command(name = "zuul-search")]
@@ -41,10 +38,10 @@ fn main() {
 
     match args {
         ZuulSearchCli::Roles(args) => {
-            crate::search::roles::list_roles_cli(args.work_dir, args.config_path);
+            roles::list_roles_cli(args.work_dir, args.config_path);
         }
         ZuulSearchCli::Jobs(args) => {
-            crate::search::jobs::list_jobs_cli(args.work_dir, args.config_path);
+            jobs::list_jobs_cli(args.work_dir, args.config_path);
         }
     };
 }
