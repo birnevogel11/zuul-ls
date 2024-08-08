@@ -39,6 +39,7 @@ struct ZuulSearchCliJobArgs {
 
 fn main() {
     crate::study_graph::study_graph_topo();
+
     // let args = ZuulSearchCli::parse();
     //
     // match args {

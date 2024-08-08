@@ -5,15 +5,13 @@ use std::rc::Rc;
 
 use bimap::BiMap;
 use hashlink::LinkedHashMap;
-use petgraph::algo::toposort;
-use petgraph::algo::DfsSpace;
-use petgraph::graph::DiGraph;
+use petgraph::algo::{toposort, DfsSpace};
+use petgraph::graph::{DiGraph, Graph, NodeIndex};
 
 use crate::parser::common::StringLoc;
 use crate::parser::zuul::job::Job;
 use crate::parser::zuul::parse_zuul;
-use crate::search::path::get_repo_dirs;
-use crate::search::path::get_zuul_yaml_paths;
+use crate::search::path::{get_repo_dirs, get_zuul_yaml_paths};
 
 fn gather_jobs_by_name(jobs: Vec<Job>) -> LinkedHashMap<String, Vec<Job>> {
     let mut hs: LinkedHashMap<String, Vec<Job>> = LinkedHashMap::new();
@@ -58,38 +56,11 @@ fn collect_job_names(name: &str, jobs: &LinkedHashMap<String, Vec<Job>>) -> Vec<
     collect_names.into_iter().collect()
 }
 
-fn get_job_hierarchy(name: &str, raw_jobs: Vec<Job>) -> Vec<StringLoc> {
-    let jobs = gather_jobs_by_name(raw_jobs);
-    let names = collect_job_names(name, &jobs);
-
-    let mut g = DiGraph::<&String, ()>::new();
-    // let mut node_map = BiMap::new();
-    let raw_nodes = names
-        .iter()
-        .map(|name| (name, g.add_node(name)))
-        .collect::<Vec<_>>();
-
-    let mut node_map = BiMap::new();
-    for (name, node_idx) in raw_nodes {
-        node_map.insert(name, node_idx);
-    }
-
-    for name in &names {
-        let serach_jobs = jobs.get(name).unwrap();
-        for job in serach_jobs {
-            if let Some(parent_job_name) = job.parent() {
-                let parent_job_name = &parent_job_name.value;
-                if jobs.contains_key(parent_job_name) {
-                    g.add_edge(
-                        *node_map.get_by_left(name).unwrap(),
-                        *node_map.get_by_left(&parent_job_name).unwrap(),
-                        (),
-                    );
-                }
-            }
-        }
-    }
-
+fn visit_job_graph(
+    g: Graph<&String, ()>,
+    node_map: BiMap<&String, NodeIndex>,
+    jobs: &LinkedHashMap<String, Vec<Job>>,
+) -> Vec<StringLoc> {
     let mut space = DfsSpace::default();
     let hs = toposort(&g, Some(&mut space)).unwrap();
     let hs = hs
@@ -106,6 +77,52 @@ fn get_job_hierarchy(name: &str, raw_jobs: Vec<Job>) -> Vec<StringLoc> {
     }
 
     ys
+}
+
+fn create_job_graph<'a>(
+    names: &'a Vec<String>,
+    jobs: &'a LinkedHashMap<String, Vec<Job>>,
+) -> (Graph<&'a String, ()>, BiMap<&'a String, NodeIndex>) {
+    let mut g = DiGraph::<&String, ()>::new();
+    let raw_nodes = names
+        .iter()
+        .map(|name| (name, g.add_node(name)))
+        .collect::<Vec<_>>();
+
+    let mut node_map = BiMap::new();
+    for (name, node_idx) in raw_nodes {
+        node_map.insert(name, node_idx);
+    }
+
+    for name in names {
+        let search_jobs = jobs.get(name).unwrap();
+        for job in search_jobs {
+            if let Some(parent_job_name) = job.parent() {
+                let parent_job_name = &parent_job_name.value;
+                if jobs.contains_key(parent_job_name) {
+                    g.add_edge(
+                        *node_map.get_by_left(name).unwrap(),
+                        *node_map.get_by_left(&parent_job_name).unwrap(),
+                        (),
+                    );
+                }
+            }
+        }
+    }
+    (g, node_map)
+}
+
+pub fn get_job_hierarchy(name: &str, raw_jobs: Vec<Job>) -> Vec<StringLoc> {
+    let jobs = gather_jobs_by_name(raw_jobs);
+
+    // Try to support multiple inheritances ...
+    let names = collect_job_names(name, &jobs);
+
+    // Create a di-graph and node mapping
+    let (g, node_map) = create_job_graph(&names, &jobs);
+
+    // Get the job hierarchy from the topological order of jobs.
+    visit_job_graph(g, node_map, &jobs)
 }
 
 pub fn list_jobs_from_paths(yaml_paths: &[Rc<PathBuf>]) -> Vec<Job> {
