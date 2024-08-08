@@ -12,6 +12,7 @@ use crate::ls::parser::WordType;
 use crate::parser::common::StringLoc;
 use crate::path::get_role_repo_dirs;
 use crate::search::job_vars::VariableInfo;
+use crate::search::jobs::list_job_locs_by_name;
 use crate::search::roles::list_roles;
 use crate::search::work_dir_vars::list_work_dir_vars_group;
 
@@ -42,6 +43,7 @@ pub struct Backend {
 
     role_dirs: DashMap<String, PathBuf>,
     vars: DashMap<String, Vec<VariableItem>>,
+    jobs: DashMap<String, Vec<StringLoc>>,
 }
 
 #[tower_lsp::async_trait]
@@ -129,6 +131,11 @@ impl Backend {
             self.vars
                 .insert(name, var_info.into_iter().map(VariableItem::from).collect());
         });
+
+        let jobs = list_job_locs_by_name(&work_dir, None);
+        jobs.into_iter().for_each(|(name, job_locs)| {
+            self.jobs.insert(name, job_locs);
+        })
     }
 
     async fn on_change(&self, params: TextDocumentItem) {
@@ -170,7 +177,11 @@ impl Backend {
                         locs.extend(var_infos.iter().map(|var| var.name.clone().into()));
                     }
                 }
-                WordType::Job => {} // TODO: implement it
+                WordType::Job => {
+                    if let Some(job_locs) = self.jobs.get(current_word) {
+                        locs.extend(job_locs.iter().map(|job_loc| job_loc.clone().into()));
+                    }
+                }
                 WordType::Role => {
                     if let Some(role) = self.role_dirs.get(current_word) {
                         locs.push(Location::new(
@@ -200,6 +211,7 @@ pub fn initialize_service() -> (tower_lsp::LspService<Backend>, tower_lsp::Clien
         document_map: DashMap::new(),
         role_dirs: DashMap::new(),
         vars: DashMap::new(),
+        jobs: DashMap::new(),
     })
     .finish();
 

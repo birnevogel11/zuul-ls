@@ -1,4 +1,4 @@
-use std::collections::{HashSet, VecDeque};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 
@@ -195,6 +195,29 @@ pub fn list_jobs_hierarchy_names_cli(
         .collect::<Vec<_>>();
 
     print_string_locs(&job_names)
+}
+
+pub fn list_job_locs_by_name(
+    work_dir: &Path,
+    config_path: Option<PathBuf>,
+) -> HashMap<String, Vec<StringLoc>> {
+    let zuul_jobs = list_jobs(work_dir, config_path);
+    let mut job_groups: HashMap<String, Vec<StringLoc>> = HashMap::new();
+
+    zuul_jobs.jobs().iter().for_each(|job| {
+        let name_loc = job.name().clone();
+        let name = name_loc.value.to_string();
+        match job_groups.get_mut(&name) {
+            Some(name_locs) => {
+                name_locs.push(name_loc);
+            }
+            None => {
+                job_groups.insert(name, vec![name_loc]);
+            }
+        }
+    });
+
+    job_groups
 }
 
 pub fn list_jobs(work_dir: &Path, config_path: Option<PathBuf>) -> ZuulJobs {

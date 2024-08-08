@@ -169,5 +169,7 @@ pub fn shorten_path(path: &Path) -> PathBuf {
 }
 
 pub fn filter_valid_paths(xs: Vec<PathBuf>) -> Vec<PathBuf> {
-    xs.iter().filter_map(|x| fs::canonicalize(x).ok()).collect()
+    xs.iter()
+        .filter_map(|x| fs::canonicalize(to_path(x.to_str().unwrap())).ok())
+        .collect()
 }

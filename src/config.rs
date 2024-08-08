@@ -9,7 +9,7 @@ use dirs;
 use yaml_rust2::yaml::Yaml;
 use yaml_rust2::yaml::YamlLoader;
 
-// use crate::path::filter_valid_paths;
+use crate::path::filter_valid_paths;
 use crate::path::to_path;
 
 #[derive(Default, Debug, PartialEq)]
@@ -89,29 +89,28 @@ impl Config {
             }
         }
 
-        // Some(Self::validate_config(config))
-        Some(config)
+        Some(Self::validate_config(config))
     }
 
-    // fn validate_config(config: Config) -> Config {
-    //     Config {
-    //         tenants: config
-    //             .tenants
-    //             .into_iter()
-    //             .map(|(name, tenant)| {
-    //                 (
-    //                     name,
-    //                     TenantConfig {
-    //                         name: tenant.name,
-    //                         base_dirs: filter_valid_paths(tenant.base_dirs),
-    //                         extra_base_dirs: filter_valid_paths(tenant.extra_base_dirs),
-    //                         extra_role_dirs: filter_valid_paths(tenant.extra_role_dirs),
-    //                     },
-    //                 )
-    //             })
-    //             .collect(),
-    //     }
-    // }
+    fn validate_config(config: Config) -> Config {
+        Config {
+            tenants: config
+                .tenants
+                .into_iter()
+                .map(|(name, tenant)| {
+                    (
+                        name,
+                        TenantConfig {
+                            name: tenant.name,
+                            base_dirs: filter_valid_paths(tenant.base_dirs),
+                            extra_base_dirs: filter_valid_paths(tenant.extra_base_dirs),
+                            extra_role_dirs: filter_valid_paths(tenant.extra_role_dirs),
+                        },
+                    )
+                })
+                .collect(),
+        }
+    }
 
     pub fn find_tenant(&self, work_dir: &Path) -> Option<String> {
         self.tenants.iter().find_map(|(name, tenant_config)| {
