@@ -1,7 +1,6 @@
 use std::path::Path;
 use std::path::PathBuf;
 use std::rc::Rc;
-use std::str::FromStr;
 
 use path_absolutize::*;
 use walkdir::WalkDir;
@@ -125,12 +124,26 @@ fn find_tenant_dirs(
 }
 
 fn list_zuul_yaml_paths(repo_dir: &Path) -> Vec<Rc<PathBuf>> {
-    WalkDir::new(repo_dir.join("zuul.d"))
+    let mut zuul_config_dirs = vec![repo_dir.join("zuul.d")];
+    for entry in repo_dir.read_dir().unwrap().filter_map(|x| x.ok()) {
+        let path = entry.path();
+        if path.is_dir() && path.to_str().unwrap().ends_with("zuul-extra.d") {
+            zuul_config_dirs.push(path)
+        }
+    }
+
+    zuul_config_dirs
         .into_iter()
-        .filter_map(|e| e.ok())
-        .filter(|x| x.file_name().to_str().unwrap().ends_with(".yaml"))
-        .map(|x| Rc::new(x.into_path()))
-        .collect()
+        .map(|dir_path| {
+            WalkDir::new(dir_path)
+                .into_iter()
+                .filter_map(|e| e.ok())
+                .filter(|x| x.file_name().to_str().unwrap().ends_with(".yaml"))
+                .map(|x| Rc::new(x.into_path()))
+                .collect::<Vec<_>>()
+        })
+        .collect::<Vec<Vec<_>>>()
+        .concat()
 }
 
 pub fn shorten_path(path: &Path) -> PathBuf {

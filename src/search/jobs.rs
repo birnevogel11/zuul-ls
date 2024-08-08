@@ -137,9 +137,7 @@ impl ZuulJobs {
             }
         }
 
-        let keys: Vec<_> = jobs.keys().collect();
-        let ys = collect_names.into_iter().collect();
-        ys
+        collect_names.into_iter().collect()
     }
 
     fn gather_jobs_by_name(jobs: &Vec<Rc<Job>>) -> LinkedHashMap<String, Vec<Rc<Job>>> {
