@@ -49,13 +49,6 @@ impl ZuulJobs {
         ZuulJobs::visit_job_graph(g, node_map, &self.name_jobs)
     }
 
-    pub fn get_job_hierarchy_names(&self, name: &str) -> Vec<StringLoc> {
-        self.get_job_hierarchy(name)
-            .iter()
-            .map(|x| x.name().clone())
-            .collect()
-    }
-
     pub fn jobs(&self) -> &Vec<Rc<Job>> {
         &self.jobs
     }
@@ -97,10 +90,10 @@ impl ZuulJobs {
         (g, node_map)
     }
 
-    fn visit_job_graph<'a>(
+    fn visit_job_graph(
         g: Graph<&String, ()>,
         node_map: BiMap<&String, NodeIndex>,
-        jobs: &'a LinkedHashMap<String, Vec<Rc<Job>>>,
+        jobs: &LinkedHashMap<String, Vec<Rc<Job>>>,
     ) -> Vec<Rc<Job>> {
         let mut space = DfsSpace::default();
         let hs = toposort(&g, Some(&mut space)).unwrap();
@@ -164,6 +157,14 @@ impl ZuulJobs {
     }
 }
 
+pub fn list_job_hierarchy_names(name: &str, zuul_jobs: &ZuulJobs) -> Vec<StringLoc> {
+    zuul_jobs
+        .get_job_hierarchy(name)
+        .iter()
+        .map(|x| x.name().clone())
+        .collect()
+}
+
 pub fn list_jobs_from_cli(work_dir: Option<PathBuf>, config_path: Option<PathBuf>) -> ZuulJobs {
     let repo_dirs = get_repo_dirs(work_dir, config_path);
     let yaml_paths = get_zuul_yaml_paths(&repo_dirs);
@@ -175,7 +176,7 @@ pub fn list_jobs_cli(work_dir: Option<PathBuf>, config_path: Option<PathBuf>) {
     for job in zuul_jobs.jobs() {
         let name = job.name();
         println!(
-            "{} {}:{}:{}",
+            "{}\tJob\t{}\t{}\t{}",
             name.value,
             name.path.to_str().unwrap(),
             name.line,
