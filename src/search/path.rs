@@ -25,7 +25,7 @@ pub fn retrieve_repo_path(path: &str) -> PathBuf {
     PathBuf::from(&repo_path[1..repo_path.len()])
 }
 
-pub fn get_zuul_yaml_paths(repo_dirs: &Vec<PathBuf>) -> Vec<Rc<PathBuf>> {
+pub fn get_zuul_yaml_paths(repo_dirs: &[PathBuf]) -> Vec<Rc<PathBuf>> {
     repo_dirs
         .iter()
         .map(|x| list_zuul_yaml_paths(x))
@@ -54,23 +54,23 @@ pub fn get_role_repo_dirs(work_dir: Option<PathBuf>, config_path: Option<PathBuf
 }
 
 pub fn traversal_dirs(base_dir: PathBuf, check_dir_name: &str) -> Vec<PathBuf> {
-    let mut xs = Vec::new();
-
-    if let Ok(dir_iter) = base_dir.read_dir() {
-        if base_dir.join(check_dir_name).is_dir() {
-            xs.push(base_dir);
-            return xs;
-        }
-
-        for entry in dir_iter.map_while(|x| x.ok()) {
-            let path = entry.path();
-            if should_visit_dir(&path) {
-                xs.append(&mut (traversal_dirs(path, check_dir_name)));
+    match base_dir.read_dir() {
+        Ok(dir_iter) => {
+            if base_dir.join(check_dir_name).is_dir() {
+                vec![base_dir]
+            } else {
+                let mut xs = Vec::new();
+                for entry in dir_iter.map_while(|x| x.ok()) {
+                    let path = entry.path();
+                    if should_visit_dir(&path) {
+                        xs.append(&mut (traversal_dirs(path, check_dir_name)));
+                    }
+                }
+                xs
             }
         }
+        _ => vec![],
     }
-
-    xs
 }
 
 fn should_visit_dir(path: &Path) -> bool {

@@ -215,6 +215,8 @@ pub fn parse_zuul(paths: &[Rc<PathBuf>]) -> ZuulConfigElement {
 
 #[cfg(test)]
 mod tests {
+    use std::path::Path;
+
     use super::*;
     use crate::golden_key_test::TestFiles;
 

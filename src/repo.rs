@@ -1,6 +1,7 @@
+use std::path::Path;
 use std::path::PathBuf;
 
-fn _should_visit_dir(path: &PathBuf) -> bool {
+fn _should_visit_dir(path: &Path) -> bool {
     if !path.is_dir() {
         return false;
     }
@@ -43,7 +44,7 @@ fn list_roles_internal(base_dir: PathBuf) -> Vec<PathBuf> {
     _tranversal_dirs(base_dir, "tasks")
 }
 
-pub fn list_roles_impl(repo_dirs: &Vec<PathBuf>) -> Vec<PathBuf> {
+pub fn list_roles_impl(repo_dirs: &[PathBuf]) -> Vec<PathBuf> {
     let mut xs = Vec::new();
 
     let role_dir_iters = repo_dirs
@@ -65,7 +66,7 @@ pub fn list_roles_impl(repo_dirs: &Vec<PathBuf>) -> Vec<PathBuf> {
     xs
 }
 
-pub fn list_roles(repo_dirs: &Vec<PathBuf>) -> Vec<PathBuf> {
+pub fn list_roles(repo_dirs: &[PathBuf]) -> Vec<PathBuf> {
     let mut xs = list_roles_impl(repo_dirs);
     xs.sort();
     xs

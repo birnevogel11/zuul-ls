@@ -271,7 +271,7 @@ pub fn list_job_playbooks(name: &str, zuul_jobs: &ZuulJobs) -> JobPlaybooks {
 }
 
 fn append_playbooks(
-    new_ps: &Vec<(StringLoc, PathBuf)>,
+    new_ps: &[(StringLoc, PathBuf)],
     job_name: &Rc<String>,
     ps: &mut Vec<PlaybookInfo>,
 ) {
