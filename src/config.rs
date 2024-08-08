@@ -108,6 +108,18 @@ impl Config {
         }
     }
 
+    pub fn find_tenant(&self, work_dir: &Path) -> Option<String> {
+        for tenant in &self.tenants {
+            let name = tenant.0;
+            let tenant_config = tenant.1;
+
+            if tenant_config.is_in_base_dirs(work_dir.to_str().unwrap()) {
+                return Some(name.clone());
+            }
+        }
+        None
+    }
+
     fn read_config_from_path(custom_path: Option<PathBuf>) -> Option<Config> {
         match Self::read_config_file(custom_path) {
             Some(content) => Self::read_config_str(content),

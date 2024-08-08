@@ -33,7 +33,7 @@ fn main() {
 
     match args {
         ZuulSearchCli::Roles(args) => {
-            crate::search::roles::search_roles(args.search_key, args.work_dir, args.config_path);
+            crate::search::roles::list_roles_cli(args.search_key, args.work_dir, args.config_path);
         }
     };
 }
