@@ -1,0 +1,13 @@
+- job: test_job
+  parent: "parent_job"
+  vars:
+    var1: "123"
+    var2: "456"
+
+- job: test_job2
+  parent: "parent_job"
+  vars:
+    var1: "123"
+    var2: "456"
+
+- node: not a job
