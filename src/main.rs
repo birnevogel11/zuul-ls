@@ -1,4 +1,5 @@
 mod config;
+mod golden_key_test;
 mod parser;
 mod repo;
 mod search;

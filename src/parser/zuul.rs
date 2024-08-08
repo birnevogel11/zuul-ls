@@ -197,12 +197,28 @@ pub fn parse_zuul(paths: &[Rc<PathBuf>]) -> ZuulConfigElement {
     )
 }
 
-pub fn job_parser_study(path: &Path) {
-    let path = crate::search::path::to_path(path.to_str().unwrap());
-    let docs = load_yvalue(&path).unwrap();
-    let path = Rc::new(path);
+#[cfg(test)]
+mod tests {
+    use std::fs;
 
-    let elements: Vec<Vec<_>> = docs.iter().map(|doc| parse_doc(doc, &path)).collect();
-    let ys = elements.concat();
-    println!("{:?}", ys);
+    use super::*;
+    use crate::golden_key_test::TestFiles;
+
+    const TEST_DATA_PATH: &str = "./testdata/";
+    const TEST_DATA_OUTPUT_PATH: &str = "./testdata/output";
+
+    #[test]
+    fn test_parse_job() {
+        let ts = TestFiles::new("test.yaml");
+
+        let docs = load_yvalue(&ts.input_path).unwrap();
+        let input_path = Rc::new(ts.input_path.clone());
+        let zuul = docs
+            .iter()
+            .map(|doc| parse_doc(doc, &input_path))
+            .collect::<Vec<_>>()
+            .concat();
+
+        assert!(ts.assert_output(&zuul));
+    }
 }
