@@ -114,11 +114,9 @@ impl Config {
 
     pub fn find_tenant(&self, work_dir: &Path) -> Option<String> {
         self.tenants.iter().find_map(|(name, tenant_config)| {
-            if tenant_config.is_in_base_dirs(work_dir.to_str().unwrap()) {
-                Some(name.clone())
-            } else {
-                None
-            }
+            tenant_config
+                .is_in_base_dirs(work_dir.to_str().unwrap())
+                .then_some(name.clone())
         })
     }
 
@@ -127,10 +125,7 @@ impl Config {
     }
 
     fn read_config_from_path(custom_path: Option<PathBuf>) -> Option<Config> {
-        match Self::read_config_file(custom_path) {
-            Some(content) => Self::read_config_str(content),
-            None => None,
-        }
+        Self::read_config_file(custom_path).and_then(Self::read_config_str)
     }
 
     fn read_config_file(custom_path: Option<PathBuf>) -> Option<String> {
@@ -175,10 +170,7 @@ fn get_key_content_pathbuf(value: &Yaml, key: &str) -> Option<Vec<PathBuf>> {
 }
 
 pub fn get_work_dir(work_dir: Option<PathBuf>) -> PathBuf {
-    match work_dir {
-        Some(work_dir) => to_path(work_dir.to_str().unwrap()),
-        None => to_path("."),
-    }
+    to_path(work_dir.as_ref().map_or(".", |p| p.to_str().unwrap()))
 }
 
 #[cfg(test)]

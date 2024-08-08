@@ -5,7 +5,7 @@ use yaml_rust2::Yaml;
 use super::key_stack::insert_search_word;
 use super::key_stack::parse_value;
 use super::key_stack::SEARCH_PATTERN;
-use super::utils::{find_role_word, find_var_word};
+use super::utils::{find_role_token, find_var_token};
 use super::TokenSide;
 use super::{AutoCompleteToken, TokenFileType, TokenType};
 use yaml_rust2::yaml::YamlLoader;
@@ -23,7 +23,7 @@ fn parse_var(
             TokenSide::Right => TokenType::Variable,
         };
         return Some(AutoCompleteToken::new(
-            find_var_word(content, position)?,
+            find_var_token(content, position)?,
             file_type.clone(),
             token_type,
             token_side,
@@ -77,7 +77,7 @@ fn parse_ansible_tasks(
                                     key_stack.extend(value_stack);
 
                                     Some(AutoCompleteToken::new(
-                                        find_role_word(content, position)?,
+                                        find_role_token(content, position)?,
                                         file_type.clone(),
                                         TokenType::Role,
                                         token_side,
@@ -93,7 +93,7 @@ fn parse_ansible_tasks(
                                     TokenSide::Right => TokenType::Variable,
                                 };
                                 Some(AutoCompleteToken::new(
-                                    find_var_word(content, position)?,
+                                    find_var_token(content, position)?,
                                     file_type.clone(),
                                     token_type,
                                     token_side,
@@ -101,7 +101,7 @@ fn parse_ansible_tasks(
                                 ))
                             }
                             _ => Some(AutoCompleteToken::new(
-                                find_var_word(content, position)?,
+                                find_var_token(content, position)?,
                                 file_type.clone(),
                                 TokenType::Variable,
                                 token_side,
@@ -134,7 +134,7 @@ fn parse_roles(
             let key_name = key.as_str()?;
             if key_name.contains(SEARCH_PATTERN) {
                 return Some(AutoCompleteToken::new(
-                    find_var_word(content, position)?,
+                    find_var_token(content, position)?,
                     file_type.clone(),
                     TokenType::Variable,
                     TokenSide::Left,
@@ -145,7 +145,7 @@ fn parse_roles(
             if let Some((var_stack, token_side)) = parse_value(value, None) {
                 if key_name == "role" && token_side == TokenSide::Right {
                     return Some(AutoCompleteToken::new(
-                        find_role_word(content, position)?,
+                        find_role_token(content, position)?,
                         file_type.clone(),
                         TokenType::Role,
                         TokenSide::Right,
@@ -157,7 +157,7 @@ fn parse_roles(
                         TokenSide::Right => TokenType::Variable,
                     };
                     return Some(AutoCompleteToken::new(
-                        find_var_word(content, position)?,
+                        find_var_token(content, position)?,
                         file_type.clone(),
                         token_type,
                         token_side,
@@ -217,7 +217,7 @@ pub fn parse_token_ansible(
     docs.iter().find_map(|doc| match &file_type {
         TokenFileType::AnsibleRoleDefaults => parse_var(doc, &file_type, content, position, None),
         TokenFileType::AnsibleRoleTemplates { .. } => Some(AutoCompleteToken::new_simple(
-            find_var_word(content, position)?,
+            find_var_token(content, position)?,
             file_type.clone(),
             TokenType::Variable,
         )),

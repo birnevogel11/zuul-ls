@@ -4,8 +4,10 @@ use tower_lsp::jsonrpc::Result;
 use tower_lsp::lsp_types::*;
 use tower_lsp::{Client, LanguageServer, LspService};
 
-use crate::ls::go_to_definition::get_definition_list;
-use crate::ls::symbols::ZuulSymbol;
+use super::auto_complete::complete_items;
+use super::cache::AutoCompleteTokenCache;
+use super::go_to_definition::get_definition_list;
+use super::symbols::ZuulSymbol;
 
 struct TextDocumentItem {
     uri: Url,
@@ -17,6 +19,7 @@ pub struct Backend {
     client: Client,
     document_map: DashMap<String, Rope>,
     symbols: ZuulSymbol,
+    token_cache: DashMap<String, AutoCompleteTokenCache>,
 }
 
 #[tower_lsp::async_trait]
@@ -30,14 +33,13 @@ impl LanguageServer for Backend {
                     TextDocumentSyncKind::FULL,
                 )),
                 // TODO: implement it
-                // completion_provider: Some(CompletionOptions {
-                //     resolve_provider: Some(false),
-                //     trigger_characters: Some(('a'..='z').map(|x| x.to_string()).collect()),
-                //     work_done_progress_options: Default::default(),
-                //     all_commit_characters: None,
-                //     completion_item: None,
-                // }),
-                completion_provider: None,
+                completion_provider: Some(CompletionOptions {
+                    resolve_provider: Some(false),
+                    trigger_characters: Some(('a'..='z').map(|x| x.to_string()).collect()),
+                    work_done_progress_options: Default::default(),
+                    all_commit_characters: None,
+                    completion_item: None,
+                }),
                 definition_provider: Some(OneOf::Left(true)),
 
                 ..ServerCapabilities::default()
@@ -83,11 +85,9 @@ impl LanguageServer for Backend {
         self.on_go_to_definition(params).await
     }
 
-    // TODO: implement it
-    // async fn completion(&self, params: CompletionParams) -> Result<Option<CompletionResponse>> {
-    //     log::info!("params: {:#?}", params);
-    //     Ok(None)
-    // }
+    async fn completion(&self, params: CompletionParams) -> Result<Option<CompletionResponse>> {
+        self.on_completion(params).await
+    }
 }
 
 impl Backend {
@@ -110,10 +110,46 @@ impl Backend {
         let position = &params.text_document_position_params.position;
         let path = uri.to_file_path().unwrap();
 
-        Ok(match content {
-            Some(content) => get_definition_list(&self.symbols, &path, &content, position),
-            _ => None,
-        })
+        Ok(content
+            .as_ref()
+            .and_then(|c| get_definition_list(&self.symbols, &path, c, position)))
+    }
+
+    async fn on_completion(&self, params: CompletionParams) -> Result<Option<CompletionResponse>> {
+        let uri = &params.text_document_position.text_document.uri;
+        let uri_path = &uri.to_string();
+        let position = &params.text_document_position.position;
+
+        let response = match self.token_cache.get(uri_path) {
+            Some(token_cache) => {
+                if token_cache.is_valid(uri_path, position) {
+                    todo!()
+                }
+                None
+            }
+            None => {
+                let content = self.document_map.get(&uri.to_string());
+                let position = &params.text_document_position.position;
+                let path = uri.to_file_path().unwrap();
+                log::info!("params: {:#?}", params);
+
+                match content
+                    .as_ref()
+                    .and_then(|c| complete_items(&self.symbols, &path, c, position))
+                {
+                    Some((response, token)) => {
+                        self.token_cache.insert(
+                            uri_path.clone(),
+                            AutoCompleteTokenCache::new(uri_path.clone(), *position, token),
+                        );
+                        Some(response)
+                    }
+                    None => None,
+                }
+            }
+        };
+
+        Ok(response)
     }
 }
 
@@ -122,6 +158,7 @@ pub fn initialize_service() -> (tower_lsp::LspService<Backend>, tower_lsp::Clien
         client,
         document_map: DashMap::new(),
         symbols: ZuulSymbol::default(),
+        token_cache: DashMap::new(),
     })
     .finish();
 

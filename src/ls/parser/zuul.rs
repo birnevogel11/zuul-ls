@@ -4,7 +4,7 @@ use tower_lsp::lsp_types::Position;
 use yaml_rust2::yaml::YamlLoader;
 
 use super::key_stack::{insert_search_word, parse_value, ARRAY_INDEX_KEY, SEARCH_PATTERN};
-use super::utils::{find_name_word, find_path_word, find_var_word};
+use super::utils::{find_name_token, find_path_token, find_var_token};
 use super::{AutoCompleteToken, TokenFileType, TokenSide, TokenType};
 
 fn retrieve_key_stack(content: &Rope, line: usize, col: usize) -> Option<(Vec<String>, TokenSide)> {
@@ -55,7 +55,7 @@ fn parse_project_token(
             || (key_stack.len() >= 5 && key_stack[4] == "dependencies")
         {
             return Some(AutoCompleteToken::new(
-                find_name_word(content, position)?,
+                find_name_token(content, position)?,
                 file_type,
                 TokenType::Job,
                 token_side,
@@ -68,7 +68,7 @@ fn parse_project_token(
                 key_stack = key_stack[..6].to_vec();
             }
 
-            let token = find_var_word(content, position)?;
+            let token = find_var_token(content, position)?;
             return Some(match token_side {
                 TokenSide::Left => AutoCompleteToken::new(
                     token,
@@ -104,7 +104,7 @@ fn parse_job_token(
 
     match key_stack[1].as_str() {
         "name" | "parent" => {
-            let token = find_name_word(content, position)?;
+            let token = find_name_token(content, position)?;
             Some(AutoCompleteToken::new(
                 token,
                 file_type,
@@ -120,7 +120,7 @@ fn parse_job_token(
                 key_stack = key_stack[..2].to_vec();
             }
 
-            let token = find_name_word(content, position)?;
+            let token = find_name_token(content, position)?;
             Some(match token_side {
                 TokenSide::Left => AutoCompleteToken::new(
                     token,
@@ -139,7 +139,7 @@ fn parse_job_token(
             })
         }
         "run" | "pre-run" | "post-run" => {
-            let token = find_path_word(content, position)?;
+            let token = find_path_token(content, position)?;
             Some(AutoCompleteToken::new(
                 token,
                 file_type,
@@ -170,7 +170,7 @@ pub fn parse_token_zuul_config(
     }
 
     if key_stack.len() == 1 && token_side == TokenSide::Left {
-        let token = find_name_word(content, position)?;
+        let token = find_name_token(content, position)?;
         return Some(AutoCompleteToken::new(
             token,
             file_type,

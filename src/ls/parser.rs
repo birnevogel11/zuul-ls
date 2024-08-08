@@ -13,11 +13,7 @@ use self::zuul::parse_token_zuul_config;
 use crate::path::{retrieve_repo_path, to_path};
 
 fn get_exist_path(path: PathBuf) -> Option<PathBuf> {
-    if path.is_file() {
-        Some(path)
-    } else {
-        None
-    }
+    path.is_file().then_some(path)
 }
 
 #[derive(Clone, PartialEq, PartialOrd, Debug, Eq, Ord, Hash, Default)]
