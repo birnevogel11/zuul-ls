@@ -1,3 +1,4 @@
+use std::path::Path;
 use std::path::PathBuf;
 
 #[derive(Debug)]
@@ -34,6 +35,26 @@ fn _should_visit_dir(path: &PathBuf) -> bool {
     }
 
     true
+}
+
+fn _tranversal_dirs2(base_dir: &Path, check_dir_name: &str) -> Vec<PathBuf> {
+    let mut xs = Vec::new();
+
+    if let Ok(dir_iter) = base_dir.read_dir() {
+        if base_dir.join(check_dir_name).is_dir() {
+            xs.push(PathBuf::from(base_dir));
+            return xs;
+        }
+
+        for entry in dir_iter.map_while(|x| x.ok()) {
+            let path = entry.path();
+            if _should_visit_dir(&path) {
+                xs.append(&mut (_tranversal_dirs2(path.as_ref(), check_dir_name)));
+            }
+        }
+    }
+
+    xs
 }
 
 fn _tranversal_dirs(base_dir: PathBuf, check_dir_name: &str) -> Vec<PathBuf> {

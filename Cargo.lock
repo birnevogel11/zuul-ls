@@ -142,5 +142,6 @@ dependencies = [
 name = "zuul-static-parser-study"
 version = "0.1.0"
 dependencies = [
+ "hashlink",
  "yaml-rust2",
 ]
