@@ -1,8 +1,7 @@
 use std::path::Path;
 use std::path::PathBuf;
 
-use crate::search::path::get_role_repo_dirs;
-use crate::search::path::traversal_dirs;
+use crate::search::path::{get_role_repo_dirs, shorten_path, traversal_dirs};
 
 fn get_roles_prefix_dir(repo_dir: &Path) -> String {
     let mut raw_path: String = repo_dir.to_str().unwrap().into();
@@ -65,6 +64,6 @@ pub fn list_roles_cli(work_dir: Option<PathBuf>, config_path: Option<PathBuf>) {
     let role_dirs = list_roles(&repo_dirs);
 
     for (name, path) in role_dirs {
-        println!("{} {}", name, path.to_str().unwrap());
+        println!("{}\t{}", name, shorten_path(&path).display());
     }
 }

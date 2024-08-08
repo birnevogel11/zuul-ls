@@ -11,7 +11,7 @@ use petgraph::graph::{DiGraph, Graph, NodeIndex};
 use crate::parser::common::StringLoc;
 use crate::parser::zuul::job::{Job, VarTable, VarValue};
 use crate::parser::zuul::parse_zuul;
-use crate::search::path::{get_repo_dirs, get_zuul_yaml_paths};
+use crate::search::path::{get_repo_dirs, get_zuul_yaml_paths, shorten_path};
 
 #[derive(Clone, PartialEq, PartialOrd, Debug, Eq, Ord, Hash)]
 pub struct ZuulJobs {
@@ -129,7 +129,6 @@ impl ZuulJobs {
             for job in parent_jobs {
                 if let Some(parent) = &job.parent() {
                     let new_name = parent.value.clone();
-                    println!("{:?}", new_name);
 
                     if jobs.contains_key(&new_name) && !collect_names.contains(&new_name) {
                         search_names.push_back(new_name.clone());
@@ -140,7 +139,6 @@ impl ZuulJobs {
 
         let keys: Vec<_> = jobs.keys().collect();
         let ys = collect_names.into_iter().collect();
-        println!("job_names: {:?}, jobs: {:?}", &ys, &keys);
         ys
     }
 
@@ -295,6 +293,18 @@ pub fn list_job_hierarchy_names(name: &str, zuul_jobs: &ZuulJobs) -> Vec<StringL
         .collect()
 }
 
+fn print_string_locs(locs: &[StringLoc]) {
+    for loc in locs {
+        println!(
+            "{}\t{}\t{}\t{}",
+            loc.value,
+            shorten_path(&loc.path).display(),
+            loc.line,
+            loc.col
+        );
+    }
+}
+
 pub fn list_jobs_hierarchy_names_cli(
     job_name: String,
     work_dir: Option<PathBuf>,
@@ -304,7 +314,8 @@ pub fn list_jobs_hierarchy_names_cli(
     let yaml_paths = get_zuul_yaml_paths(&repo_dirs);
     let zuul_jobs = ZuulJobs::from_paths(&yaml_paths);
     let jobs = list_job_hierarchy_names(&job_name, &zuul_jobs);
-    println!("{:#?}", jobs);
+
+    print_string_locs(&jobs);
 }
 
 pub fn list_jobs_from_cli(work_dir: Option<PathBuf>, config_path: Option<PathBuf>) -> ZuulJobs {
@@ -315,16 +326,8 @@ pub fn list_jobs_from_cli(work_dir: Option<PathBuf>, config_path: Option<PathBuf
 
 pub fn list_jobs_cli(work_dir: Option<PathBuf>, config_path: Option<PathBuf>) {
     let zuul_jobs = list_jobs_from_cli(work_dir, config_path);
-    for job in zuul_jobs.jobs() {
-        let name = job.name();
-        println!(
-            "{}\tJob\t{}\t{}\t{}",
-            name.value,
-            name.path.to_str().unwrap(),
-            name.line,
-            name.col
-        );
-    }
+    let locs: Vec<StringLoc> = zuul_jobs.jobs().iter().map(|x| x.name().clone()).collect();
+    print_string_locs(&locs);
 }
 
 #[cfg(test)]
