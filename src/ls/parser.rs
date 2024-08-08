@@ -153,12 +153,10 @@ pub fn parse_token(path: &Path, content: &Rope, position: &Position) -> Option<A
 
     match file_type {
         TokenFileType::ZuulConfig => parse_token_zuul_config(file_type, content, position),
-        TokenFileType::Playbooks => parse_token_ansible(file_type, content, position),
-        TokenFileType::AnsibleRoleTasks { .. } => parse_token_ansible(file_type, content, position),
-        TokenFileType::AnsibleRoleDefaults { .. } => {
-            parse_token_ansible(file_type, content, position)
-        }
-        TokenFileType::AnsibleRoleTemplates { .. } => {
+        TokenFileType::Playbooks
+        | TokenFileType::AnsibleRoleTasks { .. }
+        | TokenFileType::AnsibleRoleDefaults { .. }
+        | TokenFileType::AnsibleRoleTemplates { .. } => {
             parse_token_ansible(file_type, content, position)
         }
         TokenFileType::Unknown => None,

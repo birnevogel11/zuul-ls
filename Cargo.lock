@@ -1563,7 +1563,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "zuul-search"
+name = "zuul-ls"
 version = "0.1.0"
 dependencies = [
  "bimap",

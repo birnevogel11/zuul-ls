@@ -15,64 +15,47 @@ use crate::path::{retrieve_repo_path, to_path};
 
 use super::parser::parse_token;
 
-fn append_ansible_vars<T>(
-    var_group: VarGroup,
-    path: &Option<PathBuf>,
-    content: Option<String>,
-    parse_fun: T,
-) -> VarGroup
+fn parse_ansible_vars<T>(path: &Option<PathBuf>, content: Option<String>, parse_fun: T) -> VarGroup
 where
     T: Fn(&str, &Path, &str, &Path) -> Option<VarGroup>,
 {
-    let mut var_group = var_group;
-    if let Some(path) = path {
-        let content = content.unwrap_or(fs::read_to_string(path).unwrap_or_default());
-        let sub_var_group = parse_fun(&content, path, "", &PathBuf::default());
-        var_group = merge_var_group(var_group, sub_var_group.unwrap_or_default());
-    }
-
-    var_group
+    path.as_ref().map_or(VarGroup::new(), |p| {
+        let content = content.unwrap_or(fs::read_to_string(p).unwrap_or_default());
+        parse_fun(&content, p, "", &PathBuf::default()).unwrap_or_default()
+    })
 }
 
 fn parse_local_vars_ansible(path: &Path, content: &Rope, token: &AutoCompleteToken) -> VarGroup {
-    let mut var_group: VarGroup = VarGroup::new();
     match &token.file_type {
-        TokenFileType::Playbooks => {
-            var_group = append_ansible_vars(
-                var_group,
-                &Some(path.to_path_buf()),
-                Some(content.to_string()),
-                parse_playbook_vars,
-            );
-        }
-        TokenFileType::AnsibleRoleDefaults => {
-            var_group = append_ansible_vars(
-                var_group,
-                &Some(path.to_path_buf()),
-                Some(content.to_string()),
-                parse_defaults_vars,
-            );
-        }
+        TokenFileType::Playbooks => parse_ansible_vars(
+            &Some(path.to_path_buf()),
+            Some(content.to_string()),
+            parse_playbook_vars,
+        ),
+        TokenFileType::AnsibleRoleDefaults => parse_ansible_vars(
+            &Some(path.to_path_buf()),
+            Some(content.to_string()),
+            parse_defaults_vars,
+        ),
         TokenFileType::AnsibleRoleTasks { defaults_path } => {
-            var_group = append_ansible_vars(
-                var_group,
+            let xs = parse_ansible_vars(
                 &Some(path.to_path_buf()),
                 Some(content.to_string()),
                 parse_task_vars,
             );
-            var_group = append_ansible_vars(var_group, defaults_path, None, parse_defaults_vars);
+            let ys = parse_ansible_vars(defaults_path, None, parse_defaults_vars);
+            merge_var_group(xs, ys)
         }
         TokenFileType::AnsibleRoleTemplates {
             tasks_path,
             defaults_path,
         } => {
-            var_group = append_ansible_vars(var_group, defaults_path, None, parse_defaults_vars);
-            var_group = append_ansible_vars(var_group, tasks_path, None, parse_task_vars);
+            let xs = parse_ansible_vars(defaults_path, None, parse_defaults_vars);
+            let ys = parse_ansible_vars(tasks_path, None, parse_task_vars);
+            merge_var_group(xs, ys)
         }
-        _ => {}
-    };
-
-    var_group
+        _ => VarGroup::new(),
+    }
 }
 
 fn find_var_definitions(
@@ -150,7 +133,6 @@ fn get_definition_list_internal(
                 )));
             }
         }
-        TokenType::ZuulProperty(_) => {}
         TokenType::Playbook => {
             let path = to_path(path.to_str().unwrap());
             if let Some(repo_path) = retrieve_repo_path(&path) {
@@ -163,6 +145,7 @@ fn get_definition_list_internal(
                 }
             }
         }
+        _ => {}
     };
 
     None

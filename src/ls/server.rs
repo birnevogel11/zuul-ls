@@ -39,10 +39,6 @@ impl LanguageServer for Backend {
                 // }),
                 completion_provider: None,
 
-                // TODO: implement it
-                // references_provider: Some(OneOf::Left(true)),
-
-                // Let's try to implement it first
                 definition_provider: Some(OneOf::Left(true)),
 
                 ..ServerCapabilities::default()
