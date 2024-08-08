@@ -27,7 +27,7 @@ fn expand_vars(
             }
             _ => {
                 vs.insert(VariableInfo {
-                    name: job_var.assign_value(var_name),
+                    name: job_var.clone_loc(var_name),
                     job_name: job_name.clone(),
                     value: value.to_show_value(),
                 });
