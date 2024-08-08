@@ -31,8 +31,8 @@ pub struct Loc {
 impl Loc {
     pub fn new(mark: &Marker) -> Loc {
         Loc {
-            line: mark.line(),
-            col: mark.col(),
+            line: mark.line() - 1, // zero-indexed
+            col: mark.col(),       // zero-indexed
         }
     }
 }

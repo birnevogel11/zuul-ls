@@ -2,6 +2,7 @@ use std::path::Path;
 
 use hashlink::LinkedHashMap;
 use interner::global::{GlobalPath, GlobalString, PathPool, StringPool};
+use tower_lsp::lsp_types::{Location, Position, Range, Url};
 
 use crate::parser::yaml::{YValue, YValueYaml};
 
@@ -28,6 +29,19 @@ impl Default for StringLoc {
             line: 0,
             col: 0,
         }
+    }
+}
+
+impl From<StringLoc> for Location {
+    fn from(val: StringLoc) -> Self {
+        let line = val.line as u32;
+        let begin_col = val.col as u32;
+        let end_col = (val.col + val.value.len()) as u32;
+
+        Location::new(
+            Url::from_file_path(val.path.to_path_buf()).unwrap(),
+            Range::new(Position::new(line, begin_col), Position::new(line, end_col)),
+        )
     }
 }
 

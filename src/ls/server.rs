@@ -166,30 +166,15 @@ impl Backend {
         search_types.iter().for_each(|search_type| {
             match search_type {
                 WordType::Variable => {
-                    let var_infos = self.vars.get(current_word);
-                    if let Some(var_infos) = var_infos {
-                        locs.extend(var_infos.iter().map(|var| {
-                            let line = (var.name.line - 1) as u32;
-                            let begin_col = (var.name.col) as u32;
-                            let end_col = (var.name.col + current_word.len()) as u32;
-
-                            Location::new(
-                                Url::from_file_path(var.name.path.to_path_buf()).unwrap(),
-                                Range::new(
-                                    Position::new(line, begin_col),
-                                    Position::new(line, end_col),
-                                ),
-                            )
-                        }));
+                    if let Some(var_infos) = self.vars.get(current_word) {
+                        locs.extend(var_infos.iter().map(|var| var.name.clone().into()));
                     }
                 }
                 WordType::Job => {} // TODO: implement it
                 WordType::Role => {
-                    let role = self.role_dirs.get(current_word);
-                    if let Some(role) = role {
-                        let path = role.value();
+                    if let Some(role) = self.role_dirs.get(current_word) {
                         locs.push(Location::new(
-                            Url::from_file_path(path).unwrap(),
+                            Url::from_file_path(role.value()).unwrap(),
                             Range::new(Position::new(0, 0), Position::new(0, 0)),
                         ))
                     }

@@ -97,11 +97,8 @@ pub fn parse_word_zuul_config(
     content: &Rope,
     position: &Position,
 ) -> Option<(String, Vec<WordType>)> {
-    let key_stack = retrieve_key_stack(
-        content,
-        (position.line + 1) as usize,
-        (position.character + 1) as usize,
-    )?;
+    let key_stack =
+        retrieve_key_stack(content, position.line as usize, position.character as usize)?;
     log::info!("key_stack: {:#?}", key_stack);
 
     if key_stack.len() <= 1 {
@@ -134,7 +131,16 @@ mod tests {
     name: test-job
     parent: parent-job
     "#;
-        let xs = retrieve_key_stack(&Rope::from_str(content), 4, 13);
-        println!("xs: {:#?}", xs);
+        let xs = retrieve_key_stack(&Rope::from_str(content), 3, 12);
+        assert_eq!(
+            xs,
+            Some(
+                (["job", "parent"])
+                    .iter()
+                    .map(|x| x.to_string())
+                    .collect::<Vec<_>>()
+            )
+        );
+        // println!("xs: {:#?}", xs);
     }
 }

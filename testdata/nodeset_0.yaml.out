@@ -1,1 +1,12 @@
-[Nodeset(Nodeset { name: StringLoc { value: "nodeset1", path: "./testdata/nodeset_0.yaml", line: 2, col: 11 } })]
+[
+    Nodeset(
+        Nodeset {
+            name: StringLoc {
+                value: "nodeset1",
+                path: "./testdata/nodeset_0.yaml",
+                line: 1,
+                col: 11,
+            },
+        },
+    ),
+]
