@@ -72,6 +72,62 @@ pub fn retrieve_zuul_key_stack(
     None
 }
 
+fn parse_job_token(
+    content: &Rope,
+    position: &Position,
+    file_type: TokenFileType,
+    token_side: TokenSide,
+    key_stack: Vec<String>,
+    var_stack: Option<Vec<String>>,
+) -> Option<AutoCompleteToken> {
+    if key_stack.len() < 2 {
+        return None;
+    }
+
+    match key_stack[1].as_str() {
+        "name" | "parent" => {
+            let token = find_name_word(content, position)?;
+            Some(AutoCompleteToken::new(
+                token,
+                file_type,
+                TokenType::Job,
+                token_side,
+                key_stack,
+            ))
+        }
+        "vars" => {
+            let token = find_name_word(content, position)?;
+            Some(match token_side {
+                TokenSide::Left => AutoCompleteToken::new(
+                    token,
+                    file_type,
+                    TokenType::VariableWithPrefix(var_stack.unwrap_or_default()),
+                    token_side,
+                    key_stack,
+                ),
+                TokenSide::Right => AutoCompleteToken::new(
+                    token,
+                    file_type,
+                    TokenType::Variable,
+                    token_side,
+                    key_stack,
+                ),
+            })
+        }
+        "run" | "pre-run" | "post-run" => {
+            let token = find_path_word(content, position)?;
+            Some(AutoCompleteToken::new(
+                token,
+                file_type,
+                TokenType::Playbook,
+                token_side,
+                key_stack,
+            ))
+        }
+        _ => None,
+    }
+}
+
 pub fn parse_token_zuul_config(
     file_type: TokenFileType,
     content: &Rope,
@@ -100,50 +156,32 @@ pub fn parse_token_zuul_config(
         ));
     }
 
-    if key_stack.len() >= 2 && key_stack[0] == "job" {
-        if key_stack[1] == "name" || key_stack[1] == "parent" {
-            let token = find_name_word(content, position)?;
-            return Some(AutoCompleteToken::new(
-                token,
-                file_type,
-                TokenType::Job,
-                token_side,
-                key_stack,
-            ));
-        }
-        if key_stack[1] == "vars" {
-            let token = find_name_word(content, position)?;
-            return Some(match token_side {
-                TokenSide::Left => AutoCompleteToken::new(
-                    token,
-                    file_type,
-                    TokenType::VariableWithPrefix(var_stack.unwrap_or_default()),
-                    token_side,
-                    key_stack,
-                ),
-                TokenSide::Right => AutoCompleteToken::new(
-                    token,
-                    file_type,
-                    TokenType::Variable,
-                    token_side,
-                    key_stack,
-                ),
-            });
-        }
-        if ["run", "pre-run", "post-run"]
-            .into_iter()
-            .any(|key| key == key_stack[1])
-        {
-            let token = find_path_word(content, position)?;
-            return Some(AutoCompleteToken::new(
-                token,
-                file_type,
-                TokenType::Playbook,
-                token_side,
-                key_stack,
-            ));
-        }
+    if key_stack[0] == "job" {
+        return parse_job_token(
+            content, position, file_type, token_side, key_stack, var_stack,
+        );
     }
+
+    None
+}
+
+pub fn parse_token_zuul_project(
+    file_type: TokenFileType,
+    content: &Rope,
+    position: &Position,
+) -> Option<AutoCompleteToken> {
+    let search_rope =
+        insert_search_word(content, position.line as usize, position.character as usize);
+    let content = search_rope.to_string();
+
+    let docs = YamlLoader::load_from_str(&content).ok()?;
+    if docs.len() != 1 {
+        return None;
+    }
+    let doc = &docs[0];
+    let doc = doc.as_vec()?;
+    log::info!("doc: {:#?}", doc);
+    log::info!("file_type: {:#?}", file_type);
 
     None
 }

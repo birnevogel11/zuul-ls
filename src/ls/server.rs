@@ -29,16 +29,15 @@ impl LanguageServer for Backend {
                 text_document_sync: Some(TextDocumentSyncCapability::Kind(
                     TextDocumentSyncKind::FULL,
                 )),
-
                 // TODO: implement it
                 // completion_provider: Some(CompletionOptions {
                 //     resolve_provider: Some(false),
+                //     trigger_characters: Some(('a'..='z').map(|x| x.to_string()).collect()),
                 //     work_done_progress_options: Default::default(),
                 //     all_commit_characters: None,
                 //     completion_item: None,
                 // }),
                 completion_provider: None,
-
                 definition_provider: Some(OneOf::Left(true)),
 
                 ..ServerCapabilities::default()
@@ -83,6 +82,12 @@ impl LanguageServer for Backend {
     ) -> Result<Option<GotoDefinitionResponse>> {
         self.on_go_to_definition(params).await
     }
+
+    // TODO: implement it
+    // async fn completion(&self, params: CompletionParams) -> Result<Option<CompletionResponse>> {
+    //     log::info!("params: {:#?}", params);
+    //     Ok(None)
+    // }
 }
 
 impl Backend {
