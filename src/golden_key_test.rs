@@ -26,10 +26,8 @@ impl TestFiles {
 
         TestFiles {
             input_path: to_path_from_path(&Path::new(TEST_DATA_PATH).join(input_fn)),
-            output_path: to_path_from_path(&Path::new(TEST_DATA_PATH).join(&output_fn)),
-            assert_output_path: to_path_from_path(
-                &Path::new(TEST_DATA_OUTPUT_PATH).join(&output_fn),
-            ),
+            output_path: to_path_from_path(&Path::new(TEST_DATA_OUTPUT_PATH).join(&output_fn)),
+            assert_output_path: to_path_from_path(&Path::new(TEST_DATA_PATH).join(&output_fn)),
         }
     }
 
@@ -39,10 +37,6 @@ impl TestFiles {
 
     pub fn read_assert_output(&self) -> String {
         fs::read_to_string(&self.assert_output_path).unwrap()
-    }
-
-    fn output_string<T: Debug>(var: &T) -> String {
-        format!("{:?}", var)
     }
 
     pub fn write_output<T: Debug>(&self, var: &T) {
@@ -65,33 +59,8 @@ impl TestFiles {
 
         self.read_assert_output() == output
     }
-}
 
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-//     use std::fs;
-//
-//     use crate::parser::zuul::*;
-//
-//     #[test]
-//     fn test_parse_job() {
-//         let path = PathBuf::from(TEST_DATA_PATH).join("test.yaml");
-//         let path = crate::search::path::to_path(path.to_str().unwrap());
-//         let docs = load_yvalue(&path).unwrap();
-//         let path = Rc::new(path);
-//
-//         let elements: Vec<Vec<_>> = docs.iter().map(|doc| parse_doc(doc, &path)).collect();
-//         let ys = elements.concat();
-//         let output = format!("{:?}", ys);
-//
-//         let assert_output_path = PathBuf::from(TEST_DATA_PATH).join("test.yaml.out");
-//         let assert_output = std::fs::read_to_string(&assert_output_path).unwrap();
-//
-//         let output_path: PathBuf = PathBuf::from(TEST_DATA_OUTPUT_PATH).join("test.yaml.out");
-//         let _ = fs::write(output_path, &output);
-//
-//         assert_eq!(output, assert_output);
-//         // println!("{:?}", ys);
-//     }
-// }
+    fn output_string<T: Debug>(var: &T) -> String {
+        format!("{:?}", var)
+    }
+}
