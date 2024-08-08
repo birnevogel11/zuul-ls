@@ -94,13 +94,54 @@ pub struct Job {
 }
 
 impl Job {
+    fn parse_playbook_list_item(
+        value: &YValue,
+        path: &Rc<PathBuf>,
+        field_name: &str,
+    ) -> Result<StringLoc, ZuulParseError> {
+        if let Ok(value) = parse_string_value(value, path, field_name) {
+            Ok(value)
+        } else {
+            let err = Err(ZuulParseError::from(
+                format!("Failed to parse the value of {}", field_name)
+                    .to_string()
+                    .as_str(),
+                value,
+                path,
+            ));
+
+            match value.value() {
+                YValueYaml::Hash(vs) => {
+                    for (key, value) in vs {
+                        if let (Some(key), Some(_)) = (key.as_str(), value.as_str()) {
+                            if key == "name" {
+                                return Ok(StringLoc::from(value, path));
+                            }
+                        }
+                    }
+                    err
+                }
+                _ => err,
+            }
+        }
+    }
+
     fn parse_playbooks(
         value: &YValue,
         path: &Rc<PathBuf>,
         field_name: &str,
     ) -> Result<Vec<(StringLoc, PathBuf)>, ZuulParseError> {
-        let value = parse_string_or_list_string(value, path, field_name)?;
-        Ok(value
+        let mut values = Vec::new();
+
+        if let Ok(value) = parse_string_value(value, path, field_name) {
+            values.push(value);
+        } else if let Some(vs) = value.as_vec() {
+            for value in vs {
+                values.push(Job::parse_playbook_list_item(value, path, field_name)?)
+            }
+        }
+
+        Ok(values
             .into_iter()
             .map(|x| {
                 (
