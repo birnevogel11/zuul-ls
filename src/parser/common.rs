@@ -48,6 +48,13 @@ impl StringLoc {
         }
     }
 
+    pub fn assign_value(&self, new_value: String) -> StringLoc {
+        StringLoc {
+            value: new_value,
+            ..self.clone()
+        }
+    }
+
     pub fn as_str(&self) -> &str {
         &self.value
     }

@@ -1,6 +1,5 @@
-use std::collections::HashSet;
-use std::collections::VecDeque;
-use std::path::PathBuf;
+use std::collections::{HashSet, VecDeque};
+use std::path::{Path, PathBuf};
 use std::rc::Rc;
 
 use bimap::BiMap;
@@ -63,10 +62,17 @@ impl ZuulJobs {
 
     pub fn get_job_hierarchy(&self, name: &str) -> Vec<Rc<Job>> {
         // Try to support multiple inheritances ...
-        let names = ZuulJobs::collect_job_names(name, &self.name_jobs);
+        let input_names = vec![name.to_string()];
+        let names = ZuulJobs::collect_job_names(&input_names, &self.name_jobs);
+
+        self.gen_job_topo_order(&names)
+    }
+
+    pub fn gen_job_topo_order(&self, input_job_names: &Vec<String>) -> Vec<Rc<Job>> {
+        let job_names = ZuulJobs::collect_job_names(input_job_names, &self.name_jobs);
 
         // Create a di-graph and node mapping
-        let (g, node_map) = ZuulJobs::create_job_graph(&names, &self.name_jobs);
+        let (g, node_map) = ZuulJobs::create_job_graph(&job_names, &self.name_jobs);
 
         // Get the job hierarchy from the topological order of jobs.
         ZuulJobs::visit_job_graph(g, node_map, &self.name_jobs)
@@ -136,12 +142,17 @@ impl ZuulJobs {
         ys
     }
 
-    fn collect_job_names(name: &str, jobs: &LinkedHashMap<String, Vec<Rc<Job>>>) -> Vec<String> {
+    fn collect_job_names(
+        names: &Vec<String>,
+        jobs: &LinkedHashMap<String, Vec<Rc<Job>>>,
+    ) -> Vec<String> {
         let mut collect_names: HashSet<String> = HashSet::new();
 
         let mut search_names: VecDeque<String> = VecDeque::new();
-        if jobs.contains_key(name) {
-            search_names.push_back(name.to_string());
+        for name in names {
+            if jobs.contains_key(name) {
+                search_names.push_back(name.to_string());
+            }
         }
 
         while !search_names.is_empty() {
@@ -208,9 +219,9 @@ fn collect_variables(
                 }
                 _ => {
                     vs.insert(
-                        var_name,
+                        var_name.clone(),
                         VariableInfo {
-                            name: job_var.clone(),
+                            name: job_var.assign_value(var_name),
                             job_name: job_name.clone(),
                             value: value.to_show_value(),
                         },
@@ -331,16 +342,11 @@ pub fn list_jobs_playbooks_cli(job_name: String, work_dir: &PathBuf, config_path
     show_playbooks("clean-run", &jps.clean_run);
 }
 
-pub fn list_jobs_vars_cli(job_name: String, work_dir: &PathBuf, config_path: Option<PathBuf>) {
-    let repo_dirs = get_repo_dirs(work_dir, config_path);
-    let yaml_paths = get_zuul_yaml_paths(&repo_dirs);
-    let zuul_jobs = ZuulJobs::from_paths(&yaml_paths);
-    let vars = list_job_vars(&job_name, &zuul_jobs);
-
-    for (var_name, var_info) in &vars {
+pub fn print_var_info_list(vars: Vec<VariableInfo>) {
+    for var_info in vars {
         println!(
             "{}\t{}\t{}\t{}\t{}\t{}",
-            var_name,
+            var_info.name.value,
             var_info.job_name.value,
             var_info.value,
             shorten_path(&var_info.name.path).display(),
@@ -350,9 +356,22 @@ pub fn list_jobs_vars_cli(job_name: String, work_dir: &PathBuf, config_path: Opt
     }
 }
 
+pub fn list_jobs_vars_cli(job_name: String, work_dir: &PathBuf, config_path: Option<PathBuf>) {
+    let repo_dirs = get_repo_dirs(work_dir, config_path);
+    let yaml_paths = get_zuul_yaml_paths(&repo_dirs);
+    let zuul_jobs = ZuulJobs::from_paths(&yaml_paths);
+    let vars = list_job_vars(&job_name, &zuul_jobs);
+
+    let vars = vars
+        .into_iter()
+        .map(|(_, var_info)| var_info)
+        .collect::<Vec<_>>();
+    print_var_info_list(vars);
+}
+
 pub fn list_jobs_hierarchy_names_cli(
     job_name: String,
-    work_dir: &PathBuf,
+    work_dir: &Path,
     config_path: Option<PathBuf>,
 ) {
     let repo_dirs = get_repo_dirs(work_dir, config_path);
@@ -363,14 +382,14 @@ pub fn list_jobs_hierarchy_names_cli(
     print_string_locs(&jobs)
 }
 
-pub fn list_jobs_from_cli(work_dir: &PathBuf, config_path: Option<PathBuf>) -> ZuulJobs {
+pub fn list_jobs(work_dir: &Path, config_path: Option<PathBuf>) -> ZuulJobs {
     let repo_dirs = get_repo_dirs(work_dir, config_path);
     let yaml_paths = get_zuul_yaml_paths(&repo_dirs);
     ZuulJobs::from_paths(&yaml_paths)
 }
 
-pub fn list_jobs_cli(work_dir: &PathBuf, config_path: Option<PathBuf>) {
-    let zuul_jobs = list_jobs_from_cli(work_dir, config_path);
+pub fn list_jobs_cli(work_dir: &Path, config_path: Option<PathBuf>) {
+    let zuul_jobs = list_jobs(work_dir, config_path);
     let locs: Vec<StringLoc> = zuul_jobs.jobs().iter().map(|x| x.name().clone()).collect();
     print_string_locs(&locs);
 }

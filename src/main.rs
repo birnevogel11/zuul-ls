@@ -6,6 +6,7 @@ use zuul_parser::config::get_work_dir;
 use zuul_parser::search::jobs;
 use zuul_parser::search::project_templates;
 use zuul_parser::search::roles;
+use zuul_parser::search::work_dir_vars;
 
 #[derive(Parser)]
 #[command(name = "zuul-search")]
@@ -17,6 +18,7 @@ enum ZuulSearchCli {
     ListJobHierarchy(ZuulSearchCliJobHierarchyArgs),
     ListJobVars(ZuulSearchCliJobVariablesArgs),
     ListJobPlaybooks(ZuulSearchCliJobPlaybooksArgs),
+    WorkdirVars(ZuulSearchCliWorkDirVarsArgs),
 }
 
 #[derive(clap::Args)]
@@ -59,6 +61,16 @@ struct ZuulSearchCliJobHierarchyArgs {
     config_path: Option<PathBuf>,
 
     name: String,
+}
+
+#[derive(clap::Args)]
+#[command(version, about, long_about = "Search roles")]
+struct ZuulSearchCliWorkDirVarsArgs {
+    #[arg(long)]
+    work_dir: Option<PathBuf>,
+
+    #[arg(long)]
+    config_path: Option<PathBuf>,
 }
 
 #[derive(clap::Args)]
@@ -117,6 +129,9 @@ fn main() {
                 &get_work_dir(args.work_dir),
                 args.config_path,
             );
+        }
+        ZuulSearchCli::WorkdirVars(args) => {
+            work_dir_vars::list_work_dir_vars_cli(&get_work_dir(args.work_dir), args.config_path);
         }
     };
 }

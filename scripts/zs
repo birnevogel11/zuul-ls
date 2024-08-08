@@ -96,6 +96,24 @@ zs-job-vars() {
   fi
 }
 
+zs-workdir-vars() {
+  local -r result=$(${ZS_PROGRAM} workdir-vars | \
+    fzf \
+      -d'\t' \
+      --with-nth=1,2,6 \
+      --preview "eval 'bat --color=always -n {4} -r {5}:'" \
+      --preview-window 'down,50%')
+
+  local -ra tokens=($result)
+  if [[ "${#tokens[@]}" != "0" ]]; then
+    local -r path="${tokens[3]}"
+    local -r line="${tokens[4]}"
+    local -r column="${tokens[5]}"
+
+    nvim "+${line}" "${path/\~/${HOME}}" "+normal${column}|"
+  fi
+}
+
 zs-job-playbooks() {
   local -r job_name="${1:-$(zs-job-name)}"
   echo "zs p ${job_name}"
@@ -156,6 +174,12 @@ main() {
       ;;
     vars)
       zs-job-vars "${job_name}"
+      ;;
+    wv)
+      zs-workdir-vars
+      ;;
+    workdir-vars)
+      zs-workdir-vars
       ;;
     p)
       zs-job-playbooks "${job_name}"
