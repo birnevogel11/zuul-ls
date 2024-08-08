@@ -1,7 +1,7 @@
 use crate::parser::common::StringLoc;
 use crate::parser::zuul::project_template::ProjectTemplate;
+use crate::path::shorten_path;
 use crate::search::job_vars::VariableInfo;
-use crate::search::path::shorten_path;
 
 #[macro_export]
 macro_rules! safe_println {

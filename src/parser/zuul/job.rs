@@ -7,7 +7,7 @@ use crate::parser::common::{
     parse_optional_string_value, parse_string_value, StringLoc, ZuulParse, ZuulParseError,
 };
 use crate::parser::yaml::{YValue, YValueYaml};
-use crate::search::path::retrieve_repo_path;
+use crate::path::retrieve_repo_path;
 
 #[derive(Clone, PartialEq, PartialOrd, Debug, Eq, Ord, Hash)]
 pub enum VarValue {

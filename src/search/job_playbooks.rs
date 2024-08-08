@@ -2,9 +2,9 @@ use std::path::{Path, PathBuf};
 use std::rc::Rc;
 
 use crate::parser::common::StringLoc;
+use crate::path::shorten_path;
 use crate::safe_println;
 use crate::search::jobs::ZuulJobs;
-use crate::search::path::shorten_path;
 
 #[derive(Clone, PartialEq, Debug, Eq, Default)]
 pub struct PlaybookInfo {

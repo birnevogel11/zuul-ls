@@ -11,8 +11,8 @@ use petgraph::graph::{DiGraph, Graph, NodeIndex};
 use crate::parser::common::StringLoc;
 use crate::parser::zuul::job::Job;
 use crate::parser::zuul::parse_zuul;
-use crate::search::path::get_zuul_yaml_paths_cwd;
-use crate::search::path::to_path;
+use crate::path::get_zuul_yaml_paths_cwd;
+use crate::path::to_path;
 use crate::search::report_print::print_string_locs;
 
 #[derive(Clone, PartialEq, PartialOrd, Debug, Eq, Ord, Hash)]

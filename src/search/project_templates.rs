@@ -3,8 +3,8 @@ use std::path::PathBuf;
 
 use crate::parser::zuul::parse_zuul;
 use crate::parser::zuul::project_template::ProjectTemplate;
-use crate::search::path::get_zuul_yaml_paths_cwd;
-use crate::search::path::to_path;
+use crate::path::get_zuul_yaml_paths_cwd;
+use crate::path::to_path;
 use crate::search::report_print::print_project_templates;
 
 pub fn list_project_templates(

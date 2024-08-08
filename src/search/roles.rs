@@ -3,9 +3,8 @@ use std::path::PathBuf;
 
 use log;
 
+use crate::path::{get_role_repo_dirs, shorten_path, to_path, traversal_dirs};
 use crate::safe_println;
-use crate::search::path::to_path;
-use crate::search::path::{get_role_repo_dirs, shorten_path, traversal_dirs};
 
 fn get_roles_prefix_dir(repo_dir: &Path) -> String {
     let mut raw_path: String = repo_dir.to_str().unwrap().into();

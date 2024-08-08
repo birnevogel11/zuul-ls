@@ -3,7 +3,7 @@ use std::fs;
 use std::path::Path;
 use std::path::PathBuf;
 
-use crate::search::path::to_path;
+use crate::path::to_path;
 
 const TEST_DATA_PATH: &str = "./testdata/";
 const TEST_DATA_OUTPUT_PATH: &str = "./testdata/output";

@@ -13,7 +13,7 @@ use tower_lsp::lsp_types::*;
 use tower_lsp::{Client, LanguageServer, LspService, Server};
 
 use zuul_parser::config::get_work_dir;
-use zuul_parser::search::path::{get_role_repo_dirs, to_path};
+use zuul_parser::path::{get_role_repo_dirs, to_path};
 use zuul_parser::search::roles::list_roles;
 
 struct TextDocumentItem {
