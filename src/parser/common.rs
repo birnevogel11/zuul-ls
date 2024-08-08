@@ -51,6 +51,10 @@ impl StringLoc {
     pub fn as_str(&self) -> &str {
         &self.value
     }
+
+    pub fn is_empty(&self) -> bool {
+        self.value.is_empty()
+    }
 }
 
 pub fn parse_string_value(
