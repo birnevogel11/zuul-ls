@@ -3,6 +3,8 @@ use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use log::debug;
+
 use dirs;
 use path_absolutize::*;
 use yaml_rust2::yaml::Yaml;
@@ -34,6 +36,9 @@ pub fn get_config(path: &Option<PathBuf>) -> Option<Config> {
         Some(path) => Config::read_config_path(path),
         None => Config::read_config(),
     }?;
+
+    debug!("config: {:#?}", config);
+
     Some(Config::validate_config(config))
 }
 
@@ -130,6 +135,7 @@ impl Config {
 
     fn read_config_file(custom_path: Option<PathBuf>) -> Option<String> {
         let config_path = determine_config_path(custom_path);
+        debug!("config_path: {}", config_path.display());
         fs::read_to_string(config_path).ok()
     }
 }

@@ -1,3 +1,4 @@
+use log::debug;
 use std::path::PathBuf;
 
 use clap::Parser;
@@ -8,7 +9,7 @@ use zuul_parser::search::project_templates;
 use zuul_parser::search::roles;
 use zuul_parser::search::work_dir_vars;
 
-#[derive(Parser)]
+#[derive(Parser, Debug)]
 #[command(name = "zuul-search")]
 #[command(bin_name = "zuul-search")]
 enum ZuulSearchCli {
@@ -21,7 +22,7 @@ enum ZuulSearchCli {
     WorkdirVars(CliWorkDirVarsArgs),
 }
 
-#[derive(clap::Args)]
+#[derive(clap::Args, Debug)]
 #[command(version, about, long_about = "Search roles")]
 struct CliRolesArgs {
     #[arg(long)]
@@ -31,7 +32,7 @@ struct CliRolesArgs {
     config_path: Option<PathBuf>,
 }
 
-#[derive(clap::Args)]
+#[derive(clap::Args, Debug)]
 #[command(version, about, long_about = "List jobs")]
 struct CliJobArgs {
     #[arg(long)]
@@ -41,7 +42,7 @@ struct CliJobArgs {
     config_path: Option<PathBuf>,
 }
 
-#[derive(clap::Args)]
+#[derive(clap::Args, Debug)]
 #[command(version, about, long_about = "List project templates")]
 struct CliProjectTemplateArgs {
     #[arg(long)]
@@ -51,7 +52,7 @@ struct CliProjectTemplateArgs {
     config_path: Option<PathBuf>,
 }
 
-#[derive(clap::Args)]
+#[derive(clap::Args, Debug)]
 #[command(version, about, long_about = "List job hierarchy of a job")]
 struct CliJobHierarchyArgs {
     #[arg(long)]
@@ -63,7 +64,7 @@ struct CliJobHierarchyArgs {
     name: String,
 }
 
-#[derive(clap::Args)]
+#[derive(clap::Args, Debug)]
 #[command(version, about, long_about = "List variables in cwd")]
 struct CliWorkDirVarsArgs {
     #[arg(long)]
@@ -73,7 +74,7 @@ struct CliWorkDirVarsArgs {
     config_path: Option<PathBuf>,
 }
 
-#[derive(clap::Args)]
+#[derive(clap::Args, Debug)]
 #[command(version, about, long_about = "List variables of a job")]
 struct CliJobVariablesArgs {
     #[arg(long)]
@@ -85,7 +86,7 @@ struct CliJobVariablesArgs {
     name: String,
 }
 
-#[derive(clap::Args)]
+#[derive(clap::Args, Debug)]
 #[command(version, about, long_about = "List playbooks of a job")]
 struct CliJobPlaybooksArgs {
     #[arg(long)]
@@ -98,7 +99,9 @@ struct CliJobPlaybooksArgs {
 }
 
 fn main() {
+    env_logger::init();
     let args = ZuulSearchCli::parse();
+    debug!("Parse args: {:#?}", args);
 
     match args {
         ZuulSearchCli::Roles(args) => {

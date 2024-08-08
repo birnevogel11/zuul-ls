@@ -2,6 +2,8 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::rc::Rc;
 
+use log::debug;
+
 use path_absolutize::*;
 use walkdir::WalkDir;
 
@@ -28,11 +30,13 @@ pub fn retrieve_repo_path(path: &str) -> PathBuf {
 }
 
 pub fn get_zuul_yaml_paths(repo_dirs: &[PathBuf]) -> Vec<Rc<PathBuf>> {
-    repo_dirs
+    let paths = repo_dirs
         .iter()
         .map(|x| list_zuul_yaml_paths(x))
         .collect::<Vec<_>>()
-        .concat()
+        .concat();
+    debug!("yaml_paths: {:#?}", paths);
+    paths
 }
 
 pub fn get_repo_dirs(work_dir: &Path, config_path: Option<PathBuf>) -> Vec<PathBuf> {
@@ -40,11 +44,14 @@ pub fn get_repo_dirs(work_dir: &Path, config_path: Option<PathBuf>) -> Vec<PathB
     let base_dirs =
         find_tenant_base_dirs(config, work_dir).unwrap_or(vec![PathBuf::from(work_dir)]);
 
-    base_dirs
+    let repo_dirs = base_dirs
         .into_iter()
         .map(|base_dir| traversal_dirs(base_dir, "zuul.d"))
         .collect::<Vec<Vec<PathBuf>>>()
-        .concat()
+        .concat();
+
+    debug!("repo_dirs: {:#?}", repo_dirs);
+    repo_dirs
 }
 
 pub fn get_role_repo_dirs(work_dir: &PathBuf, config_path: Option<PathBuf>) -> Vec<PathBuf> {

@@ -4,6 +4,7 @@ use std::rc::Rc;
 
 use bimap::BiMap;
 use hashlink::LinkedHashMap;
+use log::debug;
 use petgraph::algo::{toposort, DfsSpace};
 use petgraph::graph::{DiGraph, Graph, NodeIndex};
 
@@ -51,6 +52,15 @@ impl ZuulJobs {
         let name_jobs = ZuulJobs::gather_jobs_by_name(&jobs);
 
         ZuulJobs { jobs, name_jobs }
+    }
+
+    pub fn from_raw_input(work_dir: &Path, config_path: Option<PathBuf>) -> ZuulJobs {
+        let repo_dirs = get_repo_dirs(work_dir, config_path);
+        let yaml_paths = get_zuul_yaml_paths(&repo_dirs);
+
+        let jobs = ZuulJobs::from_paths(&yaml_paths);
+        debug!("jobs: {:#?}", jobs);
+        jobs
     }
 
     pub fn from_parsed_jobs(parsed_jobs: Vec<Job>) -> ZuulJobs {
@@ -330,10 +340,8 @@ fn show_playbooks(name: &str, pbs: &[PlaybookInfo]) {
     }
 }
 
-pub fn list_jobs_playbooks_cli(job_name: String, work_dir: &PathBuf, config_path: Option<PathBuf>) {
-    let repo_dirs = get_repo_dirs(work_dir, config_path);
-    let yaml_paths = get_zuul_yaml_paths(&repo_dirs);
-    let zuul_jobs = ZuulJobs::from_paths(&yaml_paths);
+pub fn list_jobs_playbooks_cli(job_name: String, work_dir: &Path, config_path: Option<PathBuf>) {
+    let zuul_jobs = ZuulJobs::from_raw_input(work_dir, config_path);
     let jps = list_job_playbooks(&job_name, &zuul_jobs);
 
     show_playbooks("pre-run", &jps.pre_run);
@@ -356,10 +364,8 @@ pub fn print_var_info_list(vars: Vec<VariableInfo>) {
     }
 }
 
-pub fn list_jobs_vars_cli(job_name: String, work_dir: &PathBuf, config_path: Option<PathBuf>) {
-    let repo_dirs = get_repo_dirs(work_dir, config_path);
-    let yaml_paths = get_zuul_yaml_paths(&repo_dirs);
-    let zuul_jobs = ZuulJobs::from_paths(&yaml_paths);
+pub fn list_jobs_vars_cli(job_name: String, work_dir: &Path, config_path: Option<PathBuf>) {
+    let zuul_jobs = ZuulJobs::from_raw_input(work_dir, config_path);
     let vars = list_job_vars(&job_name, &zuul_jobs);
 
     let vars = vars
@@ -374,18 +380,14 @@ pub fn list_jobs_hierarchy_names_cli(
     work_dir: &Path,
     config_path: Option<PathBuf>,
 ) {
-    let repo_dirs = get_repo_dirs(work_dir, config_path);
-    let yaml_paths = get_zuul_yaml_paths(&repo_dirs);
-    let zuul_jobs = ZuulJobs::from_paths(&yaml_paths);
+    let zuul_jobs = ZuulJobs::from_raw_input(work_dir, config_path);
     let jobs = list_job_hierarchy_names(&job_name, &zuul_jobs);
 
     print_string_locs(&jobs)
 }
 
 pub fn list_jobs(work_dir: &Path, config_path: Option<PathBuf>) -> ZuulJobs {
-    let repo_dirs = get_repo_dirs(work_dir, config_path);
-    let yaml_paths = get_zuul_yaml_paths(&repo_dirs);
-    ZuulJobs::from_paths(&yaml_paths)
+    ZuulJobs::from_raw_input(work_dir, config_path)
 }
 
 pub fn list_jobs_cli(work_dir: &Path, config_path: Option<PathBuf>) {

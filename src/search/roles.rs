@@ -1,6 +1,8 @@
 use std::path::Path;
 use std::path::PathBuf;
 
+use log::debug;
+
 use crate::safe_println;
 use crate::search::path::{get_role_repo_dirs, shorten_path, traversal_dirs};
 
@@ -63,6 +65,9 @@ pub fn list_roles(repo_dirs: &[PathBuf]) -> Vec<(String, PathBuf)> {
 pub fn list_roles_cli(work_dir: &PathBuf, config_path: Option<PathBuf>) {
     let repo_dirs = get_role_repo_dirs(work_dir, config_path);
     let role_dirs = list_roles(&repo_dirs);
+
+    debug!("work_dir: {}", work_dir.display());
+    debug!("role_repo_dirs: {:#?}", repo_dirs);
 
     for (name, path) in role_dirs {
         safe_println!("{}\t{}", name, shorten_path(&path).display());
