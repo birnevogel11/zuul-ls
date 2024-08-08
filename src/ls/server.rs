@@ -53,6 +53,9 @@ impl LanguageServer for Backend {
     async fn initialized(&self, _: InitializedParams) {
         self.initialize_zuul().await;
         log::debug!("client: {:#?}", self);
+        self.client
+            .log_message(MessageType::INFO, "zuul-ls initialized!")
+            .await;
     }
 
     async fn shutdown(&self) -> Result<()> {

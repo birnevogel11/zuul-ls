@@ -8,31 +8,19 @@ use tower_lsp::lsp_types::{
 };
 use walkdir::WalkDir;
 
-use crate::parser::variable::VariableGroup;
-use crate::parser::variable::VariableGroupInfo;
-use crate::path::retrieve_repo_path;
-use crate::path::shorten_path;
-use crate::path::to_path;
-
 use super::go_to_definition::parse_local_vars_ansible;
-use super::parser::{parse_token, TokenType};
+use super::parser::{parse_token, AutoCompleteToken, TokenType};
 use super::symbols::ZuulSymbol;
 
-use super::parser::AutoCompleteToken;
+use crate::ls::variable_group::process_var_group;
+use crate::parser::variable::{VariableGroup, VariableGroupInfo};
+use crate::path::{retrieve_repo_path, shorten_path, to_path};
 
 static ZUUL_PROPERTY: phf::Map<&'static str, &[&'static str]> = phf_map! {
     "job" => &["abstract", "description", "name", "nodeset", "parent",
                "post-run", "pre-run", "required-projects", "roles", "run", "vars", "voting", "secrets"],
     "project-template" => &["name", "queue"],
 };
-
-pub fn get_trigger_char(context: Option<CompletionContext>) -> Option<String> {
-    let context = context?;
-    if context.trigger_kind == CompletionTriggerKind::TRIGGER_CHARACTER {
-        return context.trigger_character.clone();
-    }
-    None
-}
 
 fn fill_guess_content(content: &Rope, position: &Position) -> Rope {
     let mut try_content = content.clone();
@@ -85,18 +73,8 @@ fn complete_variable_item_internal(
     value: &str,
     var_stack: &[String],
     var_group: &VariableGroup,
-    stack_idx: usize,
 ) -> Option<Vec<CompletionItem>> {
-    if stack_idx != var_stack.len() {
-        let var = var_stack[stack_idx].as_str();
-        if var_group.contains_key(var) {
-            if let dashmap::mapref::entry::Entry::Occupied(e) = var_group.entry(var.to_string()) {
-                let m = &e.get().members;
-                return complete_variable_item_internal(value, var_stack, m, stack_idx + 1);
-            }
-        }
-        None
-    } else {
+    process_var_group(value, var_stack, var_group, 0, |value, var_group| {
         let items = var_group
             .iter()
             .filter(|entry| entry.key().starts_with(value) && entry.key() != value)
@@ -108,7 +86,7 @@ fn complete_variable_item_internal(
             })
             .collect::<Vec<_>>();
         Some(items)
-    }
+    })
 }
 
 fn complete_variable_items(
@@ -118,8 +96,6 @@ fn complete_variable_items(
     content: &Rope,
     position: &Position,
 ) -> Vec<CompletionItem> {
-    let mut items = Vec::new();
-
     if let TokenType::Variable(var_stack) = &token.token_type {
         let mut local_vars: VariableGroup = parse_local_vars_ansible(path, content, token);
         if local_vars.is_empty() {
@@ -132,14 +108,15 @@ fn complete_variable_items(
             None => &Vec::new(),
         };
 
-        for vg in [&local_vars, symbols.vars()] {
-            items.extend(
-                complete_variable_item_internal(&token.value, var_stack, vg, 0).unwrap_or_default(),
-            );
-        }
+        [&local_vars, symbols.vars()]
+            .into_iter()
+            .flat_map(|vg| {
+                complete_variable_item_internal(&token.value, var_stack, vg).unwrap_or_default()
+            })
+            .collect::<Vec<_>>()
+    } else {
+        Vec::new()
     }
-
-    items
 }
 
 pub fn complete_items(
@@ -252,4 +229,12 @@ pub fn complete_items(
             })
         }
     }
+}
+
+pub fn get_trigger_char(context: Option<CompletionContext>) -> Option<String> {
+    let context = context?;
+    if context.trigger_kind == CompletionTriggerKind::TRIGGER_CHARACTER {
+        return context.trigger_character.clone();
+    }
+    None
 }

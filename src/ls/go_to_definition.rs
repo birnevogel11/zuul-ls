@@ -7,6 +7,7 @@ use tower_lsp::lsp_types::{GotoDefinitionResponse, Location, Position, Range, Ur
 
 use crate::ls::parser::{AutoCompleteToken, TokenFileType, TokenType};
 use crate::ls::symbols::ZuulSymbol;
+use crate::ls::variable_group::process_var_group;
 use crate::parser::ansible::defaults::parse_defaults_vars;
 use crate::parser::ansible::playbook::parse_playbook_vars;
 use crate::parser::ansible::tasks::parse_task_vars;
@@ -74,18 +75,8 @@ fn find_var_definitions_internal(
     value: &str,
     var_stack: &[String],
     var_group: &VariableGroup,
-    stack_idx: usize,
 ) -> Option<Vec<Location>> {
-    if stack_idx != var_stack.len() {
-        let var = var_stack[stack_idx].as_str();
-        if var_group.contains_key(var) {
-            if let dashmap::mapref::entry::Entry::Occupied(e) = var_group.entry(var.to_string()) {
-                let m = &e.get().members;
-                return find_var_definitions_internal(value, var_stack, m, stack_idx + 1);
-            }
-        }
-        None
-    } else {
+    process_var_group(value, var_stack, var_group, 0, |value, var_group| {
         let entry = var_group.get(value)?;
         Some(
             entry
@@ -95,7 +86,7 @@ fn find_var_definitions_internal(
                 .map(|vi| vi.name.clone().into())
                 .collect(),
         )
-    }
+    })
 }
 
 fn find_var_definitions(
@@ -108,14 +99,15 @@ fn find_var_definitions(
 ) -> Option<GotoDefinitionResponse> {
     let local_vars: VariableGroup = parse_local_vars_ansible(path, content, token);
 
-    let mut var_info: Vec<Location> = Vec::new();
-    for vg in [&local_vars, symbols.vars()] {
-        let var_stack = match var_stack {
-            Some(var_stack) => var_stack,
-            None => &Vec::new(),
-        };
-        var_info.extend(find_var_definitions_internal(value, var_stack, vg, 0).unwrap_or_default());
-    }
+    let var_stack = match var_stack {
+        Some(var_stack) => var_stack,
+        None => &Vec::new(),
+    };
+
+    let var_info = [&local_vars, symbols.vars()]
+        .into_iter()
+        .flat_map(|vg| find_var_definitions_internal(value, var_stack, vg).unwrap_or_default())
+        .collect::<Vec<_>>();
 
     if var_info.is_empty() {
         None
