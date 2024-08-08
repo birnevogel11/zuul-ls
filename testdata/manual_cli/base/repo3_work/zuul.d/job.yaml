@@ -1,0 +1,6 @@
+- job:
+    name: repo3_job1
+    parent: "parent_job"
+    vars:
+      var1: "123"
+      var2: "456"

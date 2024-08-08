@@ -19,9 +19,7 @@ impl ZuulParse<Nodeset> for Nodeset {
     ) -> Result<Nodeset, ZuulParseError> {
         let mut name = StringLoc::default();
 
-        println!("length: {:?}", xs.len());
         for (key, value) in xs {
-            // println!("{:?} {:?}", key, value);
             if let Some(key) = key.as_str() {
                 if key == "name" {
                     name = parse_string_value(value, path, "name")?;

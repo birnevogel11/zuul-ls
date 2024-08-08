@@ -24,7 +24,8 @@ impl TenantConfig {
         self.base_dirs
             .iter()
             .map(|x| abs_path.starts_with(x))
-            .fold(false, |x, y| x | y)
+            .reduce(|x, y| x | y)
+            .unwrap()
     }
 }
 

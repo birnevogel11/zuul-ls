@@ -1,0 +1,7 @@
+default_tenant: "base"
+
+tenant:
+  base:
+    base_dir: "./testdata/manual_cli/base"
+    extra_role_dir:
+      - "./testdata/manual_cli/extra_role_repo"

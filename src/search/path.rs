@@ -90,7 +90,7 @@ fn should_visit_dir(path: &Path) -> bool {
 
 fn get_work_dir(work_dir: Option<PathBuf>) -> PathBuf {
     match work_dir {
-        Some(work_dir) => work_dir,
+        Some(work_dir) => to_path(work_dir.to_str().unwrap()),
         None => to_path("."),
     }
 }
@@ -111,14 +111,14 @@ fn find_tenant_dirs(
     let config = config?;
     let tenant = config.find_tenant(work_dir)?;
     let tenant_config = config.tenants.get(&tenant)?;
-    Some(
-        (if is_base {
-            &tenant_config.extra_base_dirs
-        } else {
-            &tenant_config.extra_role_dirs
-        })
-        .clone(),
-    )
+
+    if is_base {
+        let mut base_dirs = tenant_config.base_dirs.clone();
+        base_dirs.append(&mut tenant_config.extra_base_dirs.clone());
+        Some(base_dirs)
+    } else {
+        Some(tenant_config.extra_role_dirs.clone())
+    }
 }
 
 fn list_zuul_yaml_paths(repo_dir: &Path) -> Vec<Rc<PathBuf>> {

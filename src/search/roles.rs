@@ -60,20 +60,9 @@ pub fn list_roles(repo_dirs: &[PathBuf]) -> Vec<(String, PathBuf)> {
     xs
 }
 
-pub fn list_roles_cli(
-    search_key: Option<String>,
-    work_dir: Option<PathBuf>,
-    config_path: Option<PathBuf>,
-) {
+pub fn list_roles_cli(work_dir: Option<PathBuf>, config_path: Option<PathBuf>) {
     let repo_dirs = get_role_repo_dirs(work_dir, config_path);
     let role_dirs = list_roles(&repo_dirs);
-    let role_dirs = match search_key {
-        Some(search_key) => role_dirs
-            .into_iter()
-            .filter(|x| x.0.contains(&search_key))
-            .collect(),
-        None => role_dirs,
-    };
 
     for (name, path) in role_dirs {
         println!("{} {}", name, path.to_str().unwrap());

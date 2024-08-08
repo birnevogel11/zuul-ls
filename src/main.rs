@@ -3,7 +3,6 @@ mod golden_key_test;
 mod parser;
 mod repo;
 mod search;
-mod study_parser;
 
 use std::path::PathBuf;
 
@@ -25,9 +24,6 @@ struct ZuulSearchCliRolesArgs {
 
     #[arg(long)]
     config_path: Option<PathBuf>,
-
-    #[arg()]
-    search_key: Option<String>,
 }
 
 #[derive(clap::Args)]
@@ -38,9 +34,6 @@ struct ZuulSearchCliJobArgs {
 
     #[arg(long)]
     config_path: Option<PathBuf>,
-
-    #[arg()]
-    search_key: Option<String>,
 }
 
 fn main() {
@@ -48,10 +41,10 @@ fn main() {
 
     match args {
         ZuulSearchCli::Roles(args) => {
-            crate::search::roles::list_roles_cli(args.search_key, args.work_dir, args.config_path);
+            crate::search::roles::list_roles_cli(args.work_dir, args.config_path);
         }
         ZuulSearchCli::Jobs(args) => {
-            crate::search::jobs::list_jobs_cli(args.search_key, args.work_dir, args.config_path);
+            crate::search::jobs::list_jobs_cli(args.work_dir, args.config_path);
         }
     };
 }
