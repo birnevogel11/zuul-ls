@@ -3,7 +3,6 @@ mod golden_key_test;
 mod parser;
 mod repo;
 mod search;
-mod study_graph;
 
 use std::path::PathBuf;
 
@@ -38,16 +37,14 @@ struct ZuulSearchCliJobArgs {
 }
 
 fn main() {
-    crate::study_graph::study_graph_topo();
+    let args = ZuulSearchCli::parse();
 
-    // let args = ZuulSearchCli::parse();
-    //
-    // match args {
-    //     ZuulSearchCli::Roles(args) => {
-    //         crate::search::roles::list_roles_cli(args.work_dir, args.config_path);
-    //     }
-    //     ZuulSearchCli::Jobs(args) => {
-    //         crate::search::jobs::list_jobs_cli(args.work_dir, args.config_path);
-    //     }
-    // };
+    match args {
+        ZuulSearchCli::Roles(args) => {
+            crate::search::roles::list_roles_cli(args.work_dir, args.config_path);
+        }
+        ZuulSearchCli::Jobs(args) => {
+            crate::search::jobs::list_jobs_cli(args.work_dir, args.config_path);
+        }
+    };
 }
