@@ -19,6 +19,18 @@ pub struct TenantConfig {
     extra_role_dirs: Vec<PathBuf>,
 }
 
+impl TenantConfig {
+    pub fn is_in_base_dirs(&self, path: &str) -> bool {
+        let abs_path = to_path(path);
+        let path = abs_path.as_path().to_str().unwrap();
+
+        self.base_dirs
+            .iter()
+            .map(|x| path.starts_with(x.as_path().to_str().unwrap()))
+            .fold(false, |x, y| x | y)
+    }
+}
+
 #[derive(Default, Debug, PartialEq)]
 pub struct Config {
     default_tenant: String,
@@ -32,8 +44,18 @@ fn to_path(x: &str) -> PathBuf {
         .into_owned()
 }
 
-fn expand_tilde_paths(xs: Vec<String>) -> Vec<PathBuf> {
+fn to_vec_paths(xs: Vec<String>) -> Vec<PathBuf> {
     xs.iter().map(|x| to_path(x.as_str())).collect()
+}
+
+fn make_common_roles_dir(base_dirs: &Vec<PathBuf>) -> Vec<PathBuf> {
+    let mut ys = Vec::new();
+
+    for name in vec!["zuul-shared", "zuul-trusted"] {
+        ys.append(&mut base_dirs.iter().map(|x| x.join(name)).collect());
+    }
+
+    ys
 }
 
 impl Config {
@@ -56,17 +78,20 @@ impl Config {
             let tenants = doc["tenant"].as_hash().unwrap();
             for t in tenants.iter() {
                 let name = t.0.as_str().unwrap().to_string();
-                let base_dirs = parse_str_or_list(&get_key_content(&t.1, "base_dir"));
-                let extra_base_dirs = parse_str_or_list(&get_key_content(&t.1, "extra_base_dir"));
-                let extra_role_dirs = parse_str_or_list(&get_key_content(&t.1, "extra_role_dir"));
+                let base_dirs = to_vec_paths(parse_str_or_list(&get_key_content(&t.1, "base_dir")));
+                let extra_base_dirs =
+                    to_vec_paths(parse_str_or_list(&get_key_content(&t.1, "extra_base_dir")));
+                let mut extra_role_dirs =
+                    to_vec_paths(parse_str_or_list(&get_key_content(&t.1, "extra_role_dir")));
+                extra_role_dirs.append(&mut make_common_roles_dir(&base_dirs));
 
                 config.tenants.insert(
                     name.clone(),
                     TenantConfig {
                         name,
-                        base_dirs: expand_tilde_paths(base_dirs),
-                        extra_base_dirs: expand_tilde_paths(extra_base_dirs),
-                        extra_role_dirs: expand_tilde_paths(extra_role_dirs),
+                        base_dirs,
+                        extra_base_dirs,
+                        extra_role_dirs,
                     },
                 );
             }
@@ -152,6 +177,8 @@ mod tests {
             extra_role_dirs: vec![
                 to_path("~/foo/another/extra_role"),
                 to_path("~/foo/zar/extra-role2"),
+                to_path("~/foo/bar/zuul-shared"),
+                to_path("~/foo/bar/zuul-trusted"),
             ],
             ..Default::default()
         };
