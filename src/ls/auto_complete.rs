@@ -1,5 +1,4 @@
 use std::path::Path;
-use std::path::PathBuf;
 
 use phf::phf_map;
 use ropey::Rope;

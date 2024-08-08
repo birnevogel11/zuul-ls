@@ -2,7 +2,6 @@ use std::fs;
 use std::path::Path;
 use std::path::PathBuf;
 
-use dashmap::OccupiedEntry;
 use ropey::Rope;
 use tower_lsp::lsp_types::{GotoDefinitionResponse, Location, Position, Range, Url};
 

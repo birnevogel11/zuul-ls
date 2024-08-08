@@ -5,8 +5,6 @@ use tower_lsp::lsp_types::*;
 use tower_lsp::{Client, LanguageServer, LspService};
 
 use super::auto_complete::complete_items;
-use super::auto_complete::get_trigger_char;
-use super::cache::AutoCompleteTokenCache;
 use super::go_to_definition::get_definition_list;
 use super::symbols::ZuulSymbol;
 
@@ -20,7 +18,6 @@ pub struct Backend {
     client: Client,
     document_map: DashMap<String, Rope>,
     symbols: ZuulSymbol,
-    token_cache: DashMap<String, AutoCompleteTokenCache>,
 }
 
 #[tower_lsp::async_trait]
@@ -123,8 +120,8 @@ impl Backend {
 
     async fn on_completion(&self, params: CompletionParams) -> Result<Option<CompletionResponse>> {
         let uri = &params.text_document_position.text_document.uri;
-        let uri_path = &uri.to_string();
-        let position = &params.text_document_position.position;
+        // let uri_path = &uri.to_string();
+        // let position = &params.text_document_position.position;
 
         let content = self.document_map.get(&uri.to_string());
         let position = &params.text_document_position.position;
@@ -143,7 +140,6 @@ pub fn initialize_service() -> (tower_lsp::LspService<Backend>, tower_lsp::Clien
         client,
         document_map: DashMap::new(),
         symbols: ZuulSymbol::default(),
-        token_cache: DashMap::new(),
     })
     .finish();
 

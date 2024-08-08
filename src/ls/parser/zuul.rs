@@ -4,7 +4,7 @@ use tower_lsp::lsp_types::Position;
 use yaml_rust2::yaml::YamlLoader;
 
 use super::key_stack::{insert_search_word, parse_value, ARRAY_INDEX_KEY, SEARCH_PATTERN};
-use super::utils::{find_name_token, find_path_token, find_var_token};
+use super::utils::{find_name_token, find_path_token};
 use super::{AutoCompleteToken, TokenFileType, TokenSide, TokenType, VariableTokenBuilder};
 
 fn retrieve_key_stack(content: &Rope, line: usize, col: usize) -> Option<(Vec<String>, TokenSide)> {

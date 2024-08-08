@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 
-use crate::parser::variable::{VariableGroup, VariablePrintInfo, VariableSource};
+use crate::parser::variable::VariableGroup;
 use crate::parser::zuul::job::Job;
 use crate::search::jobs::list_jobs;
 use crate::search::report_print::print_var_info_list;
