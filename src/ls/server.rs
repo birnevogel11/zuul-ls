@@ -9,6 +9,7 @@ use tower_lsp::{Client, LanguageServer, LspService};
 use crate::config::get_work_dir;
 use crate::ls::parser::parse_current_word_type;
 use crate::ls::parser::SearchType;
+use crate::parser::common::StringLoc;
 use crate::path::get_role_repo_dirs;
 use crate::search::job_vars::VariableInfo;
 use crate::search::roles::list_roles;
@@ -19,12 +20,28 @@ struct TextDocumentItem {
     text: String,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+struct VariableItem {
+    pub name: StringLoc,
+    pub value: String,
+}
+
+impl From<VariableInfo> for VariableItem {
+    fn from(var_info: VariableInfo) -> Self {
+        VariableItem {
+            name: var_info.name,
+            value: var_info.value,
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct Backend {
     client: Client,
     document_map: DashMap<String, Rope>,
+
     role_dirs: DashMap<String, PathBuf>,
-    variables: DashMap<String, PathBuf>,
+    vars: DashMap<String, Vec<VariableItem>>,
 }
 
 #[tower_lsp::async_trait]
@@ -107,6 +124,10 @@ impl Backend {
         });
 
         let vars = list_work_dir_vars_group(&work_dir, None);
+        vars.into_iter().for_each(|(name, var_info)| {
+            self.vars
+                .insert(name, var_info.into_iter().map(VariableItem::from).collect());
+        });
     }
 
     async fn on_change(&self, params: TextDocumentItem) {
@@ -145,8 +166,25 @@ impl Backend {
 
         search_types.iter().for_each(|search_type| {
             match search_type {
-                SearchType::Variable => todo!(), // TODO: implement it
-                SearchType::Job => todo!(),      // TODO: implement it
+                SearchType::Variable => {
+                    let var_infos = self.vars.get(current_word);
+                    if let Some(var_infos) = var_infos {
+                        locs.extend(var_infos.iter().map(|var| {
+                            let line = (var.name.line - 1) as u32;
+                            let begin_col = (var.name.col) as u32;
+                            let end_col = (var.name.col + current_word.len()) as u32;
+
+                            Location::new(
+                                Url::from_file_path(var.name.path.to_path_buf()).unwrap(),
+                                Range::new(
+                                    Position::new(line, begin_col),
+                                    Position::new(line, end_col),
+                                ),
+                            )
+                        }));
+                    }
+                }
+                SearchType::Job => todo!(), // TODO: implement it
                 SearchType::Role => {
                     let role = self.role_dirs.get(current_word);
                     if let Some(role) = role {
@@ -175,7 +213,7 @@ pub fn initialize_service() -> (tower_lsp::LspService<Backend>, tower_lsp::Clien
         client,
         document_map: DashMap::new(),
         role_dirs: DashMap::new(),
-        variables: DashMap::new(),
+        vars: DashMap::new(),
     })
     .finish();
 
