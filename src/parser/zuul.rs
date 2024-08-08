@@ -193,7 +193,7 @@ fn parse_doc(doc: &YValue, path: &Path) -> Vec<ZuulConfigParsedElement> {
     }
 }
 
-pub fn parse_zuul(paths: &Vec<PathBuf>) -> ZuulConfigElements {
+pub fn parse_zuul(paths: &[PathBuf]) -> ZuulConfigElements {
     ZuulConfigElements::new(
         paths
             .iter()

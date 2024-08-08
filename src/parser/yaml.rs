@@ -433,3 +433,10 @@ pub fn load_yvalue(path: &Path) -> Result<Vec<YValue>, LoadYValueError> {
         Err(err) => Err(err),
     }
 }
+
+pub fn load_yvalue_from_str(content: &str) -> Result<Vec<YValue>, LoadYValueError> {
+    match YValueLoader::load_from_str(content) {
+        Ok(docs) => Ok(docs),
+        Err(err) => Err(LoadYValueError::ParseError(err)),
+    }
+}

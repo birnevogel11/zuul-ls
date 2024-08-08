@@ -195,6 +195,7 @@ impl Backend {
                         ))
                     }
                 }
+                SearchType::ZuulProperty => {}
             };
         });
 

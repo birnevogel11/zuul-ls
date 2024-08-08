@@ -11,6 +11,7 @@ pub enum SearchType {
     Variable,
     Role,
     Job,
+    ZuulProperty,
 }
 
 fn is_letter_role(ch: char) -> bool {
@@ -270,50 +271,3 @@ mod tests {
         }
     }
 }
-
-// fn is_item_begin(line: &str) -> Option<usize> {
-//     if line.trim().starts_with("- ") {
-//         let indent_size = line.chars().take_while(|c| *c == ' ').count();
-//         Some(indent_size)
-//     } else {
-//         None
-//     }
-// }
-//
-// fn find_begin(content: &Rope, line_idx: usize) -> Option<(usize, usize)> {
-//     let mut lidx = line_idx;
-//     while lidx > 0 {
-//         if let Some(indent_size) = is_item_begin(&content.line(lidx).to_string()) {
-//             return Some((lidx, indent_size));
-//         }
-//         lidx -= 1;
-//     }
-//     is_item_begin(&content.line(0).to_string()).map(|indent_size| (0, indent_size))
-// }
-//
-// fn find_end(content: &Rope, line_idx: usize, indent_size: usize) -> Option<usize> {
-//     let mut pattern = " ".repeat(indent_size);
-//     pattern.push_str("- ");
-//
-//     let mut lidx = line_idx;
-//     while lidx < content.lines().len() {
-//         if content.line(lidx).to_string().trim().starts_with(&pattern) {
-//             return Some(lidx);
-//         }
-//         lidx += 1;
-//     }
-//     Some(content.lines().len() - 1)
-// }
-//
-// fn find_begin_end(content: &Rope, line_idx: usize) -> Option<(usize, usize)> {
-//     let (begin_idx, indent_size) = find_begin(content, line_idx)?;
-//     let end_idx = find_end(content, line_idx, indent_size)?;
-//     Some((begin_idx, end_idx))
-// }
-//
-// pub fn parse_ansible_block(content: &Rope, position: &Position) {
-//     log::info!("content: {:#?}", content);
-//     log::info!("position: {:#?}", position);
-//
-//     let lidx = position.line as usize;
-// }
