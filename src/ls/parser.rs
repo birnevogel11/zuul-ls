@@ -9,7 +9,7 @@ use ropey::Rope;
 use tower_lsp::lsp_types::Position;
 
 use crate::path::{retrieve_repo_path, to_path};
-use ansible::{parse_token_ansible, parse_token_var};
+use ansible::parse_token_ansible;
 use zuul::parse_token_zuul_config;
 
 fn get_exist_path(path: PathBuf) -> Option<PathBuf> {
@@ -155,8 +155,12 @@ pub fn parse_token(path: &Path, content: &Rope, position: &Position) -> Option<A
         TokenFileType::ZuulConfig => parse_token_zuul_config(file_type, content, position),
         TokenFileType::Playbooks => parse_token_ansible(file_type, content, position),
         TokenFileType::AnsibleRoleTasks { .. } => parse_token_ansible(file_type, content, position),
-        TokenFileType::AnsibleRoleDefaults { .. } => parse_token_var(file_type, content, position),
-        TokenFileType::AnsibleRoleTemplates { .. } => parse_token_var(file_type, content, position),
+        TokenFileType::AnsibleRoleDefaults { .. } => {
+            parse_token_ansible(file_type, content, position)
+        }
+        TokenFileType::AnsibleRoleTemplates { .. } => {
+            parse_token_ansible(file_type, content, position)
+        }
         TokenFileType::Unknown => None,
     }
 }

@@ -1,10 +1,37 @@
 use ropey::Rope;
 use tower_lsp::lsp_types::Position;
 
-use super::key_stack::{insert_search_word, retrieve_config_attribute, SEARCH_PATTERN};
+use hashlink::LinkedHashMap;
+use yaml_rust2::yaml::{Yaml, YamlLoader};
+
+use super::key_stack::{insert_search_word, parse_value, SEARCH_PATTERN};
 use super::utils::{find_name_word, find_path_word};
 use super::{AutoCompleteToken, TokenFileType, TokenSide, TokenType};
-use yaml_rust2::yaml::YamlLoader;
+
+fn retrieve_config_attribute(
+    config: &LinkedHashMap<Yaml, Yaml>,
+    key_stack: Vec<String>,
+) -> Option<(Vec<String>, Option<Vec<String>>, TokenSide)> {
+    let mut key_stack = key_stack;
+
+    for (key, value) in config {
+        if key.as_str()?.contains(SEARCH_PATTERN) {
+            return Some((key_stack, None, TokenSide::Left));
+        }
+
+        if let Some((var_stack, token_side)) = parse_value(value, Vec::new()) {
+            key_stack.push(key.as_str()?.to_string());
+            let var_stack = if var_stack.is_empty() {
+                None
+            } else {
+                Some(var_stack)
+            };
+            return Some((key_stack, var_stack, token_side));
+        }
+    }
+
+    None
+}
 
 pub fn retrieve_zuul_key_stack(
     content: &Rope,

@@ -22,7 +22,7 @@ fn parse_f64(v: &str) -> Option<f64> {
     }
 }
 
-#[derive(Clone, PartialEq, PartialOrd, Debug, Eq, Ord, Hash)]
+#[derive(Clone, PartialEq, PartialOrd, Debug, Eq, Ord, Hash, Default)]
 pub struct Loc {
     line: usize,
     col: usize,

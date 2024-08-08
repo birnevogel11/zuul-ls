@@ -1,0 +1,58 @@
+Some(
+    [
+        (
+            "var_name1",
+            [
+                VariableInfo {
+                    name: StringLoc {
+                        value: "var_name1",
+                        path: "/fake/play.yaml",
+                        line: 0,
+                        col: 0,
+                    },
+                    value: "value1",
+                    source: Role {
+                        name: "fake_role",
+                        path: "/fake/roles/fake_role",
+                    },
+                },
+            ],
+        ),
+        (
+            "var_name2",
+            [
+                VariableInfo {
+                    name: StringLoc {
+                        value: "var_name2",
+                        path: "/fake/play.yaml",
+                        line: 1,
+                        col: 0,
+                    },
+                    value: "value2",
+                    source: Role {
+                        name: "fake_role",
+                        path: "/fake/roles/fake_role",
+                    },
+                },
+            ],
+        ),
+        (
+            "var_name3.nested_var_name3",
+            [
+                VariableInfo {
+                    name: StringLoc {
+                        value: "var_name3.nested_var_name3",
+                        path: "/fake/play.yaml",
+                        line: 3,
+                        col: 4,
+                    },
+                    value: "value3",
+                    source: Role {
+                        name: "fake_role",
+                        path: "/fake/roles/fake_role",
+                    },
+                },
+            ],
+        ),
+    ],
+)

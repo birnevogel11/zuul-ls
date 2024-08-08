@@ -12,6 +12,21 @@ use crate::parser::yaml::{YValue, YValueYaml};
 pub type VarTable = LinkedHashMap<StringLoc, VarValue>;
 pub type VarGroup = HashMap<String, Vec<VariableInfo>>;
 
+pub fn parse_var_table_from_hash(
+    values: &LinkedHashMap<YValue, YValue>,
+    path: &Path,
+    field_name: &str,
+) -> Result<VarTable, ZuulParseError> {
+    let mut vs = VarTable::new();
+    for (key, value) in values {
+        let key = parse_string_value(key, path, field_name)?;
+        let value = VarValue::from_yvalue(value, path, key.as_str())?;
+        vs.insert(key, value);
+    }
+
+    Ok(vs)
+}
+
 pub fn parse_var_table(
     values: &YValue,
     path: &Path,
@@ -25,14 +40,7 @@ pub fn parse_var_table(
         path,
     ))?;
 
-    let mut vs = VarTable::new();
-    for (key, value) in values {
-        let key = parse_string_value(key, path, field_name)?;
-        let value = VarValue::from_yvalue(value, path, key.as_str())?;
-        vs.insert(key, value);
-    }
-
-    Ok(vs)
+    parse_var_table_from_hash(values, path, field_name)
 }
 
 #[derive(Clone, PartialEq, PartialOrd, Debug, Eq, Ord, Hash)]

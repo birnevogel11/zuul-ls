@@ -1,0 +1,25 @@
+- name: Add some variables
+  set_fact:
+    set_fact_vars1: set_fact_vars1_value
+    set_fact_vars2:
+      nested_set_fact_vars2: nested_set_fact_vars2_value
+
+
+- name: Add some variables in block
+  block:
+    - name: Add variables in block
+      set_fact:
+        block_vars1: block_vars1_value
+        block_vars2:
+          nested_block_vars2: nested_block_vars2_value
+
+- name: set a variable again
+  set_fact:
+    set_fact_vars1: set_fact_vars1_value
+
+
+- name: Try to parse local variables
+  set_fact:
+    set_fact_vars3: "{{ local_vars_1 }}"
+  vars:
+    local_vars_1: local_vars_1_value

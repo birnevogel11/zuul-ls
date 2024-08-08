@@ -1,0 +1,4 @@
+var_name1: value1
+var_name2: value2
+var_name3:
+    nested_var_name3: value3

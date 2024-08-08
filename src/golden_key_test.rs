@@ -57,7 +57,14 @@ impl TestFiles {
         let output = TestFiles::output_string(var);
         self.write_output_str(&output);
 
-        assert_eq!(self.read_assert_output(), output)
+        let expected_output = self.read_assert_output();
+
+        if output != expected_output {
+            println!("output:   {:?}", &output);
+            println!("expected: {:?}", &expected_output);
+        }
+
+        assert_eq!(output, expected_output)
     }
 
     #[allow(dead_code)]
