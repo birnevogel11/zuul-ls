@@ -9,6 +9,16 @@ pub fn to_path(x: &str) -> PathBuf {
         .into_owned()
 }
 
+pub fn retrieve_repo_path(path: &str) -> PathBuf {
+    let repo_path: String = to_path(path)
+        .components()
+        .take_while(|x| x.as_os_str() != "zuul.d")
+        .map(|x| x.as_os_str().to_str().unwrap().to_string())
+        .collect::<Vec<String>>()
+        .join("/");
+    PathBuf::from(&repo_path[1..repo_path.len()])
+}
+
 pub fn list_role_dir(repo_dir: &Path) -> Vec<PathBuf> {
     let mut xs = Vec::new();
 

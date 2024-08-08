@@ -29,7 +29,8 @@ struct ZuulSearchCliRolesArgs {
 }
 
 fn main() {
-    crate::parser::job::job_parser_study(PathBuf::from("./test.yaml").as_path());
+    crate::parser::zuul::job_parser_study(PathBuf::from("./test.yaml").as_path());
+
     // let args = ZuulSearchCli::parse();
     //
     // match args {

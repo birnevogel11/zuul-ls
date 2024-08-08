@@ -71,7 +71,91 @@ pub enum YValueYaml {
     BadValue,
 }
 
+macro_rules! define_as (
+    ($name:ident, $t:ident, $yt:ident) => (
+/// Get a copy of the inner object in the YAML enum if it is a `$t`.
+///
+/// # Return
+/// If the variant of `self` is `Yaml::$yt`, return `Some($t)` with a copy of the `$t` contained.
+/// Otherwise, return `None`.
+#[must_use]
+pub fn $name(&self) -> Option<$t> {
+    match self.value {
+        YValueYaml::$yt(v) => Some(v),
+        _ => None
+    }
+}
+    );
+);
+
+macro_rules! define_as_ref (
+    ($name:ident, $t:ty, $yt:ident) => (
+/// Get a reference to the inner object in the YAML enum if it is a `$t`.
+///
+/// # Return
+/// If the variant of `self` is `Yaml::$yt`, return `Some(&$t)` with the `$t` contained. Otherwise,
+/// return `None`.
+#[must_use]
+pub fn $name(&self) -> Option<$t> {
+    match self.value {
+        YValueYaml::$yt(ref v) => Some(v),
+        _ => None
+    }
+}
+    );
+);
+
+macro_rules! define_as_mut_ref (
+    ($name:ident, $t:ty, $yt:ident) => (
+/// Get a mutable reference to the inner object in the YAML enum if it is a `$t`.
+///
+/// # Return
+/// If the variant of `self` is `Yaml::$yt`, return `Some(&mut $t)` with the `$t` contained.
+/// Otherwise, return `None`.
+#[must_use]
+pub fn $name(&mut self) -> Option<$t> {
+    match self.value {
+        YValueYaml::$yt(ref mut v) => Some(v),
+        _ => None
+    }
+}
+    );
+);
+
+macro_rules! define_into (
+    ($name:ident, $t:ty, $yt:ident) => (
+/// Get the inner object in the YAML enum if it is a `$t`.
+///
+/// # Return
+/// If the variant of `self` is `Yaml::$yt`, return `Some($t)` with the `$t` contained. Otherwise,
+/// return `None`.
+#[must_use]
+pub fn $name(self) -> Option<$t> {
+    match self.value {
+        YValueYaml::$yt(v) => Some(v),
+        _ => None
+    }
+}
+    );
+);
+
 impl YValue {
+    define_as!(as_bool, bool, Boolean);
+    define_as!(as_i64, i64, Integer);
+
+    define_as_ref!(as_str, &str, String);
+    define_as_ref!(as_hash, &Hash, Hash);
+    define_as_ref!(as_vec, &Array, Array);
+
+    define_as_mut_ref!(as_mut_hash, &mut Hash, Hash);
+    define_as_mut_ref!(as_mut_vec, &mut Array, Array);
+
+    define_into!(into_bool, bool, Boolean);
+    define_into!(into_i64, i64, Integer);
+    define_into!(into_string, String, String);
+    define_into!(into_hash, Hash, Hash);
+    define_into!(into_vec, Array, Array);
+
     pub fn new(value: YValueYaml, mark: &Marker) -> YValue {
         YValue {
             value,
@@ -129,13 +213,6 @@ impl YValue {
                     YValue::new(YValueYaml::String(v.to_owned()), mark)
                 }
             }
-        }
-    }
-
-    pub fn as_str(&self) -> Option<&String> {
-        match self.value {
-            YValueYaml::String(ref x) => Some(x),
-            _ => None,
         }
     }
 }
