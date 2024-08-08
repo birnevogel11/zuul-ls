@@ -1,6 +1,9 @@
 use crate::parser::common::StringLoc;
+use crate::parser::zuul::project_template::ProjectTemplate;
 use crate::search::job_vars::VariableInfo;
 use crate::search::path::shorten_path;
+
+use super::project_templates;
 
 #[macro_export]
 macro_rules! safe_println {
@@ -15,7 +18,7 @@ macro_rules! safe_println {
     };
 }
 
-pub fn print_var_info_list(vars: Vec<VariableInfo>) {
+pub fn print_var_info_list(vars: &[VariableInfo]) {
     for var_info in vars {
         println!(
             "{}\t{}\t{}\t{}\t{}\t{}",
@@ -37,6 +40,19 @@ pub fn print_string_locs(locs: &[StringLoc]) {
             shorten_path(&loc.path).display(),
             loc.line,
             loc.col
+        );
+    }
+}
+
+pub fn print_project_templates(project_templates: &[ProjectTemplate]) {
+    for pt in project_templates {
+        let name = pt.name();
+        safe_println!(
+            "{}\t{}\t{}\t{}",
+            name.value,
+            shorten_path(&name.path).display(),
+            name.line,
+            name.col
         );
     }
 }

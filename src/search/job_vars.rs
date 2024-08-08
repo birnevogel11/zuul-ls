@@ -78,5 +78,5 @@ pub fn list_jobs_vars_cli(job_name: String, work_dir: &Path, config_path: Option
         .into_iter()
         .map(|(_, var_info)| var_info)
         .collect::<Vec<_>>();
-    print_var_info_list(vars);
+    print_var_info_list(&vars);
 }

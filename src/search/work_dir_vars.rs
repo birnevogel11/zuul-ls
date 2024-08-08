@@ -61,5 +61,5 @@ pub fn list_work_dir_vars(work_dir: &Path, config_path: Option<PathBuf>) -> Hash
 
 pub fn list_work_dir_vars_cli(work_dir: &Path, config_path: Option<PathBuf>) {
     let vars = list_work_dir_vars(work_dir, config_path);
-    print_var_info_list(vars.into_iter().collect::<Vec<_>>());
+    print_var_info_list(&vars.into_iter().collect::<Vec<_>>());
 }

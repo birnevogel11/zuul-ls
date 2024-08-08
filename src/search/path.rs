@@ -39,6 +39,11 @@ pub fn get_zuul_yaml_paths(repo_dirs: &[PathBuf]) -> Vec<Rc<PathBuf>> {
     paths
 }
 
+pub fn get_zuul_yaml_paths_cwd(work_dir: &Path, config_path: Option<PathBuf>) -> Vec<Rc<PathBuf>> {
+    let repo_dirs = get_repo_dirs(work_dir, config_path);
+    get_zuul_yaml_paths(&repo_dirs)
+}
+
 pub fn get_repo_dirs(work_dir: &Path, config_path: Option<PathBuf>) -> Vec<PathBuf> {
     let config = get_config(&config_path);
     // Assume the parent dir of the work dir is the base dir when the config
