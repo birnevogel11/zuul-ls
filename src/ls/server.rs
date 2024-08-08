@@ -5,6 +5,7 @@ use tower_lsp::lsp_types::*;
 use tower_lsp::{Client, LanguageServer, LspService};
 
 use super::auto_complete::complete_items;
+use super::cache::AutoCompleteCache;
 use super::go_to_definition::get_definition_list;
 use super::symbols::ZuulSymbol;
 
@@ -18,6 +19,7 @@ pub struct Backend {
     client: Client,
     document_map: DashMap<String, Rope>,
     symbols: ZuulSymbol,
+    auto_complete_cache: AutoCompleteCache,
 }
 
 #[tower_lsp::async_trait]
@@ -122,19 +124,44 @@ impl Backend {
     }
 
     async fn on_completion(&self, params: CompletionParams) -> Result<Option<CompletionResponse>> {
+        log::debug!("params: {:#?}", params);
+
         let uri = &params.text_document_position.text_document.uri;
-        // let uri_path = &uri.to_string();
-        // let position = &params.text_document_position.position;
+        let uri_path = &uri.to_string();
 
         let content = self.document_map.get(&uri.to_string());
         let position = &params.text_document_position.position;
         let path = uri.to_file_path().unwrap();
 
-        log::info!("params: {:#?}", params);
-        Ok(content
-            .as_ref()
-            .and_then(|c| complete_items(&self.symbols, &path, c, position))
-            .map(|(response, _)| response))
+        let response =
+            match self
+                .auto_complete_cache
+                .get_cached_items(uri_path, position, &params.context)
+            {
+                Some((cached_response, value)) => {
+                    self.auto_complete_cache.add_entry(
+                        uri.to_string(),
+                        position,
+                        &cached_response,
+                        &value,
+                    );
+                    Some(cached_response)
+                }
+                None => content
+                    .as_ref()
+                    .and_then(|c| complete_items(&self.symbols, &path, c, position))
+                    .map(|(response, token)| {
+                        self.auto_complete_cache.add_entry(
+                            uri.to_string(),
+                            position,
+                            &response,
+                            &token.value,
+                        );
+                        response
+                    }),
+            };
+
+        Ok(response)
     }
 }
 
@@ -143,6 +170,7 @@ pub fn initialize_service() -> (tower_lsp::LspService<Backend>, tower_lsp::Clien
         client,
         document_map: DashMap::new(),
         symbols: ZuulSymbol::default(),
+        auto_complete_cache: AutoCompleteCache::default(),
     })
     .finish();
 

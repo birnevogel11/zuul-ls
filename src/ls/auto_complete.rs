@@ -3,8 +3,7 @@ use std::path::Path;
 use phf::phf_map;
 use ropey::Rope;
 use tower_lsp::lsp_types::{
-    CompletionContext, CompletionItem, CompletionItemKind, CompletionResponse,
-    CompletionTriggerKind, Documentation, Position,
+    CompletionItem, CompletionItemKind, CompletionResponse, Documentation, Position,
 };
 use walkdir::WalkDir;
 
@@ -229,12 +228,4 @@ pub fn complete_items(
             })
         }
     }
-}
-
-pub fn get_trigger_char(context: Option<CompletionContext>) -> Option<String> {
-    let context = context?;
-    if context.trigger_kind == CompletionTriggerKind::TRIGGER_CHARACTER {
-        return context.trigger_character.clone();
-    }
-    None
 }
