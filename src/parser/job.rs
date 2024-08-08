@@ -6,6 +6,10 @@ use hashlink::LinkedHashMap;
 
 use crate::parser::yaml::{load_yvalue, YValue, YValueYaml};
 
+pub trait ZuulParse<T> {
+    fn parse(xs: &LinkedHashMap<YValue, YValue>, path: &Rc<PathBuf>) -> Result<T, ZuulParseError>;
+}
+
 #[derive(Clone, PartialEq, PartialOrd, Debug, Eq, Ord, Hash, Default)]
 pub struct ZuulParseError {
     msg: String,
@@ -30,6 +34,7 @@ impl ZuulParseError {
 #[derive(Clone, PartialEq, PartialOrd, Debug, Eq, Ord, Hash)]
 enum ZuulParseType {
     Job,
+    ProjectTemplate,
 }
 
 impl ZuulParseType {
@@ -38,6 +43,8 @@ impl ZuulParseType {
             if let YValueYaml::String(key) = key.value() {
                 if key == "job" {
                     return Some(ZuulParseType::Job);
+                } else if key == "project_template" {
+                    return Some(ZuulParseType::ProjectTemplate);
                 }
             }
         }
@@ -88,7 +95,7 @@ fn parse_string_value(
     }
 }
 
-impl Job {
+impl ZuulParse<Job> for Job {
     fn parse(
         xs: &LinkedHashMap<YValue, YValue>,
         path: &Rc<PathBuf>,
@@ -100,10 +107,12 @@ impl Job {
             match key.as_str() {
                 Some(key) => match key.as_str() {
                     "job" => {
-                        job_name = parse_string_value(value, path, "job").unwrap();
+                        let value = parse_string_value(value, path, "job")?;
+                        job_name = value;
                     }
                     "parent" => {
-                        parent = parse_string_value(value, path, "parent").ok();
+                        let value = parse_string_value(value, path, "parent")?;
+                        parent = Some(value);
                     }
                     _ => {}
                 },
@@ -132,6 +141,7 @@ impl ZuulConfigElement {
                         let job = Job::parse(xs, path).ok()?;
                         Some(ZuulConfigElement::Job(job))
                     }
+                    ZuulParseType::ProjectTemplate => todo!(),
                 },
                 None => None,
             }
