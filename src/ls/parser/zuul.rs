@@ -1,7 +1,9 @@
 use ropey::Rope;
 use tower_lsp::lsp_types::Position;
 
-use super::token::{find_name_word, find_path_word, AutoCompleteToken, TokenSide, TokenType};
+use super::utils::{find_name_word, find_path_word};
+use super::TokenFileType;
+use crate::ls::parser::{AutoCompleteToken, TokenSide, TokenType};
 use yaml_rust2::yaml::{Yaml, YamlLoader};
 
 const SEARCH_PATTERN: &str = "SeRpAt";
@@ -15,13 +17,13 @@ fn retrieve_value_key_stack(value: &Yaml, keys: &mut Vec<String>) -> (bool, Toke
                     return (true, TokenSide::Right); // TODO: Should we support index operator ? Skip it now
                 }
             }
-            (false, TokenSide::Unknown)
+            (false, TokenSide::default())
         }
         Yaml::Hash(xs) => {
             for (k, v) in xs {
                 let key_name = k.as_str();
                 if key_name.is_none() {
-                    return (false, TokenSide::Unknown);
+                    return (false, TokenSide::Left);
                 }
                 if key_name.unwrap().contains(SEARCH_PATTERN) {
                     return (true, TokenSide::Left);
@@ -32,14 +34,14 @@ fn retrieve_value_key_stack(value: &Yaml, keys: &mut Vec<String>) -> (bool, Toke
                     return check;
                 }
             }
-            (false, TokenSide::Unknown)
+            (false, TokenSide::default())
         }
         Yaml::Real(_)
         | Yaml::Integer(_)
         | Yaml::Boolean(_)
         | Yaml::Alias(_)
         | Yaml::Null
-        | Yaml::BadValue => (false, TokenSide::Unknown),
+        | Yaml::BadValue => (false, TokenSide::default()),
     }
 }
 
@@ -55,7 +57,7 @@ pub fn retrieve_key_stack(
     content: &Rope,
     line: usize,
     col: usize,
-) -> Option<(Vec<String>, TokenSide)> {
+) -> Option<(Vec<String>, Option<Vec<String>>, TokenSide)> {
     let search_rope = insert_search_word(content, line, col);
     let content = search_rope.to_string();
     let docs = YamlLoader::load_from_str(&content).ok()?;
@@ -74,7 +76,7 @@ pub fn retrieve_key_stack(
             let zuul = *raw_zuul_name.keys().collect::<Vec<_>>().first()?;
             let zuul_name = zuul.as_str()?;
             if zuul_name.contains(SEARCH_PATTERN) {
-                return Some((key_stack, TokenSide::Left));
+                return Some((key_stack, None, TokenSide::Left));
             }
             key_stack.push(zuul_name.to_string());
 
@@ -82,15 +84,19 @@ pub fn retrieve_key_stack(
             let zuul_config = raw_zuul_name.get(zuul).unwrap().as_hash()?;
             for (key, value) in zuul_config {
                 if key.as_str()?.contains(SEARCH_PATTERN) {
-                    return Some((key_stack, TokenSide::Left));
+                    return Some((key_stack, None, TokenSide::Left));
                 }
 
                 let mut value_stack = Vec::new();
                 let check = retrieve_value_key_stack(value, &mut value_stack);
                 if check.0 {
                     key_stack.push(key.as_str()?.to_string());
-                    key_stack.extend(value_stack);
-                    return Some((key_stack, check.1));
+                    let var_stack = if value_stack.is_empty() {
+                        None
+                    } else {
+                        Some(value_stack)
+                    };
+                    return Some((key_stack, var_stack, check.1));
                 }
             }
         }
@@ -99,8 +105,12 @@ pub fn retrieve_key_stack(
     None
 }
 
-pub fn parse_word_zuul_config(content: &Rope, position: &Position) -> Option<AutoCompleteToken> {
-    let (key_stack, token_side) =
+pub fn parse_token_zuul_config(
+    file_type: TokenFileType,
+    content: &Rope,
+    position: &Position,
+) -> Option<AutoCompleteToken> {
+    let (key_stack, var_stack, token_side) =
         retrieve_key_stack(content, position.line as usize, position.character as usize)?;
     log::info!(
         "key_stack: {:#?}, token_side: {:#?}",
@@ -108,36 +118,59 @@ pub fn parse_word_zuul_config(content: &Rope, position: &Position) -> Option<Aut
         &token_side
     );
 
-    if key_stack.len() <= 1 {
+    if key_stack.is_empty() {
         return None;
+    }
+
+    if key_stack.len() == 1 && token_side == TokenSide::Left {
+        let token = find_name_word(content, position)?;
+        return Some(AutoCompleteToken::new2(
+            token,
+            file_type,
+            TokenType::ZuulProperty(key_stack[0].clone()),
+            token_side,
+            key_stack,
+        ));
     }
 
     if key_stack.len() >= 2 && key_stack[0] == "job" {
         if key_stack[1] == "name" || key_stack[1] == "parent" {
-            let current_word = find_name_word(content, position)?;
-            return Some(AutoCompleteToken::new(
-                current_word,
+            let token = find_name_word(content, position)?;
+            return Some(AutoCompleteToken::new2(
+                token,
+                file_type,
                 TokenType::Job,
                 token_side,
                 key_stack,
             ));
         }
         if key_stack[1] == "vars" {
-            let current_word = find_name_word(content, position)?;
-            return Some(AutoCompleteToken::new(
-                current_word,
-                TokenType::Variable,
-                token_side,
-                key_stack,
-            ));
+            let token = find_name_word(content, position)?;
+            return Some(match token_side {
+                TokenSide::Left => AutoCompleteToken::new2(
+                    token,
+                    file_type,
+                    TokenType::VariableWithPrefix(var_stack.unwrap_or_default()),
+                    token_side,
+                    key_stack,
+                ),
+                TokenSide::Right => AutoCompleteToken::new2(
+                    token,
+                    file_type,
+                    TokenType::Variable,
+                    token_side,
+                    key_stack,
+                ),
+            });
         }
-        if ["run", "pre-run", "post-run", "clean-run"]
+        if ["run", "pre-run", "post-run"]
             .into_iter()
             .any(|key| key == key_stack[1])
         {
-            let current_word = find_path_word(content, position)?;
-            return Some(AutoCompleteToken::new(
-                current_word,
+            let token = find_path_word(content, position)?;
+            return Some(AutoCompleteToken::new2(
+                token,
+                file_type,
                 TokenType::Playbook,
                 token_side,
                 key_stack,
@@ -167,9 +200,9 @@ mod tests {
                     .iter()
                     .map(|x| x.to_string())
                     .collect::<Vec<_>>(),
+                None,
                 TokenSide::Right
             ))
         );
-        // println!("xs: {:#?}", xs);
     }
 }

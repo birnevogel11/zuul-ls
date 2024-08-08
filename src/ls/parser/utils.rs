@@ -2,60 +2,6 @@ use ropey::Rope;
 use ropey::RopeSlice;
 use tower_lsp::lsp_types::Position;
 
-use crate::ls::file_type::LSFileType;
-
-#[derive(Copy, Clone, PartialEq, PartialOrd, Debug, Eq, Ord, Hash, Default)]
-pub enum TokenSide {
-    #[default]
-    Unknown,
-    Left,
-    Right,
-}
-
-#[derive(Clone, PartialEq, PartialOrd, Debug, Eq, Ord, Hash, Default)]
-pub enum TokenType {
-    #[default]
-    Variable,
-    Role,
-    Job,
-    ZuulProperty(String),
-    Playbook,
-}
-
-#[derive(Clone, PartialEq, PartialOrd, Debug, Eq, Ord, Hash, Default)]
-pub struct AutoCompleteToken {
-    pub token: String,
-    pub token_type: TokenType,
-    pub file_type: LSFileType,
-    pub token_side: TokenSide,
-    pub key_stack: Vec<String>,
-}
-
-impl AutoCompleteToken {
-    pub fn new_simple(word: String, word_type: TokenType) -> Self {
-        Self {
-            token: word,
-            token_type: word_type,
-            ..Self::default()
-        }
-    }
-
-    pub fn new(
-        token: String,
-        token_type: TokenType,
-        token_side: TokenSide,
-        key_stack: Vec<String>,
-    ) -> Self {
-        Self {
-            token,
-            token_type,
-            token_side,
-            key_stack,
-            ..Self::default()
-        }
-    }
-}
-
 fn is_letter_role(ch: char) -> bool {
     matches!(ch, 'a'..='z' | 'A'..='Z' | '0'..='9' | '_' | '.' | '/' | '-')
 }

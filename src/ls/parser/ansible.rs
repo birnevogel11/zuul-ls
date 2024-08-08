@@ -1,14 +1,19 @@
 use ropey::Rope;
 use tower_lsp::lsp_types::Position;
 
-use super::token::{find_role_word, find_var_word, AutoCompleteToken, TokenType};
+use super::utils::{find_role_word, find_var_word};
+use super::{AutoCompleteToken, TokenFileType, TokenType};
 
-pub fn parse_word_ansible(content: &Rope, position: &Position) -> Option<AutoCompleteToken> {
+pub fn parse_token_ansible(
+    file_type: TokenFileType,
+    content: &Rope,
+    position: &Position,
+) -> Option<AutoCompleteToken> {
     let line_idx = position.line as usize;
     let line = content.get_line(line_idx)?;
     let line_str = line.to_string();
 
-    let word_type = if line_str.contains("role:") {
+    let token_type = if line_str.contains("role:") {
         TokenType::Role
     } else if line_idx >= 1 {
         let prev_line = content.get_line(line_idx - 1).unwrap().to_string();
@@ -23,18 +28,23 @@ pub fn parse_word_ansible(content: &Rope, position: &Position) -> Option<AutoCom
         TokenType::Variable
     };
 
-    let current_word = if word_type == TokenType::Role {
+    let token = if token_type == TokenType::Role {
         find_role_word(content, position)?
     } else {
         find_var_word(content, position)?
     };
 
-    Some(AutoCompleteToken::new_simple(current_word, word_type))
+    Some(AutoCompleteToken::new_simple(token, file_type, token_type))
 }
 
-pub fn parse_word_var(content: &Rope, position: &Position) -> Option<AutoCompleteToken> {
+pub fn parse_token_var(
+    file_type: TokenFileType,
+    content: &Rope,
+    position: &Position,
+) -> Option<AutoCompleteToken> {
     Some(AutoCompleteToken::new_simple(
-        find_role_word(content, position)?,
+        find_var_word(content, position)?,
+        file_type,
         TokenType::Variable,
     ))
 }
@@ -64,6 +74,9 @@ mod tests {
                 character,
                 Some(AutoCompleteToken::new_simple(
                     current_word.to_string(),
+                    TokenFileType::AnsibleRoleTasks {
+                        defaults_path: None,
+                    },
                     search_type,
                 )),
             )
@@ -146,7 +159,13 @@ mod tests {
         ];
 
         for input in test_inputs {
-            let result = parse_word_ansible(&input.content, &input.position);
+            let result = parse_token_ansible(
+                TokenFileType::AnsibleRoleTasks {
+                    defaults_path: None,
+                },
+                &input.content,
+                &input.position,
+            );
             assert_eq!(result, input.result)
         }
     }

@@ -3,7 +3,7 @@ use std::path::Path;
 use ropey::Rope;
 use tower_lsp::lsp_types::{GotoDefinitionResponse, Location, Position, Range, Url};
 
-use crate::ls::parser::token::{AutoCompleteToken, TokenType};
+use crate::ls::parser::{AutoCompleteToken, TokenType};
 use crate::ls::symbols::ZuulSymbol;
 use crate::path::{retrieve_repo_path, to_path};
 
@@ -27,6 +27,7 @@ fn get_definition_list_internal(
                 ));
             }
         }
+        TokenType::VariableWithPrefix(_) => todo!(),
         TokenType::Job => {
             if let Some(job_locs) = symbols.jobs().get(token) {
                 return Some(GotoDefinitionResponse::Array(
