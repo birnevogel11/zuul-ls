@@ -1,37 +1,34 @@
-use yaml_rust2::yaml::Yaml;
-
-use path_absolutize::*;
 use std::collections::HashMap;
 use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
 
 use dirs;
+use path_absolutize::*;
+use yaml_rust2::yaml::Yaml;
 use yaml_rust2::yaml::YamlLoader;
 
 extern crate shellexpand;
 
 #[derive(Default, Debug, PartialEq)]
 pub struct TenantConfig {
-    name: String,
-    base_dirs: Vec<PathBuf>,
-    extra_base_dirs: Vec<PathBuf>,
-    extra_role_dirs: Vec<PathBuf>,
+    pub name: String,
+    pub base_dirs: Vec<PathBuf>,
+    pub extra_base_dirs: Vec<PathBuf>,
+    pub extra_role_dirs: Vec<PathBuf>,
 }
 
 impl TenantConfig {
     pub fn is_in_base_dirs(&self, path: &str) -> bool {
         let abs_path = to_path(path);
-        let path = abs_path.as_path().to_str().unwrap();
-
         self.base_dirs
             .iter()
-            .map(|x| path.starts_with(x.as_path().to_str().unwrap()))
+            .map(|x| abs_path.starts_with(x))
             .fold(false, |x, y| x | y)
     }
 }
 
-pub fn get_config(path: &Option<&Path>) -> Option<Config> {
+pub fn get_config(path: &Option<PathBuf>) -> Option<Config> {
     let config = match path {
         Some(path) => Config::read_config_path(path),
         None => Config::read_config(),
@@ -41,8 +38,8 @@ pub fn get_config(path: &Option<&Path>) -> Option<Config> {
 
 #[derive(Default, Debug, PartialEq)]
 pub struct Config {
-    default_tenant: String,
-    tenants: HashMap<String, TenantConfig>,
+    pub default_tenant: String,
+    pub tenants: HashMap<String, TenantConfig>,
 }
 
 impl Config {

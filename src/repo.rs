@@ -85,7 +85,7 @@ fn list_roles_internal(base_dir: PathBuf) -> Vec<PathBuf> {
     _tranversal_dirs(base_dir, "tasks")
 }
 
-pub fn list_roles(repo_dirs: &Vec<PathBuf>) -> Vec<PathBuf> {
+pub fn list_roles_impl(repo_dirs: &Vec<PathBuf>) -> Vec<PathBuf> {
     let mut xs = Vec::new();
 
     let role_dir_iters = repo_dirs
@@ -104,5 +104,11 @@ pub fn list_roles(repo_dirs: &Vec<PathBuf>) -> Vec<PathBuf> {
         }
     }
 
+    xs
+}
+
+pub fn list_roles(repo_dirs: &Vec<PathBuf>) -> Vec<PathBuf> {
+    let mut xs = list_roles_impl(repo_dirs);
+    xs.sort();
     xs
 }
