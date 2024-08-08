@@ -1,4 +1,5 @@
 use hashlink::LinkedHashMap;
+use std::collections::HashMap;
 use std::path::Path;
 
 use interner::global::{GlobalPath, GlobalString};
@@ -9,6 +10,7 @@ use crate::parser::common::{
 use crate::parser::yaml::{YValue, YValueYaml};
 
 pub type VarTable = LinkedHashMap<StringLoc, VarValue>;
+pub type VarGroup = HashMap<String, Vec<VariableInfo>>;
 
 pub fn parse_var_table(
     values: &YValue,
@@ -138,15 +140,15 @@ pub fn collect_variables(
     name_prefix: &str,
     var_table: &VarTable,
     source: &VariableSource,
-) -> LinkedHashMap<String, VariableInfo> {
-    let mut vs = LinkedHashMap::new();
+) -> HashMap<String, VariableInfo> {
+    let mut vs = HashMap::new();
 
-    for (job_var, value) in var_table {
+    for (var, value) in var_table {
         let mut var_name = name_prefix.to_string();
         if !var_name.is_empty() {
             var_name.push('.');
         }
-        var_name.push_str(&job_var.value);
+        var_name.push_str(&var.value);
 
         if !vs.contains_key(&var_name) {
             match value {
@@ -154,14 +156,14 @@ pub fn collect_variables(
                     let nested_vs = collect_variables(&var_name, value, source)
                         .into_iter()
                         .filter(|(x, _)| !vs.contains_key(x))
-                        .collect::<LinkedHashMap<_, _>>();
+                        .collect::<HashMap<_, _>>();
                     vs.extend(nested_vs.into_iter());
                 }
                 _ => {
                     vs.insert(
                         var_name.clone(),
                         VariableInfo {
-                            name: job_var.clone_loc(var_name),
+                            name: var.clone_loc(var_name),
                             source: source.clone(),
                             value: value.to_show_value(),
                         },
@@ -171,4 +173,20 @@ pub fn collect_variables(
         }
     }
     vs
+}
+
+pub fn group_variables(group_vars: VarGroup, vars: HashMap<String, VariableInfo>) -> VarGroup {
+    let mut group_vars = group_vars;
+
+    vars.into_iter()
+        .for_each(|(key, var_info)| match group_vars.get_mut(&key) {
+            Some(info) => {
+                info.push(var_info);
+            }
+            None => {
+                group_vars.insert(key, vec![var_info]);
+            }
+        });
+
+    group_vars
 }
