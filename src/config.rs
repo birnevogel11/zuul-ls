@@ -31,31 +31,18 @@ impl TenantConfig {
     }
 }
 
+pub fn get_config(path: &Option<&Path>) -> Option<Config> {
+    let config = match path {
+        Some(path) => Config::read_config_path(path),
+        None => Config::read_config(),
+    }?;
+    Some(Config::validate_config(config))
+}
+
 #[derive(Default, Debug, PartialEq)]
 pub struct Config {
     default_tenant: String,
     tenants: HashMap<String, TenantConfig>,
-}
-
-fn to_path(x: &str) -> PathBuf {
-    PathBuf::from(shellexpand::tilde(x).into_owned())
-        .absolutize()
-        .unwrap()
-        .into_owned()
-}
-
-fn to_vec_paths(xs: Vec<String>) -> Vec<PathBuf> {
-    xs.iter().map(|x| to_path(x.as_str())).collect()
-}
-
-fn make_common_roles_dir(base_dirs: &Vec<PathBuf>) -> Vec<PathBuf> {
-    let mut ys = Vec::new();
-
-    for name in vec!["zuul-shared", "zuul-trusted"] {
-        ys.append(&mut base_dirs.iter().map(|x| x.join(name)).collect());
-    }
-
-    ys
 }
 
 impl Config {
@@ -97,6 +84,31 @@ impl Config {
             }
         }
         Some(config)
+    }
+
+    pub fn validate_config(config: Config) -> Config {
+        let default_tenant = config.default_tenant;
+        let mut tenants = HashMap::new();
+
+        for t in config.tenants {
+            let name = t.0;
+            let tenant = t.1;
+
+            tenants.insert(
+                name,
+                TenantConfig {
+                    name: tenant.name,
+                    base_dirs: filter_valid_paths(tenant.base_dirs),
+                    extra_base_dirs: filter_valid_paths(tenant.extra_base_dirs),
+                    extra_role_dirs: filter_valid_paths(tenant.extra_role_dirs),
+                },
+            );
+        }
+
+        Config {
+            default_tenant,
+            tenants,
+        }
     }
 
     fn read_config_from_path(custom_path: Option<PathBuf>) -> Option<Config> {
@@ -143,12 +155,37 @@ fn parse_str_or_list(raw_content: &Option<&Yaml>) -> Vec<String> {
     xs
 }
 
+fn to_path(x: &str) -> PathBuf {
+    PathBuf::from(shellexpand::tilde(x).into_owned())
+        .absolutize()
+        .unwrap()
+        .into_owned()
+}
+
+fn to_vec_paths(xs: Vec<String>) -> Vec<PathBuf> {
+    xs.iter().map(|x| to_path(x.as_str())).collect()
+}
+
+fn make_common_roles_dir(base_dirs: &Vec<PathBuf>) -> Vec<PathBuf> {
+    let mut ys = Vec::new();
+
+    for name in vec!["zuul-shared", "zuul-trusted"] {
+        ys.append(&mut base_dirs.iter().map(|x| x.join(name)).collect());
+    }
+
+    ys
+}
+
 fn get_key_content<'a>(raw_config: &'a Yaml, key: &str) -> Option<&'a Yaml> {
     if let Some(raw_config) = raw_config.as_hash() {
         let search_key = Yaml::String(key.to_owned());
         return raw_config.get(&search_key);
     }
     None
+}
+
+fn filter_valid_paths(xs: Vec<PathBuf>) -> Vec<PathBuf> {
+    xs.iter().map_while(|x| fs::canonicalize(x).ok()).collect()
 }
 
 #[cfg(test)]

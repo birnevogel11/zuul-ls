@@ -1,5 +1,6 @@
 use std::path::Path;
 
+use crate::config::get_config;
 use crate::config::Config;
 
 mod config;
@@ -16,6 +17,11 @@ fn main() {
     // let doc = &docs[0]; // select the first YAML document
     // println!("{:?}", doc);
 
-    println!("{:?}", Config::read_config());
-    println!("{:?}", Config::read_config_path(Path::new("./config.yaml")));
+    // println!("{:?}", Config::read_config());
+    // println!("{:?}", Config::read_config_path(Path::new("./config.yaml")));
+    // println!(
+    //     "{:?}",
+    //     Config::validate_config(Config::read_config_path(Path::new("./config.yaml")).unwrap())
+    // );
+    // println!("{:?}", get_config(&Some(&Path::new("./config.yaml"))));
 }
