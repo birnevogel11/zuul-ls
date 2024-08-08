@@ -12,6 +12,12 @@ pub struct ProjectTemplate {
     name: StringLoc,
 }
 
+impl ProjectTemplate {
+    pub fn name(&self) -> &StringLoc {
+        &self.name
+    }
+}
+
 impl ZuulParse<ProjectTemplate> for ProjectTemplate {
     fn parse(
         xs: &LinkedHashMap<YValue, YValue>,

@@ -22,6 +22,24 @@ zs-job() {
   fi
 }
 
+zs-project-templates() {
+  local -r result=$(${ZS_PROGRAM} project-templates | \
+    fzf \
+      -d'\t' \
+      --with-nth=1,2 \
+      --preview "eval 'bat --color=always -n {2} -r {3}:'" \
+      --preview-window 'down,50%')
+
+  local -ra tokens=($result)
+  if [[ "${#tokens[@]}" != "0" ]]; then
+    local -r path="${tokens[1]}"
+    local -r line="${tokens[2]}"
+    local -r column="${tokens[3]}"
+
+    nvim "+${line}" "${path/\~/${HOME}}" "+normal${column}|"
+  fi
+}
+
 zs-job-name() {
   local -r result=$(${ZS_PROGRAM} jobs | \
     fzf \
@@ -150,6 +168,12 @@ main() {
       ;;
     roles)
       zs-roles
+      ;;
+    t)
+      zs-project-templates
+      ;;
+    project-templates)
+      zs-project-templates
       ;;
     *)
       echo "help"

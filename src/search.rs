@@ -1,4 +1,4 @@
 pub mod jobs;
 pub mod path;
-pub mod repo_vars;
+pub mod project_templates;
 pub mod roles;

@@ -4,6 +4,7 @@ use clap::Parser;
 
 use zuul_parser::config::get_work_dir;
 use zuul_parser::search::jobs;
+use zuul_parser::search::project_templates;
 use zuul_parser::search::roles;
 
 #[derive(Parser)]
@@ -12,6 +13,7 @@ use zuul_parser::search::roles;
 enum ZuulSearchCli {
     Roles(ZuulSearchCliRolesArgs),
     Jobs(ZuulSearchCliJobArgs),
+    ProjectTemplates(ZuulSearchCliProjectTemplateArgs),
     ListJobHierarchy(ZuulSearchCliJobHierarchyArgs),
     ListJobVars(ZuulSearchCliJobVariablesArgs),
     ListJobPlaybooks(ZuulSearchCliJobPlaybooksArgs),
@@ -30,6 +32,16 @@ struct ZuulSearchCliRolesArgs {
 #[derive(clap::Args)]
 #[command(version, about, long_about = "Search jobs")]
 struct ZuulSearchCliJobArgs {
+    #[arg(long)]
+    work_dir: Option<PathBuf>,
+
+    #[arg(long)]
+    config_path: Option<PathBuf>,
+}
+
+#[derive(clap::Args)]
+#[command(version, about, long_about = "List project templates")]
+struct ZuulSearchCliProjectTemplateArgs {
     #[arg(long)]
     work_dir: Option<PathBuf>,
 
@@ -82,6 +94,12 @@ fn main() {
         }
         ZuulSearchCli::Jobs(args) => {
             jobs::list_jobs_cli(&get_work_dir(args.work_dir), args.config_path);
+        }
+        ZuulSearchCli::ProjectTemplates(args) => {
+            project_templates::list_project_templates(
+                &get_work_dir(args.work_dir),
+                args.config_path,
+            );
         }
         ZuulSearchCli::ListJobHierarchy(args) => {
             jobs::list_jobs_hierarchy_names_cli(
