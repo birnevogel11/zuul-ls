@@ -39,9 +39,18 @@ fn get_token(path: &Path, content: &Rope, position: &Position) -> Option<AutoCom
             None
         } else {
             let mut try_content = content.clone();
+            let line = try_content.get_line(line_idx).unwrap();
+
+            let insert_text = if line.to_string().trim().starts_with('-') {
+                // Guess it's a list item
+                "fake_value"
+            } else {
+                // Guess it's a dict item
+                ": fake_value"
+            };
             try_content.insert(
                 try_content.line_to_char(line_idx) + position.character as usize,
-                ": fake_value",
+                insert_text,
             );
             parse_token(path, &try_content, position)
         }
