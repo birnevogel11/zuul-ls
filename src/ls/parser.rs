@@ -58,53 +58,6 @@ where
     None
 }
 
-// fn is_item_begin(line: &str) -> Option<usize> {
-//     if line.trim().starts_with("- ") {
-//         let indent_size = line.chars().take_while(|c| *c == ' ').count();
-//         Some(indent_size)
-//     } else {
-//         None
-//     }
-// }
-//
-// fn find_begin(content: &Rope, line_idx: usize) -> Option<(usize, usize)> {
-//     let mut lidx = line_idx;
-//     while lidx > 0 {
-//         if let Some(indent_size) = is_item_begin(&content.line(lidx).to_string()) {
-//             return Some((lidx, indent_size));
-//         }
-//         lidx -= 1;
-//     }
-//     is_item_begin(&content.line(0).to_string()).map(|indent_size| (0, indent_size))
-// }
-//
-// fn find_end(content: &Rope, line_idx: usize, indent_size: usize) -> Option<usize> {
-//     let mut pattern = " ".repeat(indent_size);
-//     pattern.push_str("- ");
-//
-//     let mut lidx = line_idx;
-//     while lidx < content.lines().len() {
-//         if content.line(lidx).to_string().trim().starts_with(&pattern) {
-//             return Some(lidx);
-//         }
-//         lidx += 1;
-//     }
-//     Some(content.lines().len() - 1)
-// }
-//
-// fn find_begin_end(content: &Rope, line_idx: usize) -> Option<(usize, usize)> {
-//     let (begin_idx, indent_size) = find_begin(content, line_idx)?;
-//     let end_idx = find_end(content, line_idx, indent_size)?;
-//     Some((begin_idx, end_idx))
-// }
-//
-// pub fn parse_ansible_block(content: &Rope, position: &Position) {
-//     log::info!("content: {:#?}", content);
-//     log::info!("position: {:#?}", position);
-//
-//     let lidx = position.line as usize;
-// }
-
 pub fn get_current_word_role(line: &RopeSlice, col: usize) -> Option<String> {
     find_current_word(line, col, is_letter_role)
 }
@@ -164,11 +117,191 @@ pub fn parse_autocomplete_type(
     position: &Position,
 ) -> Option<(String, Vec<SearchType>)> {
     match file_type {
-        // TODO: implement it
-        LSFileType::ZuulConfig => None,
+        LSFileType::ZuulConfig => None, // TODO: implement it
         LSFileType::Playbooks => get_current_word_type_ansible(content, position),
         LSFileType::AnsibleRoleTasks => get_current_word_type_ansible(content, position),
         LSFileType::AnsibleRoleDefaults => get_current_word_type_ansible_var(content, position),
         LSFileType::AnsibleRoleTemplates => get_current_word_type_ansible_var(content, position),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_get_current_word_var() {
+        let content = Rope::from_str("abc {{ abc.def }}");
+        let position = Position::new(0, 8);
+        let result = get_current_word_var(
+            &content.get_line(position.line as usize).unwrap(),
+            position.character as usize,
+        );
+
+        assert_eq!(result, Some("abc.def".to_string()));
+    }
+
+    #[test]
+    fn test_get_current_word_role() {
+        let content = Rope::from_str("name: subdir/nested-role-name");
+        let position = Position::new(0, 8);
+        let result = get_current_word_role(
+            &content.get_line(position.line as usize).unwrap(),
+            position.character as usize,
+        );
+
+        assert_eq!(result, Some("subdir/nested-role-name".to_string()));
+    }
+
+    #[derive(Clone, PartialEq, PartialOrd, Debug, Eq, Ord, Default)]
+    struct TestGetCurrentWordTypeAnsible {
+        pub content: Rope,
+        pub position: Position,
+        pub result: Option<(String, Vec<SearchType>)>,
+    }
+
+    impl TestGetCurrentWordTypeAnsible {
+        fn new(
+            content: &str,
+            line: u32,
+            character: u32,
+            current_word: &str,
+            search_type: SearchType,
+        ) -> TestGetCurrentWordTypeAnsible {
+            Self::new_result(
+                content,
+                line,
+                character,
+                Some((current_word.to_string(), vec![search_type])),
+            )
+        }
+
+        fn new_result(
+            content: &str,
+            line: u32,
+            character: u32,
+            result: Option<(String, Vec<SearchType>)>,
+        ) -> TestGetCurrentWordTypeAnsible {
+            TestGetCurrentWordTypeAnsible {
+                content: content.to_string().into(),
+                position: Position::new(line, character),
+                result,
+            }
+        }
+    }
+
+    #[test]
+    fn test_get_current_word_type_ansible() {
+        let test_inputs = [
+            TestGetCurrentWordTypeAnsible::new(
+                r#"
+- name: call one role
+  include_role:
+    name: subdir/nested-role-name
+            "#,
+                3,
+                15,
+                "subdir/nested-role-name",
+                SearchType::Role,
+            ),
+            TestGetCurrentWordTypeAnsible::new(
+                r#"
+- name: call one role
+  import_role:
+    name: subdir/nested-role-name
+             "#,
+                3,
+                15,
+                "subdir/nested-role-name",
+                SearchType::Role,
+            ),
+            TestGetCurrentWordTypeAnsible::new(
+                r#"
+- name: call one role
+  set_fact:
+    name: subdir/nested-role-name
+             "#,
+                3,
+                15,
+                "subdir",
+                SearchType::Variable,
+            ),
+            TestGetCurrentWordTypeAnsible::new(
+                r#"
+- role: subdir/nested-role-name
+            "#,
+                1,
+                8,
+                "subdir/nested-role-name",
+                SearchType::Role,
+            ),
+            TestGetCurrentWordTypeAnsible::new(
+                "abc {{ abc.def }}",
+                0,
+                8,
+                "abc.def",
+                SearchType::Variable,
+            ),
+            TestGetCurrentWordTypeAnsible::new(
+                "abc {{ abc.def }}",
+                0,
+                1,
+                "abc",
+                SearchType::Variable,
+            ),
+            TestGetCurrentWordTypeAnsible::new_result("abc {{ abc.def }}", 0, 5, None),
+        ];
+
+        for input in test_inputs {
+            let result = get_current_word_type_ansible(&input.content, &input.position);
+            assert_eq!(result, input.result)
+        }
+    }
+}
+
+// fn is_item_begin(line: &str) -> Option<usize> {
+//     if line.trim().starts_with("- ") {
+//         let indent_size = line.chars().take_while(|c| *c == ' ').count();
+//         Some(indent_size)
+//     } else {
+//         None
+//     }
+// }
+//
+// fn find_begin(content: &Rope, line_idx: usize) -> Option<(usize, usize)> {
+//     let mut lidx = line_idx;
+//     while lidx > 0 {
+//         if let Some(indent_size) = is_item_begin(&content.line(lidx).to_string()) {
+//             return Some((lidx, indent_size));
+//         }
+//         lidx -= 1;
+//     }
+//     is_item_begin(&content.line(0).to_string()).map(|indent_size| (0, indent_size))
+// }
+//
+// fn find_end(content: &Rope, line_idx: usize, indent_size: usize) -> Option<usize> {
+//     let mut pattern = " ".repeat(indent_size);
+//     pattern.push_str("- ");
+//
+//     let mut lidx = line_idx;
+//     while lidx < content.lines().len() {
+//         if content.line(lidx).to_string().trim().starts_with(&pattern) {
+//             return Some(lidx);
+//         }
+//         lidx += 1;
+//     }
+//     Some(content.lines().len() - 1)
+// }
+//
+// fn find_begin_end(content: &Rope, line_idx: usize) -> Option<(usize, usize)> {
+//     let (begin_idx, indent_size) = find_begin(content, line_idx)?;
+//     let end_idx = find_end(content, line_idx, indent_size)?;
+//     Some((begin_idx, end_idx))
+// }
+//
+// pub fn parse_ansible_block(content: &Rope, position: &Position) {
+//     log::info!("content: {:#?}", content);
+//     log::info!("position: {:#?}", position);
+//
+//     let lidx = position.line as usize;
+// }
