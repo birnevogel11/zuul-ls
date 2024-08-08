@@ -1,3 +1,5 @@
+pub mod template;
+
 use ropey::Rope;
 use tower_lsp::lsp_types::Position;
 

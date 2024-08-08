@@ -4,9 +4,9 @@ use std::rc::Rc;
 
 use crate::parser::common::StringLoc;
 use crate::parser::zuul::job::{VarTable, VarValue};
-use crate::search::job_vars::VariableInfo;
 use crate::search::jobs::list_jobs;
 use crate::search::report_print::print_var_info_list;
+use crate::search::vars::VariableInfo;
 
 fn expand_vars(
     name_prefix: &str,

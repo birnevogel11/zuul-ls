@@ -7,13 +7,12 @@ use tower_lsp::lsp_types::*;
 use tower_lsp::{Client, LanguageServer, LspService};
 
 use crate::config::get_work_dir;
-use crate::ls::parser::parse_word_type;
-use crate::ls::parser::WordType;
+use crate::ls::parser::{parse_word_type, WordType};
 use crate::parser::common::StringLoc;
 use crate::path::{get_role_repo_dirs, retrieve_repo_path, to_path};
-use crate::search::job_vars::VariableInfo;
 use crate::search::jobs::list_job_locs_by_name;
 use crate::search::roles::list_roles;
+use crate::search::vars::VariableInfo;
 use crate::search::work_dir_vars::list_work_dir_vars_group;
 
 struct TextDocumentItem {
@@ -196,10 +195,12 @@ impl Backend {
                     let path = to_path(path);
                     if let Some(repo_path) = retrieve_repo_path(&path) {
                         let playbook_path = repo_path.join(current_word);
-                        locs.push(Location::new(
-                            Url::from_file_path(playbook_path).unwrap(),
-                            Range::new(Position::new(0, 0), Position::new(0, 0)),
-                        ));
+                        if playbook_path.is_file() {
+                            locs.push(Location::new(
+                                Url::from_file_path(playbook_path).unwrap(),
+                                Range::new(Position::new(0, 0), Position::new(0, 0)),
+                            ));
+                        }
                     }
                 }
             };
