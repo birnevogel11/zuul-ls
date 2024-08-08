@@ -56,6 +56,7 @@ impl TestFiles {
     pub fn assert_output<T: Debug>(&self, var: &T) {
         let output = TestFiles::output_string(var);
         self.write_output_str(&output);
+        println!("{}", &output);
 
         assert_eq!(self.read_assert_output(), output)
     }
@@ -69,6 +70,9 @@ impl TestFiles {
 
     #[allow(dead_code)]
     fn output_string<T: Debug>(var: &T) -> String {
-        format!("{:?}", var)
+        let path = to_path(".");
+        let path = path.to_str().unwrap();
+
+        format!("{:?}", var).replace(path, ".")
     }
 }

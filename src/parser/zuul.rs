@@ -63,29 +63,40 @@ enum ZuulConfigParsedElement {
 }
 
 impl ZuulConfigParsedElement {
+    fn get_config_value(
+        xs: &LinkedHashMap<YValue, YValue>,
+    ) -> Option<&LinkedHashMap<YValue, YValue>> {
+        if let Some((_, value)) = xs.into_iter().next() {
+            value.as_hash()
+        } else {
+            None
+        }
+    }
     pub fn parse(raw_config: &YValue, path: &Rc<PathBuf>) -> Option<ZuulConfigParsedElement> {
         if let YValueYaml::Hash(xs) = raw_config.value() {
+            let values = ZuulConfigParsedElement::get_config_value(xs)?;
+
             match ZuulParseType::determine(xs) {
                 Some(p) => match p {
                     ZuulParseType::Job => {
-                        Some(ZuulConfigParsedElement::Job(Job::parse(xs, path).ok()?))
+                        Some(ZuulConfigParsedElement::Job(Job::parse(values, path).ok()?))
                     }
                     ZuulParseType::ProjectTemplate => {
                         Some(ZuulConfigParsedElement::ProjectTemplate(
-                            ProjectTemplate::parse(xs, path).ok()?,
+                            ProjectTemplate::parse(values, path).ok()?,
                         ))
                     }
                     ZuulParseType::Nodeset => Some(ZuulConfigParsedElement::Nodeset(
-                        Nodeset::parse(xs, path).ok()?,
+                        Nodeset::parse(values, path).ok()?,
                     )),
-                    ZuulParseType::Queue => {
-                        Some(ZuulConfigParsedElement::Queue(Queue::parse(xs, path).ok()?))
-                    }
+                    ZuulParseType::Queue => Some(ZuulConfigParsedElement::Queue(
+                        Queue::parse(values, path).ok()?,
+                    )),
                     ZuulParseType::Pipeline => Some(ZuulConfigParsedElement::Pipeline(
-                        Pipeline::parse(xs, path).ok()?,
+                        Pipeline::parse(values, path).ok()?,
                     )),
                     ZuulParseType::Secret => Some(ZuulConfigParsedElement::Secret(
-                        Secret::parse(xs, path).ok()?,
+                        Secret::parse(values, path).ok()?,
                     )),
                 },
                 None => None,
@@ -216,6 +227,30 @@ mod tests {
     fn test_parse_job() {
         // Configure the test input information
         let ts = TestFiles::new("test.yaml");
+
+        // Parse the input
+        let es = load_test_doc(&ts.input_path);
+
+        // Compare with the assert output
+        ts.assert_output(&es);
+    }
+
+    #[test]
+    fn test_parse_job_0() {
+        // Configure the test input information
+        let ts = TestFiles::new("job_0.yaml");
+
+        // Parse the input
+        let es = load_test_doc(&ts.input_path);
+
+        // Compare with the assert output
+        ts.assert_output(&es);
+    }
+
+    #[test]
+    fn test_parse_nodeset_0() {
+        // Configure the test input information
+        let ts = TestFiles::new("nodeset_0.yaml");
 
         // Parse the input
         let es = load_test_doc(&ts.input_path);

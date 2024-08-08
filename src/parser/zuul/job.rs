@@ -83,7 +83,7 @@ fn parse_variables(
 
 #[derive(Clone, PartialEq, PartialOrd, Debug, Eq, Ord, Hash, Default)]
 pub struct Job {
-    job_name: StringLoc,
+    name: StringLoc,
     description: Option<StringLoc>,
     parent: Option<StringLoc>,
     pre_run_playbooks: Vec<(StringLoc, PathBuf)>,
@@ -95,7 +95,7 @@ pub struct Job {
 
 impl Job {
     pub fn name(&self) -> &StringLoc {
-        &self.job_name
+        &self.name
     }
 
     fn parse_playbook_list_item(
@@ -163,7 +163,7 @@ impl ZuulParse<Job> for Job {
         xs: &LinkedHashMap<YValue, YValue>,
         path: &Rc<PathBuf>,
     ) -> Result<Job, ZuulParseError> {
-        let mut job_name = StringLoc::default();
+        let mut name = StringLoc::default();
         let mut description: Option<StringLoc> = None;
         let mut parent: Option<StringLoc> = None;
         let mut pre_run_playbooks: Vec<(StringLoc, PathBuf)> = Vec::new();
@@ -175,8 +175,8 @@ impl ZuulParse<Job> for Job {
         for (key, value) in xs {
             match key.as_str() {
                 Some(key) => match key {
-                    "job" => {
-                        job_name = parse_string_value(value, path, "job")?;
+                    "name" => {
+                        name = parse_string_value(value, path, "name")?;
                     }
                     "parent" => {
                         parent = Some(parse_string_value(value, path, "parent")?);
@@ -209,7 +209,7 @@ impl ZuulParse<Job> for Job {
         }
 
         Ok(Job {
-            job_name,
+            name,
             description,
             parent,
             pre_run_playbooks,

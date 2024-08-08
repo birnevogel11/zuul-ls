@@ -1,0 +1,13 @@
+- job:
+    name: test_job
+    parent: "parent_job"
+    vars:
+      var1: "123"
+      var2: "456"
+      nested_var:
+        n1: 1
+        n2: true
+        n3:
+          - 1
+          - 2
+          - 3
