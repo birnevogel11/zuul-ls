@@ -35,7 +35,6 @@ impl LanguageServer for Backend {
         Ok(InitializeResult {
             server_info: None,
             capabilities: ServerCapabilities {
-                // TODO: implement it
                 text_document_sync: Some(TextDocumentSyncCapability::Kind(
                     TextDocumentSyncKind::FULL,
                 )),
@@ -98,46 +97,6 @@ impl LanguageServer for Backend {
     }
 }
 
-fn is_letter(ch: char) -> bool {
-    matches!(ch, 'a'..='z' | 'A'..='Z' | '0'..='9' | '_' | '.' | '/' | '-')
-}
-
-fn find_token(line: Rope, col: usize) -> Option<String> {
-    let mut token_index = Vec::new();
-    let mut b = -1;
-    let mut e = -1;
-    for (cidx, c) in line.chars().enumerate() {
-        if !is_letter(c) {
-            if b != -1 {
-                e = cidx as i32;
-                let ub = b as usize;
-                let ue = e as usize;
-                log::info!("b: {}, e: {}, token: {}", b, e, line.slice(ub..ue));
-                token_index.push((ub, ue));
-
-                b = -1;
-                e = -1;
-            }
-        } else if is_letter(c) && b == -1 {
-            b = cidx as i32;
-        }
-    }
-    if b != -1 {
-        let ub = b as usize;
-        let ue = line.chars().len();
-        log::info!("b: {}, e: {}, token: {}", b, e, line.slice(ub..ue));
-        token_index.push((ub, ue));
-    }
-    for (b, e) in token_index {
-        if col >= b && col <= e {
-            let s = line.slice(b..e).to_string();
-            log::info!("token: {:#?}", s);
-            return Some(s);
-        }
-    }
-    None
-}
-
 impl Backend {
     async fn on_change(&self, params: TextDocumentItem) {
         let rope = ropey::Rope::from_str(&params.text);
@@ -160,27 +119,29 @@ impl Backend {
         &self,
         params: GotoDefinitionParams,
     ) -> Result<Option<GotoDefinitionResponse>> {
-        let uri = &params.text_document_position_params.text_document.uri;
-        let content = self.document_map.get(&uri.to_string()).unwrap();
-        let line = content.line(params.text_document_position_params.position.line as usize);
-        let col = params.text_document_position_params.position.character as usize;
-        let token = find_token(line.into(), col);
-
-        if let Some(name) = &token {
-            let role = self.role_dirs.get(name);
-            log::info!("role: {:#?}", role);
-            if let Some(role) = role {
-                let path = role.value();
-                return Ok(Some(GotoDefinitionResponse::Scalar(Location::new(
-                    Url::from_file_path(path).unwrap(),
-                    Range::new(Position::new(0, 0), Position::new(0, 0)),
-                ))));
-            }
-        }
-
-        log::info!("line: {:#?}, token: {:#?}", line, token);
-
-        Ok(None)
+        todo!()
+        // let uri = &params.text_document_position_params.text_document.uri;
+        // let path = uri.to_file_path().unwrap().to_str().unwrap().to_string();
+        // log::info!("go to path: {:#?}", path);
+        // let content = self.document_map.get(&path);
+        //
+        // if let Some(content) = content {
+        //     let current_word =
+        //         get_current_word(&content, &params.text_document_position_params.position);
+        //
+        //     if let Some(name) = &current_word {
+        //         let role = self.role_dirs.get(name);
+        //         log::info!("role: {:#?}", role);
+        //         if let Some(role) = role {
+        //             let path = role.value();
+        //             return Ok(Some(GotoDefinitionResponse::Scalar(Location::new(
+        //                 Url::from_file_path(path).unwrap(),
+        //                 Range::new(Position::new(0, 0), Position::new(0, 0)),
+        //             ))));
+        //         }
+        //     }
+        // }
+        // Ok(None)
     }
 }
 
@@ -188,7 +149,7 @@ fn init_logging() -> Option<env_logger::Builder> {
     let mut builder = env_logger::Builder::new();
 
     if let Ok(path) = env::var("ZUUL_LS_LOG_PATH") {
-        let ath = to_path(&path);
+        let path = to_path(&path);
         let target = Box::new(File::create(path).expect("Can't create file"));
         builder
             .target(env_logger::Target::Pipe(target))
