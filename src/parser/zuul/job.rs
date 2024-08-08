@@ -105,6 +105,22 @@ impl Job {
         &self.vars
     }
 
+    pub fn pre_run_playbooks(&self) -> &Vec<(StringLoc, PathBuf)> {
+        &self.pre_run_playbooks
+    }
+
+    pub fn run_playbooks(&self) -> &Vec<(StringLoc, PathBuf)> {
+        &self.run_playbooks
+    }
+
+    pub fn post_run_playbooks(&self) -> &Vec<(StringLoc, PathBuf)> {
+        &self.post_run_playbooks
+    }
+
+    pub fn clean_run_playbooks(&self) -> &Vec<(StringLoc, PathBuf)> {
+        &self.clean_run_playbooks
+    }
+
     fn parse_playbook_list_item(
         value: &YValue,
         path: &Rc<PathBuf>,

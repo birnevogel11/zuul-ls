@@ -225,6 +225,68 @@ pub fn list_job_variables(name: &str, zuul_jobs: &ZuulJobs) -> LinkedHashMap<Str
     vs
 }
 
+#[derive(Clone, PartialEq, Debug, Eq, Default)]
+pub struct PlaybookInfo {
+    name: StringLoc,
+    path: PathBuf,
+    job_name: Rc<String>,
+}
+
+#[derive(Clone, PartialEq, Debug, Eq, Default)]
+pub struct JobPlaybooks {
+    pre_run: Vec<PlaybookInfo>,
+    run: Vec<PlaybookInfo>,
+    post_run: Vec<PlaybookInfo>,
+    clean_run: Vec<PlaybookInfo>,
+}
+
+pub fn list_job_playbooks(name: &str, zuul_jobs: &ZuulJobs) -> JobPlaybooks {
+    let jobs = zuul_jobs.get_job_hierarchy(name);
+    let re_jobs = jobs.iter().rev().collect::<Vec<_>>();
+    let mut jp = JobPlaybooks::default();
+
+    for job in re_jobs {
+        let job_name = Rc::new(job.name().value.clone());
+
+        for (new_ps, ps) in [
+            (job.pre_run_playbooks(), &mut jp.pre_run),
+            (job.run_playbooks(), &mut jp.run),
+        ] {
+            append_playbooks(new_ps, &job_name, ps);
+        }
+    }
+
+    for job in jobs {
+        let job_name = Rc::new(job.name().value.clone());
+
+        for (new_ps, ps) in [
+            (job.post_run_playbooks(), &mut jp.post_run),
+            (job.clean_run_playbooks(), &mut jp.clean_run),
+        ] {
+            append_playbooks(new_ps, &job_name, ps);
+        }
+    }
+
+    jp
+}
+
+fn append_playbooks(
+    new_ps: &Vec<(StringLoc, PathBuf)>,
+    job_name: &Rc<String>,
+    ps: &mut Vec<PlaybookInfo>,
+) {
+    let mut new_ps = new_ps
+        .iter()
+        .map(|(name, path)| PlaybookInfo {
+            name: name.clone(),
+            path: path.clone(),
+            job_name: job_name.clone(),
+        })
+        .collect::<Vec<_>>();
+
+    ps.append(&mut new_ps);
+}
+
 pub fn list_job_hierarchy_names(name: &str, zuul_jobs: &ZuulJobs) -> Vec<StringLoc> {
     zuul_jobs
         .get_job_hierarchy(name)
