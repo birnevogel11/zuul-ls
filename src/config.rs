@@ -63,11 +63,11 @@ impl Config {
             let tenants = doc["tenant"].as_hash().unwrap();
             for t in tenants.iter() {
                 let name = t.0.as_str().unwrap().to_string();
-                let base_dirs = to_vec_paths(parse_str_or_list(&get_key_content(&t.1, "base_dir")));
+                let base_dirs = to_vec_paths(parse_str_or_list(&get_key_content(t.1, "base_dir")));
                 let extra_base_dirs =
-                    to_vec_paths(parse_str_or_list(&get_key_content(&t.1, "extra_base_dir")));
+                    to_vec_paths(parse_str_or_list(&get_key_content(t.1, "extra_base_dir")));
                 let mut extra_role_dirs =
-                    to_vec_paths(parse_str_or_list(&get_key_content(&t.1, "extra_role_dir")));
+                    to_vec_paths(parse_str_or_list(&get_key_content(t.1, "extra_role_dir")));
                 extra_role_dirs.append(&mut make_common_roles_dir(&base_dirs));
 
                 config.tenants.insert(
@@ -176,10 +176,10 @@ fn to_vec_paths(xs: Vec<String>) -> Vec<PathBuf> {
     xs.iter().map(|x| to_path(x.as_str())).collect()
 }
 
-fn make_common_roles_dir(base_dirs: &Vec<PathBuf>) -> Vec<PathBuf> {
+fn make_common_roles_dir(base_dirs: &[PathBuf]) -> Vec<PathBuf> {
     let mut ys = Vec::new();
 
-    for name in vec!["zuul-shared", "zuul-trusted"] {
+    for name in ["zuul-shared", "zuul-trusted"] {
         ys.append(&mut base_dirs.iter().map(|x| x.join(name)).collect());
     }
 
@@ -196,6 +196,13 @@ fn get_key_content<'a>(raw_config: &'a Yaml, key: &str) -> Option<&'a Yaml> {
 
 fn filter_valid_paths(xs: Vec<PathBuf>) -> Vec<PathBuf> {
     xs.iter().filter_map(|x| fs::canonicalize(x).ok()).collect()
+}
+
+pub fn get_work_dir(work_dir: Option<PathBuf>) -> PathBuf {
+    match work_dir {
+        Some(work_dir) => to_path(work_dir.to_str().unwrap()),
+        None => to_path("."),
+    }
 }
 
 #[cfg(test)]
@@ -227,13 +234,11 @@ mod tests {
                 to_path("~/foo/bar/zuul-shared"),
                 to_path("~/foo/bar/zuul-trusted"),
             ],
-            ..Default::default()
         };
 
         let config = Config {
             default_tenant: "bar".into(),
             tenants: HashMap::from([("bar".into(), tenant)]),
-            ..Default::default()
         };
 
         assert_eq!(config, Config::read_config_str(raw_str.into()).unwrap());

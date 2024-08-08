@@ -2,6 +2,7 @@ use std::path::PathBuf;
 
 use clap::Parser;
 
+use zuul_parser::config::get_work_dir;
 use zuul_parser::search::jobs;
 use zuul_parser::search::roles;
 
@@ -77,19 +78,27 @@ fn main() {
 
     match args {
         ZuulSearchCli::Roles(args) => {
-            roles::list_roles_cli(args.work_dir, args.config_path);
+            roles::list_roles_cli(&get_work_dir(args.work_dir), args.config_path);
         }
         ZuulSearchCli::Jobs(args) => {
-            jobs::list_jobs_cli(args.work_dir, args.config_path);
+            jobs::list_jobs_cli(&get_work_dir(args.work_dir), args.config_path);
         }
         ZuulSearchCli::ListJobHierarchy(args) => {
-            jobs::list_jobs_hierarchy_names_cli(args.name, args.work_dir, args.config_path);
+            jobs::list_jobs_hierarchy_names_cli(
+                args.name,
+                &get_work_dir(args.work_dir),
+                args.config_path,
+            );
         }
         ZuulSearchCli::ListJobVars(args) => {
-            jobs::list_jobs_vars_cli(args.name, args.work_dir, args.config_path);
+            jobs::list_jobs_vars_cli(args.name, &get_work_dir(args.work_dir), args.config_path);
         }
         ZuulSearchCli::ListJobPlaybooks(args) => {
-            jobs::list_jobs_playbooks_cli(args.name, args.work_dir, args.config_path);
+            jobs::list_jobs_playbooks_cli(
+                args.name,
+                &get_work_dir(args.work_dir),
+                args.config_path,
+            );
         }
     };
 }

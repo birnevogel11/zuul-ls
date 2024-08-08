@@ -35,10 +35,10 @@ pub fn get_zuul_yaml_paths(repo_dirs: &[PathBuf]) -> Vec<Rc<PathBuf>> {
         .concat()
 }
 
-pub fn get_repo_dirs(work_dir: Option<PathBuf>, config_path: Option<PathBuf>) -> Vec<PathBuf> {
-    let work_dir = get_work_dir(work_dir);
+pub fn get_repo_dirs(work_dir: &Path, config_path: Option<PathBuf>) -> Vec<PathBuf> {
     let config = get_config(&config_path);
-    let base_dirs = find_tenant_base_dirs(config, &work_dir).unwrap_or(vec![work_dir]);
+    let base_dirs =
+        find_tenant_base_dirs(config, work_dir).unwrap_or(vec![PathBuf::from(work_dir)]);
 
     base_dirs
         .into_iter()
@@ -47,11 +47,10 @@ pub fn get_repo_dirs(work_dir: Option<PathBuf>, config_path: Option<PathBuf>) ->
         .concat()
 }
 
-pub fn get_role_repo_dirs(work_dir: Option<PathBuf>, config_path: Option<PathBuf>) -> Vec<PathBuf> {
-    let work_dir = get_work_dir(work_dir);
+pub fn get_role_repo_dirs(work_dir: &PathBuf, config_path: Option<PathBuf>) -> Vec<PathBuf> {
     let config = get_config(&config_path);
-    let mut repo_dirs: Vec<PathBuf> = vec![PathBuf::from(&work_dir)];
-    repo_dirs.append(&mut find_tenant_role_dirs(config, &work_dir).unwrap_or_default());
+    let mut repo_dirs: Vec<PathBuf> = vec![PathBuf::from(work_dir)];
+    repo_dirs.append(&mut find_tenant_role_dirs(config, work_dir).unwrap_or_default());
     repo_dirs
 }
 
@@ -88,13 +87,6 @@ fn should_visit_dir(path: &Path) -> bool {
     }
 
     true
-}
-
-fn get_work_dir(work_dir: Option<PathBuf>) -> PathBuf {
-    match work_dir {
-        Some(work_dir) => to_path(work_dir.to_str().unwrap()),
-        None => to_path("."),
-    }
 }
 
 fn find_tenant_role_dirs(config: Option<Config>, work_dir: &Path) -> Option<Vec<PathBuf>> {

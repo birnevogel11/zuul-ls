@@ -59,7 +59,7 @@ pub fn list_roles(repo_dirs: &[PathBuf]) -> Vec<(String, PathBuf)> {
     xs
 }
 
-pub fn list_roles_cli(work_dir: Option<PathBuf>, config_path: Option<PathBuf>) {
+pub fn list_roles_cli(work_dir: &PathBuf, config_path: Option<PathBuf>) {
     let repo_dirs = get_role_repo_dirs(work_dir, config_path);
     let role_dirs = list_roles(&repo_dirs);
 

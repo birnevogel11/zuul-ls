@@ -318,11 +318,7 @@ fn show_playbooks(name: &str, pbs: &[PlaybookInfo]) {
     }
 }
 
-pub fn list_jobs_playbooks_cli(
-    job_name: String,
-    work_dir: Option<PathBuf>,
-    config_path: Option<PathBuf>,
-) {
+pub fn list_jobs_playbooks_cli(job_name: String, work_dir: &PathBuf, config_path: Option<PathBuf>) {
     let repo_dirs = get_repo_dirs(work_dir, config_path);
     let yaml_paths = get_zuul_yaml_paths(&repo_dirs);
     let zuul_jobs = ZuulJobs::from_paths(&yaml_paths);
@@ -336,11 +332,7 @@ pub fn list_jobs_playbooks_cli(
     // println!("{:#?}", &jps);
 }
 
-pub fn list_jobs_vars_cli(
-    job_name: String,
-    work_dir: Option<PathBuf>,
-    config_path: Option<PathBuf>,
-) {
+pub fn list_jobs_vars_cli(job_name: String, work_dir: &PathBuf, config_path: Option<PathBuf>) {
     let repo_dirs = get_repo_dirs(work_dir, config_path);
     let yaml_paths = get_zuul_yaml_paths(&repo_dirs);
     let zuul_jobs = ZuulJobs::from_paths(&yaml_paths);
@@ -361,7 +353,7 @@ pub fn list_jobs_vars_cli(
 
 pub fn list_jobs_hierarchy_names_cli(
     job_name: String,
-    work_dir: Option<PathBuf>,
+    work_dir: &PathBuf,
     config_path: Option<PathBuf>,
 ) {
     let repo_dirs = get_repo_dirs(work_dir, config_path);
@@ -372,13 +364,13 @@ pub fn list_jobs_hierarchy_names_cli(
     print_string_locs(&jobs);
 }
 
-pub fn list_jobs_from_cli(work_dir: Option<PathBuf>, config_path: Option<PathBuf>) -> ZuulJobs {
+pub fn list_jobs_from_cli(work_dir: &PathBuf, config_path: Option<PathBuf>) -> ZuulJobs {
     let repo_dirs = get_repo_dirs(work_dir, config_path);
     let yaml_paths = get_zuul_yaml_paths(&repo_dirs);
     ZuulJobs::from_paths(&yaml_paths)
 }
 
-pub fn list_jobs_cli(work_dir: Option<PathBuf>, config_path: Option<PathBuf>) {
+pub fn list_jobs_cli(work_dir: &PathBuf, config_path: Option<PathBuf>) {
     let zuul_jobs = list_jobs_from_cli(work_dir, config_path);
     let locs: Vec<StringLoc> = zuul_jobs.jobs().iter().map(|x| x.name().clone()).collect();
     print_string_locs(&locs);
