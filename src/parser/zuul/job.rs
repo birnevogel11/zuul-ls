@@ -21,6 +21,27 @@ pub enum VarValue {
     Hash(VarTable),
 }
 
+impl VarValue {
+    pub fn to_show_value(&self) -> String {
+        match self {
+            VarValue::Null => "null".to_string(),
+            VarValue::Integer(v) => v.to_string(),
+            VarValue::Boolean(v) => v.to_string(),
+            VarValue::Real(v) => v.clone(),
+            VarValue::String(v) => v.clone(),
+            VarValue::Array(v) => {
+                let s = v
+                    .iter()
+                    .map(|x| x.to_show_value())
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                ["[", &s, "]"].join("")
+            }
+            VarValue::Hash(v) => format!("{:?}", v),
+        }
+    }
+}
+
 pub type VarTable = LinkedHashMap<StringLoc, VarValue>;
 
 fn parse_value(
@@ -202,7 +223,10 @@ impl ZuulParse<Job> for Job {
                         name = parse_string_value(value, path, "name")?;
                     }
                     "parent" => {
-                        parent = Some(parse_string_value(value, path, "parent")?);
+                        parent = match value.value() {
+                            YValueYaml::Null => None,
+                            _ => Some(parse_string_value(value, path, "parent")?),
+                        };
                     }
                     "description" => {
                         description = Some(parse_string_value(value, path, "description")?);

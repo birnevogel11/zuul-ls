@@ -160,6 +160,7 @@ impl ZuulJobs {
     }
 }
 
+#[derive(Clone, PartialEq, PartialOrd, Debug, Eq, Ord, Hash)]
 pub struct VariableInfo {
     pub name: StringLoc,
     pub job_name: Rc<StringLoc>,
@@ -195,7 +196,7 @@ fn collect_variables(
                         VariableInfo {
                             name: job_var.clone(),
                             job_name: job_name.clone(),
-                            value: format!("{:?}", value),
+                            value: value.to_show_value(),
                         },
                     );
                 }
@@ -205,7 +206,7 @@ fn collect_variables(
     vs
 }
 
-pub fn list_job_variables(name: &str, zuul_jobs: &ZuulJobs) -> LinkedHashMap<String, VariableInfo> {
+pub fn list_job_vars(name: &str, zuul_jobs: &ZuulJobs) -> LinkedHashMap<String, VariableInfo> {
     let jobs = zuul_jobs.get_job_hierarchy(name);
     let mut vs = LinkedHashMap::new();
 
@@ -300,6 +301,29 @@ fn print_string_locs(locs: &[StringLoc]) {
             loc.line,
             loc.col
         );
+    }
+}
+
+pub fn list_jobs_vars_cli(
+    job_name: String,
+    work_dir: Option<PathBuf>,
+    config_path: Option<PathBuf>,
+) {
+    let repo_dirs = get_repo_dirs(work_dir, config_path);
+    let yaml_paths = get_zuul_yaml_paths(&repo_dirs);
+    let zuul_jobs = ZuulJobs::from_paths(&yaml_paths);
+    let vars = list_job_vars(&job_name, &zuul_jobs);
+
+    for (var_name, var_info) in &vars {
+        println!(
+            "{}\t{}\t{}\t{}\t{}\t{}",
+            var_name,
+            var_info.value,
+            shorten_path(&var_info.name.path).display(),
+            var_info.name.line,
+            var_info.name.col,
+            var_info.job_name.value
+        )
     }
 }
 
