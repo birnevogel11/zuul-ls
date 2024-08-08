@@ -19,7 +19,6 @@ use zuul_parser::search::roles::list_roles;
 struct TextDocumentItem {
     uri: Url,
     text: String,
-    version: i32,
 }
 
 #[derive(Debug)]
@@ -77,7 +76,6 @@ impl LanguageServer for Backend {
         self.on_change(TextDocumentItem {
             uri: params.text_document.uri,
             text: params.text_document.text,
-            version: params.text_document.version,
         })
         .await
     }
@@ -86,7 +84,6 @@ impl LanguageServer for Backend {
         self.on_change(TextDocumentItem {
             uri: params.text_document.uri,
             text: std::mem::take(&mut params.content_changes[0].text),
-            version: params.text_document.version,
         })
         .await
     }
