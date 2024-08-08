@@ -14,6 +14,10 @@ fn is_letter_name(ch: char) -> bool {
     matches!(ch, 'a'..='z' | 'A'..='Z' | '0'..='9' | '_' | '-')
 }
 
+fn is_letter_path(ch: char) -> bool {
+    !matches!(ch, ' ' | '\t' | '\r' | '\n')
+}
+
 fn find_word_in_line<T>(line: &RopeSlice, col: usize, is_letter: T) -> Option<String>
 where
     T: Fn(char) -> bool,
@@ -65,6 +69,10 @@ pub fn find_var_word(content: &Rope, position: &Position) -> Option<String> {
 
 pub fn find_name_word(content: &Rope, position: &Position) -> Option<String> {
     find_word(content, position, is_letter_name)
+}
+
+pub fn find_path_word(content: &Rope, position: &Position) -> Option<String> {
+    find_word(content, position, is_letter_path)
 }
 
 #[cfg(test)]

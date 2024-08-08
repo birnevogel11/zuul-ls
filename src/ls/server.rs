@@ -154,6 +154,7 @@ impl Backend {
 
         if let Some(content) = content {
             if let Some((current_word, search_types)) = parse_word_type(uri, &content, position) {
+                log::info!("uri: {:#?}", uri);
                 log::info!("current_word: {:#?}", &current_word);
                 log::info!("search_types: {:#?}", &search_types);
                 return Ok(self.get_definition_list(&current_word, &search_types));

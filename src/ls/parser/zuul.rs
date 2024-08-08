@@ -1,6 +1,8 @@
 use ropey::Rope;
 use tower_lsp::lsp_types::Position;
 
+use crate::ls::parser::word::find_path_word;
+
 use super::word::find_name_word;
 use super::WordType;
 use yaml_rust2::yaml::Yaml;
@@ -14,7 +16,7 @@ fn retrieve_value_key_stack(value: &Yaml, keys: &mut Vec<String>) -> bool {
         Yaml::Array(xs) => {
             for x in xs {
                 if retrieve_value_key_stack(x, keys) {
-                    return true; // TODO: fix it
+                    return true; // TODO: Should we support index operator ? Skip it now
                 }
             }
             false
@@ -107,15 +109,22 @@ pub fn parse_word_zuul_config(
         return None;
     }
 
-    if key_stack.len() >= 2 {
-        let current_word = find_name_word(content, position)?;
-        if key_stack[0] == "job" {
-            if key_stack[1] == "name" || key_stack[1] == "parent" {
-                return Some((current_word, vec![WordType::Job]));
-            }
-            if key_stack[1] == "vars" {
-                return Some((current_word, vec![WordType::Variable]));
-            }
+    if key_stack.len() >= 2 && key_stack[0] == "job" {
+        if key_stack[1] == "name" || key_stack[1] == "parent" {
+            let current_word = find_name_word(content, position)?;
+            return Some((current_word, vec![WordType::Job]));
+        }
+        if key_stack[1] == "vars" {
+            // TODO: fix it. how to jump lhs value correctly?
+            let current_word = find_name_word(content, position)?;
+            return Some((current_word, vec![WordType::Variable]));
+        }
+        if ["run", "pre-run", "post-run", "clean-run"]
+            .into_iter()
+            .any(|key| key == key_stack[1])
+        {
+            let current_word = find_path_word(content, position)?;
+            return Some((current_word, vec![WordType::Playbook]));
         }
     }
 
