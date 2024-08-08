@@ -230,9 +230,9 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_job() {
+    fn test_parse_job_0() {
         // Configure the test input information
-        let ts = TestFiles::new("test.yaml");
+        let ts = TestFiles::new("job_0.yaml");
 
         // Parse the input
         let es = load_test_doc(&ts.input_path);
@@ -242,9 +242,9 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_job_0() {
+    fn test_parse_job_1() {
         // Configure the test input information
-        let ts = TestFiles::new("job_0.yaml");
+        let ts = TestFiles::new("job_1.yaml");
 
         // Parse the input
         let es = load_test_doc(&ts.input_path);
