@@ -1,26 +1,26 @@
 use std::path::Path;
 use std::path::PathBuf;
 
-#[derive(Debug)]
-pub struct Value {
-    value: String,
-    line_no: u32,
-    column_begin: u32,
-    column_end: u32,
-    path: String,
-}
-
-impl Value {
-    pub fn new(value: &str, path: String) -> Value {
-        Value {
-            value: String::from(value),
-            line_no: 0,
-            column_begin: 0,
-            column_end: 0,
-            path,
-        }
-    }
-}
+// #[derive(Debug)]
+// pub struct Value {
+//     value: String,
+//     line_no: u32,
+//     column_begin: u32,
+//     column_end: u32,
+//     path: String,
+// }
+//
+// impl Value {
+//     pub fn new(value: &str, path: String) -> Value {
+//         Value {
+//             value: String::from(value),
+//             line_no: 0,
+//             column_begin: 0,
+//             column_end: 0,
+//             path,
+//         }
+//     }
+// }
 
 fn _should_visit_dir(path: &PathBuf) -> bool {
     if !path.is_dir() {
@@ -37,25 +37,25 @@ fn _should_visit_dir(path: &PathBuf) -> bool {
     true
 }
 
-fn _tranversal_dirs2(base_dir: &Path, check_dir_name: &str) -> Vec<PathBuf> {
-    let mut xs = Vec::new();
-
-    if let Ok(dir_iter) = base_dir.read_dir() {
-        if base_dir.join(check_dir_name).is_dir() {
-            xs.push(PathBuf::from(base_dir));
-            return xs;
-        }
-
-        for entry in dir_iter.map_while(|x| x.ok()) {
-            let path = entry.path();
-            if _should_visit_dir(&path) {
-                xs.append(&mut (_tranversal_dirs2(path.as_ref(), check_dir_name)));
-            }
-        }
-    }
-
-    xs
-}
+// fn _tranversal_dirs2(base_dir: &Path, check_dir_name: &str) -> Vec<PathBuf> {
+//     let mut xs = Vec::new();
+//
+//     if let Ok(dir_iter) = base_dir.read_dir() {
+//         if base_dir.join(check_dir_name).is_dir() {
+//             xs.push(PathBuf::from(base_dir));
+//             return xs;
+//         }
+//
+//         for entry in dir_iter.map_while(|x| x.ok()) {
+//             let path = entry.path();
+//             if _should_visit_dir(&path) {
+//                 xs.append(&mut (_tranversal_dirs2(path.as_ref(), check_dir_name)));
+//             }
+//         }
+//     }
+//
+//     xs
+// }
 
 fn _tranversal_dirs(base_dir: PathBuf, check_dir_name: &str) -> Vec<PathBuf> {
     let mut xs = Vec::new();
