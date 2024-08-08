@@ -71,9 +71,9 @@ fn list_role_dir_from_repo_dir(repo_dir: &Path) -> Vec<PathBuf> {
 }
 
 pub fn list_roles(repo_dirs: &[PathBuf]) -> Vec<(String, PathBuf, Option<String>)> {
-    let mut xs = repo_dirs
+    let mut xs: Vec<(String, PathBuf, Option<String>)> = repo_dirs
         .iter()
-        .map(|repo_dir| {
+        .flat_map(|repo_dir| {
             let raw_path = get_roles_prefix_dir(repo_dir);
             let raw_path = &raw_path;
 
@@ -92,10 +92,9 @@ pub fn list_roles(repo_dirs: &[PathBuf]) -> Vec<(String, PathBuf, Option<String>
                     let role_doc = get_role_doc(raw_path, &role_name);
                     (role_name, path, role_doc)
                 })
-                .collect()
+                .collect::<Vec<_>>()
         })
-        .collect::<Vec<Vec<_>>>()
-        .concat();
+        .collect();
     xs.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
 
     xs

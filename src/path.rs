@@ -20,33 +20,17 @@ pub fn to_path(x: &str) -> PathBuf {
 
 pub fn retrieve_repo_path(path: &Path) -> Option<PathBuf> {
     path.ancestors().find_map(|x| {
-        let mut base_path = PathBuf::from(x);
+        let mut base_path = x.to_path_buf();
         base_path.push("zuul.d");
-        if base_path.is_dir() {
-            Some(PathBuf::from(x))
-        } else {
-            None
-        }
+        base_path.is_dir().then_some(x.to_path_buf())
     })
-}
-
-pub fn retrieve_repo_path2(path: &str) -> PathBuf {
-    let repo_path: String = to_path(path)
-        .components()
-        .take_while(|x| x.as_os_str() != "zuul.d")
-        .map(|x| x.as_os_str().to_str().unwrap().to_string())
-        .collect::<Vec<String>>()
-        .join("/");
-
-    PathBuf::from(&repo_path[1..repo_path.len()])
 }
 
 pub fn get_zuul_yaml_paths(repo_dirs: &[PathBuf]) -> Vec<PathBuf> {
     let paths = repo_dirs
         .iter()
-        .map(|x| list_zuul_yaml_paths(x))
-        .collect::<Vec<_>>()
-        .concat();
+        .flat_map(|x| list_zuul_yaml_paths(x))
+        .collect::<Vec<_>>();
     debug!("yaml_paths: {:#?}", paths);
     paths
 }
@@ -65,9 +49,8 @@ pub fn get_repo_dirs(work_dir: &Path, config_path: Option<PathBuf>) -> Vec<PathB
 
     let repo_dirs = base_dirs
         .into_iter()
-        .map(|base_dir| traversal_dirs(base_dir, "zuul.d"))
-        .collect::<Vec<Vec<PathBuf>>>()
-        .concat();
+        .flat_map(|base_dir| traversal_dirs(base_dir, "zuul.d"))
+        .collect::<Vec<PathBuf>>();
 
     debug!("repo_dirs: {:#?}", repo_dirs);
     repo_dirs
@@ -81,8 +64,9 @@ pub fn get_role_repo_dirs(work_dir: &PathBuf, config_path: Option<PathBuf>) -> V
 }
 
 pub fn traversal_dirs(base_dir: PathBuf, check_dir_name: &str) -> Vec<PathBuf> {
-    match base_dir.read_dir() {
-        Ok(dir_iter) => {
+    base_dir
+        .read_dir()
+        .map(|dir_iter| {
             if base_dir.join(check_dir_name).is_dir() {
                 vec![base_dir]
             } else {
@@ -95,9 +79,8 @@ pub fn traversal_dirs(base_dir: PathBuf, check_dir_name: &str) -> Vec<PathBuf> {
                 }
                 xs
             }
-        }
-        _ => vec![],
-    }
+        })
+        .unwrap_or_default()
 }
 
 fn should_visit_dir(path: &Path) -> bool {
@@ -152,7 +135,7 @@ fn list_zuul_yaml_paths(repo_dir: &Path) -> Vec<PathBuf> {
 
     zuul_config_dirs
         .into_iter()
-        .map(|dir_path| {
+        .flat_map(|dir_path| {
             WalkDir::new(dir_path)
                 .into_iter()
                 .filter_map(|e| e.ok())
@@ -160,8 +143,7 @@ fn list_zuul_yaml_paths(repo_dir: &Path) -> Vec<PathBuf> {
                 .map(|x| x.into_path())
                 .collect::<Vec<_>>()
         })
-        .collect::<Vec<Vec<_>>>()
-        .concat()
+        .collect::<Vec<_>>()
 }
 
 pub fn shorten_path(path: &Path) -> PathBuf {

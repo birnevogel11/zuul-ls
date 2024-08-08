@@ -8,6 +8,9 @@ use tower_lsp::lsp_types::{
     CompletionTriggerKind, Documentation, Position,
 };
 
+use crate::path::retrieve_repo_path;
+use crate::path::to_path;
+
 use super::parser::{parse_token, TokenType};
 use super::symbols::ZuulSymbol;
 
@@ -110,11 +113,14 @@ pub fn complete_items(
                 )
             })
         }
-        TokenType::Playbook => None,
+        TokenType::Playbook => {
+            let path = to_path(path.to_str().unwrap());
+            if let Some(repo_path) = retrieve_repo_path(&path) {}
+            None
+        }
         // TODO: implement it
         // TokenType::Variable => {}
         // TokenType::VariableWithPrefix(_) => {}
-        // TokenType::Playbook => {}
         _ => None,
     }
 }

@@ -202,9 +202,8 @@ pub fn parse_zuul(paths: &[PathBuf]) -> ZuulConfigElements {
                 match doc {
                     Ok(ys) => ys
                         .iter()
-                        .map(|y| parse_doc(y, path))
-                        .collect::<Vec<_>>()
-                        .concat(),
+                        .flat_map(|y| parse_doc(y, path))
+                        .collect::<Vec<_>>(),
                     _ => Vec::new(),
                 }
             })
@@ -225,9 +224,8 @@ mod tests {
         let input_path = input_path.to_path_buf();
 
         docs.iter()
-            .map(|doc| parse_doc(doc, &input_path))
+            .flat_map(|doc| parse_doc(doc, &input_path))
             .collect::<Vec<_>>()
-            .concat()
     }
 
     #[test]
