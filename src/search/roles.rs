@@ -3,7 +3,7 @@ use std::path::PathBuf;
 
 use log;
 
-use crate::path::{get_role_repo_dirs, shorten_path, to_path, traversal_dirs};
+use crate::path::{get_role_repo_dirs, shorten_path, to_path};
 use crate::safe_println;
 
 fn get_roles_prefix_dir(repo_dir: &Path) -> String {
@@ -17,21 +17,36 @@ fn get_roles_prefix_dir(repo_dir: &Path) -> String {
     raw_path
 }
 
-fn list_roles_internal(base_dir: PathBuf) -> Vec<PathBuf> {
-    traversal_dirs(base_dir, "tasks")
+fn is_role(path: &Path) -> Option<PathBuf> {
+    let path = path.to_path_buf();
+
+    for check_dir_name in ["tasks", "meta"] {
+        for check_filename in ["main.yaml", "main.yml"] {
+            let check_path = path.join(check_dir_name).join(check_filename);
+            if check_path.is_file() {
+                return Some(check_path);
+            }
+        }
+    }
+
+    None
 }
 
-fn list_role_dir(repo_dir: &Path) -> Vec<PathBuf> {
+fn list_role_dir(role_dir: &Path) -> Vec<PathBuf> {
     let mut xs = Vec::new();
 
-    let role_dir = repo_dir.join("roles");
     if let Ok(dir_iter) = role_dir.read_dir() {
         for entry in dir_iter.filter_map(|x| x.ok()) {
             let path = entry.path();
-            if path.join("tasks").is_dir() {
-                xs.push(path);
-            } else {
-                xs.append(&mut list_roles_internal(path));
+            if path.is_dir() {
+                match is_role(&path) {
+                    Some(role_path) => {
+                        xs.push(role_path);
+                    }
+                    None => {
+                        xs.append(&mut list_role_dir(&path));
+                    }
+                }
             }
         }
     }
@@ -39,19 +54,30 @@ fn list_role_dir(repo_dir: &Path) -> Vec<PathBuf> {
     xs
 }
 
+fn list_role_dir_from_repo_dir(repo_dir: &Path) -> Vec<PathBuf> {
+    list_role_dir(&repo_dir.join("roles"))
+}
+
 pub fn list_roles(repo_dirs: &[PathBuf]) -> Vec<(String, PathBuf)> {
     let mut xs = repo_dirs
         .iter()
         .map(|repo_dir| {
             let raw_path = get_roles_prefix_dir(repo_dir);
-            let raw_path = raw_path.as_str();
+            let raw_path = &raw_path;
 
-            list_role_dir(repo_dir)
-                .iter()
-                .map(|x| {
-                    let role_name: String = x.to_str().unwrap().into();
-                    let role_name: String = role_name.strip_prefix(raw_path).unwrap().into();
-                    (role_name, x.join("tasks/main.yaml"))
+            list_role_dir_from_repo_dir(repo_dir)
+                .into_iter()
+                .map(|path| {
+                    let role_name = path
+                        .parent()
+                        .unwrap()
+                        .to_str()
+                        .unwrap()
+                        .trim_start_matches(raw_path)
+                        .trim_end_matches("/tasks")
+                        .trim_end_matches("/meta")
+                        .to_string();
+                    (role_name, path)
                 })
                 .collect()
         })
