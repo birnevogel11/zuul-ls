@@ -7,8 +7,11 @@ use std::path::{Path, PathBuf};
 
 use ropey::Rope;
 use tower_lsp::lsp_types::Position;
+use yaml_rust2::Yaml;
 
 use self::ansible::parse_token_ansible;
+use self::key_stack::parse_value;
+use self::utils::find_var_token2;
 use self::zuul::parse_token_zuul_config;
 use crate::path::{retrieve_repo_path, to_path};
 
@@ -102,6 +105,7 @@ pub enum TokenType {
     #[default]
     Variable,
     VariableWithPrefix(Vec<String>),
+    VariableNew(Option<Vec<String>>),
     Role,
     Job,
     ZuulProperty(String),
@@ -156,5 +160,48 @@ pub fn parse_token(path: &Path, content: &Rope, position: &Position) -> Option<A
         }
         TokenFileType::ZuulConfig => parse_token_zuul_config(file_type, content, position),
         TokenFileType::Unknown => None,
+    }
+}
+
+pub struct VariableTokenBuilder(AutoCompleteToken);
+
+impl VariableTokenBuilder {
+    pub fn new(
+        var_stack: Option<Vec<String>>,
+        token_side: TokenSide,
+        content: &Rope,
+        position: &Position,
+    ) -> Option<Self> {
+        let mut var_tokens = find_var_token2(content, position)?;
+        let token = var_tokens.pop()?;
+
+        let mut var_stack = var_stack.unwrap_or_default();
+        var_stack.extend(var_tokens);
+
+        Some(VariableTokenBuilder(AutoCompleteToken {
+            value: token,
+            token_type: TokenType::VariableNew(Some(var_stack)),
+            token_side,
+            ..AutoCompleteToken::default()
+        }))
+    }
+
+    pub fn new_yaml(value: &Yaml, content: &Rope, position: &Position) -> Option<Self> {
+        let (var_stack, token_side) = parse_value(value, None)?;
+        Self::new(Some(var_stack), token_side, content, position)
+    }
+
+    pub fn set_file_type(mut self, file_type: &TokenFileType) -> Self {
+        self.0.file_type = file_type.clone();
+        self
+    }
+
+    pub fn set_key_stack(mut self, key_stack: Option<Vec<String>>) -> Self {
+        self.0.key_stack = key_stack.unwrap_or_default();
+        self
+    }
+
+    pub fn build(self) -> AutoCompleteToken {
+        self.0
     }
 }

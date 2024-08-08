@@ -7,10 +7,8 @@ use interner::global::{GlobalPath, GlobalString};
 
 use crate::parser::common::{StringLoc, PATH_POOL, STRING_POOL};
 
-pub use group::VariableGroup;
-pub use group::VariablePrintInfo;
-pub use table::Variable;
-pub use table::VariableTable;
+pub use group::{VariableGroup, VariableGroupInfo, VariableInfo, VariablePrintInfo};
+pub use table::{Variable, VariableTable};
 
 #[derive(Clone, PartialEq, PartialOrd, Debug, Eq, Ord, Hash, Default)]
 pub enum VariableSource {

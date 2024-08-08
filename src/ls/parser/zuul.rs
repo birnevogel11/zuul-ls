@@ -5,7 +5,7 @@ use yaml_rust2::yaml::YamlLoader;
 
 use super::key_stack::{insert_search_word, parse_value, ARRAY_INDEX_KEY, SEARCH_PATTERN};
 use super::utils::{find_name_token, find_path_token, find_var_token};
-use super::{AutoCompleteToken, TokenFileType, TokenSide, TokenType};
+use super::{AutoCompleteToken, TokenFileType, TokenSide, TokenType, VariableTokenBuilder};
 
 fn retrieve_key_stack(content: &Rope, line: usize, col: usize) -> Option<(Vec<String>, TokenSide)> {
     let search_rope = insert_search_word(content, line, col);
@@ -68,23 +68,12 @@ fn parse_project_token(
                 key_stack = key_stack[..6].to_vec();
             }
 
-            let token = find_var_token(content, position)?;
-            return Some(match token_side {
-                TokenSide::Left => AutoCompleteToken::new(
-                    token,
-                    file_type,
-                    TokenType::VariableWithPrefix(var_stack.unwrap_or_default()),
-                    token_side,
-                    key_stack,
-                ),
-                TokenSide::Right => AutoCompleteToken::new(
-                    token,
-                    file_type,
-                    TokenType::Variable,
-                    token_side,
-                    key_stack,
-                ),
-            });
+            return Some(
+                VariableTokenBuilder::new(var_stack, token_side, content, position)?
+                    .set_file_type(&file_type)
+                    .set_key_stack(Some(key_stack))
+                    .build(),
+            );
         }
     }
 
@@ -120,23 +109,12 @@ fn parse_job_token(
                 key_stack = key_stack[..2].to_vec();
             }
 
-            let token = find_name_token(content, position)?;
-            Some(match token_side {
-                TokenSide::Left => AutoCompleteToken::new(
-                    token,
-                    file_type,
-                    TokenType::VariableWithPrefix(var_stack.unwrap_or_default()),
-                    token_side,
-                    key_stack,
-                ),
-                TokenSide::Right => AutoCompleteToken::new(
-                    token,
-                    file_type,
-                    TokenType::Variable,
-                    token_side,
-                    key_stack,
-                ),
-            })
+            Some(
+                VariableTokenBuilder::new(var_stack, token_side, content, position)?
+                    .set_file_type(&file_type)
+                    .set_key_stack(Some(key_stack))
+                    .build(),
+            )
         }
         "run" | "pre-run" | "post-run" => {
             let token = find_path_token(content, position)?;

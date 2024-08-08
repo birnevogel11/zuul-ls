@@ -1,4 +1,3 @@
-use log;
 use std::path::PathBuf;
 
 use clap::Parser;
@@ -9,7 +8,6 @@ use zuul_parser::search::job_vars;
 use zuul_parser::search::jobs;
 use zuul_parser::search::project_templates;
 use zuul_parser::search::roles;
-use zuul_parser::search::work_dir_vars;
 use zuul_parser::search::work_dir_vars2;
 
 #[derive(Parser, Debug)]

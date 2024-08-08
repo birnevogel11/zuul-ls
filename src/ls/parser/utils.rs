@@ -101,6 +101,36 @@ pub fn find_var_token(content: &Rope, position: &Position) -> Option<String> {
     Some(xs[..xs_end_slice_idx].join("."))
 }
 
+pub fn find_var_token2(content: &Rope, position: &Position) -> Option<Vec<String>> {
+    let (raw_token, (bidx, _)) = find_token_in_line(
+        &content.get_line(position.line as usize)?,
+        position.character as usize,
+        is_char_var,
+    )?;
+    if !raw_token.contains('.') {
+        return Some(vec![raw_token]);
+    }
+    let offset = position.character as usize - bidx;
+
+    let mut current_len = 0;
+    let mut xs_end_slice_idx = 0;
+    let xs: Vec<_> = raw_token.split('.').collect();
+    for (idx, x) in xs.iter().enumerate() {
+        current_len += x.len() + 1;
+        if offset < current_len {
+            xs_end_slice_idx = idx + 1;
+            break;
+        }
+    }
+
+    Some(
+        xs[..xs_end_slice_idx]
+            .iter()
+            .map(|x| x.to_string())
+            .collect(),
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

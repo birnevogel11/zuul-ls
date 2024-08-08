@@ -1,24 +1,18 @@
 use std::ops::{Deref, DerefMut};
-use std::path::Path;
 
 use dashmap::DashMap;
-use hashlink::LinkedHashMap;
-use interner::global::{GlobalPath, GlobalString};
 
-use crate::parser::common::{
-    parse_string_value, StringLoc, ZuulParseError, PATH_POOL, STRING_POOL,
-};
-use crate::parser::yaml::{YValue, YValueYaml};
+use crate::parser::common::StringLoc;
 
 use super::table::Value;
 use super::table::VariableTable;
 use super::VariableSource;
 
 #[derive(Clone, Debug, Default)]
-pub struct VariableGroup(DashMap<GlobalString, VariableGroupInfo>);
+pub struct VariableGroup(DashMap<String, VariableGroupInfo>);
 
 impl Deref for VariableGroup {
-    type Target = DashMap<GlobalString, VariableGroupInfo>;
+    type Target = DashMap<String, VariableGroupInfo>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -46,11 +40,12 @@ pub struct VariableGroupInfo {
 
 fn to_var_table(var_group: &mut VariableGroup, var_table: &VariableTable) {
     var_table.0.iter().for_each(|(key, value)| {
-        if var_group.get(key).is_none() {
+        let key = key.to_string();
+        if var_group.get(&key).is_none() {
             var_group.insert(key.clone(), VariableGroupInfo::default());
         }
 
-        let mut vgi = var_group.get_mut(key).unwrap();
+        let mut vgi = var_group.get_mut(&key).unwrap();
         vgi.variable_locs.push(VariableInfo {
             name: value.name.clone(),
             value: value.value.to_show_value(),

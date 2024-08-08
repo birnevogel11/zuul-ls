@@ -1,8 +1,10 @@
 use std::path::Path;
 
 use crate::parser::var_table::{parse_var_group, VarGroup, VariableSource};
+use crate::parser::variable::{VariableGroup, VariableTable};
 use crate::parser::yaml::load_yvalue_from_str;
 
+// TODO: remove it
 pub fn parse_defaults_vars(
     content: &str,
     path: &Path,
@@ -16,6 +18,26 @@ pub fn parse_defaults_vars(
     let doc = &docs[0];
     let source = VariableSource::from_role(role_name, role_path);
     parse_var_group(doc, path, role_name, &source).ok()
+}
+
+pub fn parse_defaults_vars2(
+    content: &str,
+    path: &Path,
+    role_name: &str,
+    role_path: &Path,
+) -> Option<VariableGroup> {
+    let docs = load_yvalue_from_str(content).ok()?;
+    if docs.len() != 1 {
+        return None;
+    }
+    let doc = &docs[0];
+    let source = crate::parser::variable::VariableSource::from_role(role_name, role_path);
+
+    Some(
+        VariableTable::parse_yaml(doc, path, role_name, &source)
+            .ok()?
+            .into(),
+    )
 }
 
 #[cfg(test)]

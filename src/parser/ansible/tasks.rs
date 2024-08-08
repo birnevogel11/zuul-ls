@@ -7,8 +7,10 @@ use crate::parser::common::StringLoc;
 use crate::parser::var_table::{
     merge_var_group, parse_var_group_from_hash, VarGroup, VariableInfo, VariableSource,
 };
+use crate::parser::variable::{VariableGroup, VariableGroupInfo, VariableTable};
 use crate::parser::yaml::{load_yvalue_from_str, YValue};
 
+// TODO: remove it
 pub fn parse_task_vars_internal(
     value: &YValue,
     path: &Path,
@@ -66,6 +68,7 @@ pub fn parse_task_vars_internal(
     Some(var_group)
 }
 
+// TODO: remove it
 pub fn parse_task_vars(
     content: &str,
     path: &Path,
@@ -78,6 +81,86 @@ pub fn parse_task_vars(
     }
     let source = VariableSource::from_role(role_name, role_path);
     parse_task_vars_internal(&docs[0], path, role_name, &source)
+}
+
+pub fn parse_task_vars_internal2(
+    value: &YValue,
+    path: &Path,
+    field_name: &str,
+    source: &crate::parser::variable::VariableSource,
+) -> Option<VariableGroup> {
+    let tasks = value
+        .as_vec()?
+        .iter()
+        .map_while(|v| v.as_hash())
+        .collect::<Vec<_>>();
+
+    let mut var_group = VariableGroup::default();
+    for task in tasks {
+        for (key, value) in task {
+            let key_name = key.as_str()?;
+
+            let sub_var_group: Option<VariableGroup> = match key_name {
+                "set_fact" | "vars" => {
+                    let var_value = value
+                        .as_hash()?
+                        .into_iter()
+                        .map_while(|(key, value)| {
+                            if let Some(key_name) = key.as_str() {
+                                if key_name != "cachable" {
+                                    return Some((key.clone(), value.clone()));
+                                }
+                            }
+                            None
+                        })
+                        .collect::<LinkedHashMap<_, _>>();
+                    Some(
+                        VariableTable::parse_map(&var_value, path, field_name, source)
+                            .ok()?
+                            .into(),
+                    )
+                }
+                "block" | "rescue" | "always" => {
+                    parse_task_vars_internal2(value, path, field_name, source)
+                }
+                "register" => {
+                    let sub_var_group = VariableGroup::default();
+
+                    let var_name = value.as_str()?;
+                    let mut var_group_info = VariableGroupInfo::default();
+                    var_group_info
+                        .variable_locs
+                        .push(crate::parser::variable::VariableInfo {
+                            name: StringLoc::from(value, path),
+                            value: "".to_string(),
+                            source: source.clone(),
+                        });
+
+                    sub_var_group.insert(var_name.to_string(), var_group_info);
+                    Some(sub_var_group)
+                }
+                _ => None,
+            };
+
+            var_group.merge(sub_var_group.unwrap_or_default());
+        }
+    }
+
+    Some(var_group)
+}
+
+pub fn parse_task_vars2(
+    content: &str,
+    path: &Path,
+    role_name: &str,
+    role_path: &Path,
+) -> Option<VariableGroup> {
+    let docs = load_yvalue_from_str(content).ok()?;
+    if docs.len() != 1 {
+        return None;
+    }
+    let source = crate::parser::variable::VariableSource::from_role(role_name, role_path);
+    parse_task_vars_internal2(&docs[0], path, role_name, &source)
 }
 
 #[cfg(test)]

@@ -7,7 +7,7 @@ use super::key_stack::parse_value;
 use super::key_stack::SEARCH_PATTERN;
 use super::utils::{find_role_token, find_var_token};
 use super::TokenSide;
-use super::{AutoCompleteToken, TokenFileType, TokenType};
+use super::{AutoCompleteToken, TokenFileType, TokenType, VariableTokenBuilder};
 use yaml_rust2::yaml::YamlLoader;
 
 fn parse_var(
@@ -17,21 +17,12 @@ fn parse_var(
     position: &Position,
     key_stack: Option<Vec<String>>,
 ) -> Option<AutoCompleteToken> {
-    if let Some((var_stack, token_side)) = parse_value(value, None) {
-        let token_type = match token_side {
-            TokenSide::Left => TokenType::VariableWithPrefix(var_stack),
-            TokenSide::Right => TokenType::Variable,
-        };
-        return Some(AutoCompleteToken::new(
-            find_var_token(content, position)?,
-            file_type.clone(),
-            token_type,
-            token_side,
-            key_stack.unwrap_or_default(),
-        ));
-    }
-
-    None
+    Some(
+        VariableTokenBuilder::new_yaml(value, content, position)?
+            .set_file_type(file_type)
+            .set_key_stack(key_stack)
+            .build(),
+    )
 }
 
 fn parse_ansible_tasks(
@@ -87,26 +78,23 @@ fn parse_ansible_tasks(
                                     None
                                 }
                             }
-                            "set_fact" | "ansible.builtin.set_fact" | "vars" => {
-                                let token_type = match token_side {
-                                    TokenSide::Left => TokenType::VariableWithPrefix(value_stack),
-                                    TokenSide::Right => TokenType::Variable,
-                                };
-                                Some(AutoCompleteToken::new(
-                                    find_var_token(content, position)?,
-                                    file_type.clone(),
-                                    token_type,
+                            "set_fact" | "ansible.builtin.set_fact" | "vars" => Some(
+                                VariableTokenBuilder::new(
+                                    Some(value_stack),
                                     token_side,
-                                    key_stack.clone(),
-                                ))
-                            }
-                            _ => Some(AutoCompleteToken::new(
-                                find_var_token(content, position)?,
-                                file_type.clone(),
-                                TokenType::Variable,
-                                token_side,
-                                key_stack.clone(),
-                            )),
+                                    content,
+                                    position,
+                                )?
+                                .set_file_type(file_type)
+                                .set_key_stack(Some(key_stack.clone()))
+                                .build(),
+                            ),
+                            _ => Some(
+                                VariableTokenBuilder::new(None, token_side, content, position)?
+                                    .set_file_type(file_type)
+                                    .set_key_stack(Some(key_stack.clone()))
+                                    .build(),
+                            ),
                         };
 
                         if token.is_some() {
@@ -133,13 +121,11 @@ fn parse_roles(
         for (key, value) in role_task {
             let key_name = key.as_str()?;
             if key_name.contains(SEARCH_PATTERN) {
-                return Some(AutoCompleteToken::new(
-                    find_var_token(content, position)?,
-                    file_type.clone(),
-                    TokenType::Variable,
-                    TokenSide::Left,
-                    Vec::new(),
-                ));
+                return Some(
+                    VariableTokenBuilder::new(None, TokenSide::Left, content, position)?
+                        .set_file_type(file_type)
+                        .build(),
+                );
             }
 
             if let Some((var_stack, token_side)) = parse_value(value, None) {
@@ -152,17 +138,11 @@ fn parse_roles(
                         Vec::new(),
                     ));
                 } else {
-                    let token_type = match token_side {
-                        TokenSide::Left => TokenType::VariableWithPrefix(var_stack),
-                        TokenSide::Right => TokenType::Variable,
-                    };
-                    return Some(AutoCompleteToken::new(
-                        find_var_token(content, position)?,
-                        file_type.clone(),
-                        token_type,
-                        token_side,
-                        Vec::new(),
-                    ));
+                    return Some(
+                        VariableTokenBuilder::new(Some(var_stack), token_side, content, position)?
+                            .set_file_type(file_type)
+                            .build(),
+                    );
                 }
             }
         }

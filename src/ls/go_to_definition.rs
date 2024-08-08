@@ -2,15 +2,20 @@ use std::fs;
 use std::path::Path;
 use std::path::PathBuf;
 
+use dashmap::OccupiedEntry;
 use ropey::Rope;
 use tower_lsp::lsp_types::{GotoDefinitionResponse, Location, Position, Range, Url};
 
 use crate::ls::parser::{AutoCompleteToken, TokenFileType, TokenType};
 use crate::ls::symbols::ZuulSymbol;
 use crate::parser::ansible::defaults::parse_defaults_vars;
+use crate::parser::ansible::defaults::parse_defaults_vars2;
 use crate::parser::ansible::playbook::parse_playbook_vars;
+use crate::parser::ansible::playbook::parse_playbook_vars2;
 use crate::parser::ansible::tasks::parse_task_vars;
+use crate::parser::ansible::tasks::parse_task_vars2;
 use crate::parser::var_table::{merge_var_group, VarGroup};
+use crate::parser::variable::VariableGroup;
 use crate::path::{retrieve_repo_path, to_path};
 
 use super::parser::parse_token;
@@ -58,6 +63,61 @@ fn parse_local_vars_ansible(path: &Path, content: &Rope, token: &AutoCompleteTok
     }
 }
 
+fn parse_ansible_vars2<T>(
+    path: &Option<PathBuf>,
+    content: Option<String>,
+    parse_fun: T,
+) -> VariableGroup
+where
+    T: Fn(&str, &Path, &str, &Path) -> Option<VariableGroup>,
+{
+    path.as_ref().map_or(VariableGroup::default(), |p| {
+        let content = content.unwrap_or(fs::read_to_string(p).unwrap_or_default());
+        parse_fun(&content, p, "", &PathBuf::default()).unwrap_or_default()
+    })
+}
+
+fn parse_local_vars_ansible2(
+    path: &Path,
+    content: &Rope,
+    token: &AutoCompleteToken,
+) -> VariableGroup {
+    match &token.file_type {
+        TokenFileType::Playbooks => parse_ansible_vars2(
+            &Some(path.to_path_buf()),
+            Some(content.to_string()),
+            parse_playbook_vars2,
+        ),
+        TokenFileType::AnsibleRoleDefaults => parse_ansible_vars2(
+            &Some(path.to_path_buf()),
+            Some(content.to_string()),
+            parse_defaults_vars2,
+        ),
+        TokenFileType::AnsibleRoleTasks { defaults_path } => {
+            let mut xs = parse_ansible_vars2(
+                &Some(path.to_path_buf()),
+                Some(content.to_string()),
+                parse_task_vars2,
+            );
+            let ys = parse_ansible_vars2(defaults_path, None, parse_defaults_vars2);
+
+            xs.merge(ys);
+            xs
+        }
+        TokenFileType::AnsibleRoleTemplates {
+            tasks_path,
+            defaults_path,
+        } => {
+            let mut xs = parse_ansible_vars2(defaults_path, None, parse_defaults_vars2);
+            let ys = parse_ansible_vars2(tasks_path, None, parse_task_vars2);
+
+            xs.merge(ys);
+            xs
+        }
+        _ => VariableGroup::default(),
+    }
+}
+
 fn find_var_definitions(
     value: &str,
     path: &Path,
@@ -95,6 +155,63 @@ fn find_var_definitions(
     }
 }
 
+fn find_var_definitions2_internal(
+    value: &str,
+    var_stack: &[String],
+    var_group: &VariableGroup,
+    stack_idx: usize,
+) -> Option<Vec<Location>> {
+    if stack_idx != var_stack.len() {
+        let var = var_stack[stack_idx].as_str();
+        if var_group.contains_key(var) {
+            if let dashmap::mapref::entry::Entry::Occupied(e) = var_group.entry(var.to_string()) {
+                let m = &e.get().members;
+                return find_var_definitions2_internal(value, var_stack, m, stack_idx + 1);
+            }
+        }
+        None
+    } else {
+        let entry = var_group.get(value)?;
+        Some(
+            entry
+                .value()
+                .variable_locs
+                .iter()
+                .map(|vi| vi.name.clone().into())
+                .collect(),
+        )
+    }
+}
+
+fn find_var_definitions2(
+    value: &str,
+    var_stack: &Option<Vec<String>>,
+    path: &Path,
+    content: &Rope,
+    symbols: &ZuulSymbol,
+    token: &AutoCompleteToken,
+) -> Option<GotoDefinitionResponse> {
+    let local_vars: VariableGroup = parse_local_vars_ansible2(path, content, token);
+
+    let mut var_info: Vec<Location> = Vec::new();
+    for vg in [&local_vars, symbols.vars2()] {
+        let var_stack = match var_stack {
+            Some(var_stack) => var_stack,
+            None => &Vec::new(),
+        };
+        var_info
+            .extend(find_var_definitions2_internal(value, var_stack, vg, 0).unwrap_or_default());
+    }
+
+    if var_info.is_empty() {
+        None
+    } else if var_info.len() == 1 {
+        Some(GotoDefinitionResponse::Scalar(var_info[0].clone()))
+    } else {
+        Some(GotoDefinitionResponse::Array(var_info))
+    }
+}
+
 fn get_definition_list_internal(
     symbols: &ZuulSymbol,
     content: &Rope,
@@ -104,6 +221,9 @@ fn get_definition_list_internal(
     let value = &token.value;
 
     match &token.token_type {
+        TokenType::VariableNew(var_stack) => {
+            return find_var_definitions2(value, var_stack, path, content, symbols, token);
+        }
         TokenType::Variable => {
             return find_var_definitions(value, path, content, symbols, token);
         }
