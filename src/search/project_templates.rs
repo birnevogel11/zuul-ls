@@ -20,7 +20,7 @@ pub fn list_project_templates_cli(work_dir: &Path, config_path: Option<PathBuf>,
     if is_local {
         let sw = to_path(work_dir.to_str().unwrap());
         let sw = sw.to_str().unwrap();
-        project_templates.retain(|x| x.name().path.to_str().unwrap().starts_with(sw));
+        project_templates.retain(|x| x.name().path.starts_with(sw));
     }
     print_project_templates(&project_templates);
 }

@@ -45,8 +45,8 @@ pub fn list_work_dir_vars(work_dir: &Path, config_path: Option<PathBuf>) -> Hash
     let work_dir_job_names: Vec<String> = jobs
         .jobs()
         .iter()
-        .filter(|job| job.name().path.to_str().unwrap().starts_with(work_dir_str))
-        .map(|job| job.name().value.clone())
+        .filter(|job| job.name().path.starts_with(work_dir_str))
+        .map(|job| job.name().value.to_string())
         .collect();
     let ordered_jobs = jobs.gen_job_topo_order(&work_dir_job_names);
 
@@ -67,12 +67,12 @@ pub fn list_work_dir_vars_group(
     let mut var_groups: HashMap<String, Vec<VariableInfo>> = HashMap::new();
 
     vars.into_iter()
-        .for_each(|var| match var_groups.get_mut(&var.name.value) {
+        .for_each(|var| match var_groups.get_mut(var.name.value.as_ref()) {
             Some(var_group) => {
                 var_group.push(var);
             }
             None => {
-                var_groups.insert(var.name.value.clone(), vec![var]);
+                var_groups.insert(var.name.value.to_string(), vec![var]);
             }
         });
 

@@ -1,5 +1,4 @@
-use std::path::PathBuf;
-use std::rc::Rc;
+use std::path::Path;
 
 use hashlink::LinkedHashMap;
 
@@ -20,7 +19,7 @@ impl ProjectTemplate {
 impl ZuulParse<ProjectTemplate> for ProjectTemplate {
     fn parse(
         xs: &LinkedHashMap<YValue, YValue>,
-        path: &Rc<PathBuf>,
+        path: &Path,
     ) -> Result<ProjectTemplate, ZuulParseError> {
         let mut name = StringLoc::default();
 

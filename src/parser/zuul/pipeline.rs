@@ -1,5 +1,4 @@
-use std::path::PathBuf;
-use std::rc::Rc;
+use std::path::Path;
 
 use hashlink::LinkedHashMap;
 
@@ -12,10 +11,7 @@ pub struct Pipeline {
 }
 
 impl ZuulParse<Pipeline> for Pipeline {
-    fn parse(
-        xs: &LinkedHashMap<YValue, YValue>,
-        path: &Rc<PathBuf>,
-    ) -> Result<Pipeline, ZuulParseError> {
+    fn parse(xs: &LinkedHashMap<YValue, YValue>, path: &Path) -> Result<Pipeline, ZuulParseError> {
         let mut name = StringLoc::default();
 
         for (key, value) in xs {

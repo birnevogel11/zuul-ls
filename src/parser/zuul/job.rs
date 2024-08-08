@@ -1,5 +1,5 @@
+use std::path::Path;
 use std::path::PathBuf;
-use std::rc::Rc;
 
 use hashlink::LinkedHashMap;
 
@@ -42,7 +42,7 @@ impl VarValue {
 
     pub fn from_yvalue(
         value: &YValue,
-        path: &Rc<PathBuf>,
+        path: &Path,
         field_name: &str,
     ) -> Result<VarValue, ZuulParseError> {
         Ok(match value.value() {
@@ -75,7 +75,7 @@ impl VarValue {
 
 pub type VarTable = LinkedHashMap<StringLoc, VarValue>;
 
-#[derive(Clone, PartialEq, PartialOrd, Debug, Eq, Ord, Hash, Default)]
+#[derive(Clone, PartialEq, PartialOrd, Debug, Eq, Ord, Hash)]
 pub struct Job {
     name: StringLoc,
     description: Option<StringLoc>,
@@ -118,7 +118,7 @@ impl Job {
 
     fn parse_playbook_list_item(
         value: &YValue,
-        path: &Rc<PathBuf>,
+        path: &Path,
         field_name: &str,
     ) -> Result<StringLoc, ZuulParseError> {
         if let Ok(value) = parse_string_value(value, path, field_name) {
@@ -150,7 +150,7 @@ impl Job {
 
     fn parse_playbooks(
         value: &YValue,
-        path: &Rc<PathBuf>,
+        path: &Path,
         field_name: &str,
     ) -> Result<Vec<(StringLoc, PathBuf)>, ZuulParseError> {
         let mut values = Vec::new();
@@ -177,7 +177,7 @@ impl Job {
 
     fn parse_variables(
         values: &YValue,
-        path: &Rc<PathBuf>,
+        path: &Path,
         field_name: &str,
     ) -> Result<VarTable, ZuulParseError> {
         if let Some(values) = values.as_hash() {
@@ -202,10 +202,7 @@ impl Job {
 }
 
 impl ZuulParse<Job> for Job {
-    fn parse(
-        xs: &LinkedHashMap<YValue, YValue>,
-        path: &Rc<PathBuf>,
-    ) -> Result<Job, ZuulParseError> {
+    fn parse(xs: &LinkedHashMap<YValue, YValue>, path: &Path) -> Result<Job, ZuulParseError> {
         let mut name = StringLoc::default();
         let mut description: Option<StringLoc> = None;
         let mut parent: Option<StringLoc> = None;

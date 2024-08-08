@@ -22,7 +22,7 @@ pub struct ZuulJobs {
 }
 
 impl ZuulJobs {
-    pub fn from_paths(yaml_paths: &[Rc<PathBuf>]) -> ZuulJobs {
+    pub fn from_paths(yaml_paths: &Vec<PathBuf>) -> ZuulJobs {
         let jobs = parse_zuul(yaml_paths)
             .into_jobs()
             .into_iter()
@@ -94,7 +94,7 @@ impl ZuulJobs {
             let search_jobs = jobs.get(name).unwrap();
             for job in search_jobs {
                 if let Some(parent_job_name) = job.parent() {
-                    let parent_job_name = &parent_job_name.value;
+                    let parent_job_name = &parent_job_name.value.to_string();
                     if jobs.contains_key(parent_job_name) {
                         g.add_edge(
                             *node_map.get_by_left(name).unwrap(),
@@ -151,10 +151,10 @@ impl ZuulJobs {
 
             for job in parent_jobs {
                 if let Some(parent) = &job.parent() {
-                    let new_name = parent.value.clone();
+                    let new_name = parent.value.to_string();
 
                     if jobs.contains_key(&new_name) && !collect_names.contains(&new_name) {
-                        search_names.push_back(new_name.clone());
+                        search_names.push_back(new_name);
                     }
                 }
             }
@@ -169,12 +169,12 @@ impl ZuulJobs {
         for j in jobs {
             let name = j.name().value.clone();
 
-            match hs.get_mut(&name) {
+            match hs.get_mut(&name.to_string()) {
                 Some(value) => {
                     value.push(j.clone());
                 }
                 None => {
-                    hs.insert(name, vec![j.clone()]);
+                    hs.insert(name.to_string(), vec![j.clone()]);
                 }
             }
         }
@@ -227,7 +227,7 @@ mod tests {
     #[test]
     fn test_list_jobs() {
         let ts = TestFiles::new("list_job_0.yaml");
-        let paths = vec![Rc::new(ts.input_path.clone())];
+        let paths = vec![ts.input_path.clone()];
         let zuul_jobs = ZuulJobs::from_paths(&paths);
         let jobs = zuul_jobs.jobs();
 

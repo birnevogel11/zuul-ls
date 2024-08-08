@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use crate::parser::common::StringLoc;
 use crate::parser::zuul::project_template::ProjectTemplate;
 use crate::path::shorten_path;

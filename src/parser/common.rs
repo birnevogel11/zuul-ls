@@ -1,48 +1,41 @@
-use std::path::PathBuf;
-use std::rc::Rc;
+use std::path::Path;
 
 use hashlink::LinkedHashMap;
+use interner::global::{GlobalPath, GlobalString, PathPool, StringPool};
 
 use crate::parser::yaml::{YValue, YValueYaml};
 
+static STRING_POOL: StringPool = StringPool::new();
+static PATH_POOL: PathPool = PathPool::new();
+
 pub trait ZuulParse<T> {
-    fn parse(xs: &LinkedHashMap<YValue, YValue>, path: &Rc<PathBuf>) -> Result<T, ZuulParseError>;
+    fn parse(xs: &LinkedHashMap<YValue, YValue>, path: &Path) -> Result<T, ZuulParseError>;
 }
 
-#[derive(Clone, PartialEq, PartialOrd, Debug, Eq, Ord, Hash, Default)]
-pub struct ZuulParseError {
-    msg: String,
-    value: String,
-    path: String,
-    line: usize,
-    col: usize,
-}
-
-impl ZuulParseError {
-    pub fn from(msg: &str, value: &YValue, path: &Rc<PathBuf>) -> ZuulParseError {
-        ZuulParseError {
-            msg: msg.to_string(),
-            value: format!("{:?}", value),
-            path: path.to_str().unwrap().to_string(),
-            line: value.line(),
-            col: value.col(),
-        }
-    }
-}
-
-#[derive(Clone, PartialEq, PartialOrd, Debug, Eq, Ord, Hash, Default)]
+#[derive(Clone, PartialEq, PartialOrd, Debug, Eq, Ord, Hash)]
 pub struct StringLoc {
-    pub value: String,
-    pub path: Rc<PathBuf>,
+    pub value: GlobalString,
+    pub path: GlobalPath,
     pub line: usize,
     pub col: usize,
 }
 
-impl StringLoc {
-    pub fn from(value: &YValue, path: &Rc<PathBuf>) -> StringLoc {
+impl Default for StringLoc {
+    fn default() -> Self {
         StringLoc {
-            value: value.as_str().unwrap().to_string(),
-            path: path.clone(),
+            value: STRING_POOL.get(""),
+            path: PATH_POOL.get(Path::new("")),
+            line: 0,
+            col: 0,
+        }
+    }
+}
+
+impl StringLoc {
+    pub fn from(value: &YValue, path: &Path) -> StringLoc {
+        StringLoc {
+            value: STRING_POOL.get(value.as_str().unwrap()),
+            path: PATH_POOL.get(path),
             line: value.line(),
             col: value.col(),
         }
@@ -50,7 +43,7 @@ impl StringLoc {
 
     pub fn clone_loc(&self, new_value: String) -> StringLoc {
         StringLoc {
-            value: new_value,
+            value: STRING_POOL.get(&new_value),
             ..self.clone()
         }
     }
@@ -64,9 +57,30 @@ impl StringLoc {
     }
 }
 
+#[derive(Clone, PartialEq, PartialOrd, Debug, Eq, Ord, Hash, Default)]
+pub struct ZuulParseError {
+    msg: String,
+    value: String,
+    path: String,
+    line: usize,
+    col: usize,
+}
+
+impl ZuulParseError {
+    pub fn from(msg: &str, value: &YValue, path: &Path) -> ZuulParseError {
+        ZuulParseError {
+            msg: msg.to_string(),
+            value: format!("{:?}", value),
+            path: path.to_str().unwrap().to_string(),
+            line: value.line(),
+            col: value.col(),
+        }
+    }
+}
+
 pub fn parse_string_value(
     value: &YValue,
-    path: &Rc<PathBuf>,
+    path: &Path,
     field_name: &str,
 ) -> Result<StringLoc, ZuulParseError> {
     match value.as_str() {
@@ -83,7 +97,7 @@ pub fn parse_string_value(
 
 pub fn parse_optional_string_value(
     value: &YValue,
-    path: &Rc<PathBuf>,
+    path: &Path,
     field_name: &str,
 ) -> Result<Option<StringLoc>, ZuulParseError> {
     match value.value() {
@@ -94,7 +108,7 @@ pub fn parse_optional_string_value(
 
 pub fn parse_list_string_value(
     value: &YValue,
-    path: &Rc<PathBuf>,
+    path: &Path,
     field_name: &str,
 ) -> Result<Vec<StringLoc>, ZuulParseError> {
     let mut ys = Vec::new();
@@ -120,7 +134,7 @@ pub fn parse_list_string_value(
 
 pub fn parse_string_or_list_string(
     value: &YValue,
-    path: &Rc<PathBuf>,
+    path: &Path,
     field_name: &str,
 ) -> Result<Vec<StringLoc>, ZuulParseError> {
     match (

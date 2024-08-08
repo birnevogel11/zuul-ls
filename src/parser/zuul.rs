@@ -5,8 +5,8 @@ pub mod project_template;
 pub mod queue;
 pub mod secret;
 
+use std::path::Path;
 use std::path::PathBuf;
-use std::rc::Rc;
 
 use hashlink::LinkedHashMap;
 use phf::phf_map;
@@ -82,7 +82,7 @@ impl ZuulConfigParsedElement {
         }
     }
 
-    pub fn parse(raw_config: &YValue, path: &Rc<PathBuf>) -> Option<ZuulConfigParsedElement> {
+    pub fn parse(raw_config: &YValue, path: &Path) -> Option<ZuulConfigParsedElement> {
         match ZuulConfigParsedElement::retrieve_key_and_value(raw_config) {
             None => None,
             Some((parse_type, values)) => {
@@ -183,7 +183,7 @@ impl ZuulConfigElements {
     define_into!(into_secrets, secrets, Secret);
 }
 
-fn parse_doc(doc: &YValue, path: &Rc<PathBuf>) -> Vec<ZuulConfigParsedElement> {
+fn parse_doc(doc: &YValue, path: &Path) -> Vec<ZuulConfigParsedElement> {
     if let YValueYaml::Array(xs) = doc.value() {
         xs.iter()
             .filter_map(|x| ZuulConfigParsedElement::parse(x, path))
@@ -193,7 +193,7 @@ fn parse_doc(doc: &YValue, path: &Rc<PathBuf>) -> Vec<ZuulConfigParsedElement> {
     }
 }
 
-pub fn parse_zuul(paths: &[Rc<PathBuf>]) -> ZuulConfigElements {
+pub fn parse_zuul(paths: &Vec<PathBuf>) -> ZuulConfigElements {
     ZuulConfigElements::new(
         paths
             .iter()
@@ -222,7 +222,7 @@ mod tests {
 
     fn load_test_doc(input_path: &Path) -> Vec<ZuulConfigParsedElement> {
         let docs = load_yvalue(input_path).unwrap();
-        let input_path = Rc::new(input_path.to_path_buf());
+        let input_path = input_path.to_path_buf();
 
         docs.iter()
             .map(|doc| parse_doc(doc, &input_path))

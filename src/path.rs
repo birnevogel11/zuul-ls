@@ -1,6 +1,5 @@
 use std::path::Path;
 use std::path::PathBuf;
-use std::rc::Rc;
 
 use log::debug;
 
@@ -29,7 +28,7 @@ pub fn retrieve_repo_path(path: &str) -> PathBuf {
     PathBuf::from(&repo_path[1..repo_path.len()])
 }
 
-pub fn get_zuul_yaml_paths(repo_dirs: &[PathBuf]) -> Vec<Rc<PathBuf>> {
+pub fn get_zuul_yaml_paths(repo_dirs: &[PathBuf]) -> Vec<PathBuf> {
     let paths = repo_dirs
         .iter()
         .map(|x| list_zuul_yaml_paths(x))
@@ -39,7 +38,7 @@ pub fn get_zuul_yaml_paths(repo_dirs: &[PathBuf]) -> Vec<Rc<PathBuf>> {
     paths
 }
 
-pub fn get_zuul_yaml_paths_cwd(work_dir: &Path, config_path: Option<PathBuf>) -> Vec<Rc<PathBuf>> {
+pub fn get_zuul_yaml_paths_cwd(work_dir: &Path, config_path: Option<PathBuf>) -> Vec<PathBuf> {
     let repo_dirs = get_repo_dirs(work_dir, config_path);
     get_zuul_yaml_paths(&repo_dirs)
 }
@@ -129,7 +128,7 @@ fn find_tenant_dirs(
     }
 }
 
-fn list_zuul_yaml_paths(repo_dir: &Path) -> Vec<Rc<PathBuf>> {
+fn list_zuul_yaml_paths(repo_dir: &Path) -> Vec<PathBuf> {
     let mut zuul_config_dirs = vec![repo_dir.join("zuul.d")];
     for entry in repo_dir.read_dir().unwrap().filter_map(|x| x.ok()) {
         let path = entry.path();
@@ -145,7 +144,7 @@ fn list_zuul_yaml_paths(repo_dir: &Path) -> Vec<Rc<PathBuf>> {
                 .into_iter()
                 .filter_map(|e| e.ok())
                 .filter(|x| x.file_name().to_str().unwrap().ends_with(".yaml"))
-                .map(|x| Rc::new(x.into_path()))
+                .map(|x| x.into_path())
                 .collect::<Vec<_>>()
         })
         .collect::<Vec<Vec<_>>>()

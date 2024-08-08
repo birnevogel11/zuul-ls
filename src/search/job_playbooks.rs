@@ -58,7 +58,7 @@ pub fn list_job_playbooks(name: &str, zuul_jobs: &ZuulJobs) -> JobPlaybooks {
     let mut jp = JobPlaybooks::default();
 
     for job in re_jobs {
-        let job_name = Rc::new(job.name().value.clone());
+        let job_name = Rc::new(job.name().value.to_string());
 
         for (new_ps, ps) in [
             (job.pre_run_playbooks(), &mut jp.pre_run),
@@ -69,7 +69,7 @@ pub fn list_job_playbooks(name: &str, zuul_jobs: &ZuulJobs) -> JobPlaybooks {
     }
 
     for job in jobs {
-        let job_name = Rc::new(job.name().value.clone());
+        let job_name = Rc::new(job.name().value.to_string());
 
         for (new_ps, ps) in [
             (job.post_run_playbooks(), &mut jp.post_run),
