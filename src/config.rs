@@ -111,3 +111,43 @@ fn get_key_content<'a>(raw_config: &'a Yaml, key: &str) -> Option<&'a Yaml> {
     }
     None
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_read_config_str() {
+        let raw_str = r#"
+            default_tenant: "bar"
+
+            tenant:
+              bar:
+                base_dir: ~/foo/bar
+                extra_base_dir:
+                  - ~/foo/another
+                extra_role_dir:
+                  - ~/foo/another/extra_role
+                  - ~/foo/zar/extra-role2
+        "#;
+
+        let tenant = TenantConfig {
+            name: "bar".into(),
+            base_dirs: vec!["~/foo/bar".into()],
+            extra_base_dirs: vec!["~/foo/another".into()],
+            extra_role_dirs: vec![
+                "~/foo/another/extra_role".into(),
+                "~/foo/zar/extra-role2".into(),
+            ],
+            ..Default::default()
+        };
+
+        let config = Config {
+            default_tenant: "bar".into(),
+            tenants: HashMap::from([("bar".into(), tenant)]),
+            ..Default::default()
+        };
+
+        assert_eq!(config, Config::read_config_str(raw_str.into()).unwrap());
+    }
+}
