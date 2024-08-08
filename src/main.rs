@@ -25,7 +25,7 @@ struct ZuulSearchCliRolesArgs {
     config_path: Option<PathBuf>,
 
     #[arg()]
-    search_key: String,
+    search_key: Option<String>,
 }
 
 fn main() {

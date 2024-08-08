@@ -69,10 +69,20 @@ pub fn list_roles(
 }
 
 pub fn list_roles_cli(
-    _search_key: String,
+    search_key: Option<String>,
     work_dir: Option<PathBuf>,
     config_path: Option<PathBuf>,
 ) {
     let role_dirs = list_roles(work_dir, config_path);
-    println!("{:?}", role_dirs);
+    let role_dirs = match search_key {
+        Some(search_key) => role_dirs
+            .into_iter()
+            .filter(|x| x.0.contains(&search_key))
+            .collect(),
+        None => role_dirs,
+    };
+
+    for (name, path) in role_dirs {
+        println!("{} {}", name, path.to_str().unwrap());
+    }
 }
