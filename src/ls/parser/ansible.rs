@@ -4,41 +4,42 @@ pub mod template;
 use ropey::Rope;
 use tower_lsp::lsp_types::Position;
 
-use super::word::find_role_word;
-use super::word::find_var_word;
-use super::WordType;
+use super::token::{find_role_word, find_var_word, AutoCompleteToken, Token};
 
-pub fn parse_word_ansible(content: &Rope, position: &Position) -> Option<(String, Vec<WordType>)> {
+pub fn parse_word_ansible(content: &Rope, position: &Position) -> Option<AutoCompleteToken> {
     let line_idx = position.line as usize;
     let line = content.get_line(line_idx)?;
     let line_str = line.to_string();
 
-    let search_type = if line_str.contains("role:") {
-        WordType::Role
+    let word_type = if line_str.contains("role:") {
+        Token::Role
     } else if line_idx >= 1 {
         let prev_line = content.get_line(line_idx - 1).unwrap().to_string();
         if (prev_line.contains("include_role:") || prev_line.contains("import_role:"))
             && line_str.contains("name:")
         {
-            WordType::Role
+            Token::Role
         } else {
-            WordType::Variable
+            Token::Variable
         }
     } else {
-        WordType::Variable
+        Token::Variable
     };
 
-    let current_word = if search_type == WordType::Role {
+    let current_word = if word_type == Token::Role {
         find_role_word(content, position)?
     } else {
         find_var_word(content, position)?
     };
 
-    Some((current_word, vec![search_type]))
+    Some(AutoCompleteToken::new(current_word, word_type))
 }
 
-pub fn parse_word_var(content: &Rope, position: &Position) -> Option<(String, Vec<WordType>)> {
-    Some((find_role_word(content, position)?, vec![WordType::Variable]))
+pub fn parse_word_var(content: &Rope, position: &Position) -> Option<AutoCompleteToken> {
+    Some(AutoCompleteToken::new(
+        find_role_word(content, position)?,
+        Token::Variable,
+    ))
 }
 
 #[cfg(test)]
@@ -49,7 +50,7 @@ mod tests {
     struct TestGetCurrentWordTypeAnsible {
         pub content: Rope,
         pub position: Position,
-        pub result: Option<(String, Vec<WordType>)>,
+        pub result: Option<AutoCompleteToken>,
     }
 
     impl TestGetCurrentWordTypeAnsible {
@@ -58,13 +59,16 @@ mod tests {
             line: u32,
             character: u32,
             current_word: &str,
-            search_type: WordType,
+            search_type: Token,
         ) -> TestGetCurrentWordTypeAnsible {
             Self::new_result(
                 content,
                 line,
                 character,
-                Some((current_word.to_string(), vec![search_type])),
+                Some(AutoCompleteToken {
+                    token: current_word.to_string(),
+                    token_type: search_type,
+                }),
             )
         }
 
@@ -72,7 +76,7 @@ mod tests {
             content: &str,
             line: u32,
             character: u32,
-            result: Option<(String, Vec<WordType>)>,
+            result: Option<AutoCompleteToken>,
         ) -> TestGetCurrentWordTypeAnsible {
             TestGetCurrentWordTypeAnsible {
                 content: content.to_string().into(),
@@ -94,7 +98,7 @@ mod tests {
                 3,
                 15,
                 "subdir/nested-role-name",
-                WordType::Role,
+                Token::Role,
             ),
             TestGetCurrentWordTypeAnsible::new(
                 r#"
@@ -105,7 +109,7 @@ mod tests {
                 3,
                 15,
                 "subdir/nested-role-name",
-                WordType::Role,
+                Token::Role,
             ),
             TestGetCurrentWordTypeAnsible::new(
                 r#"
@@ -116,7 +120,7 @@ mod tests {
                 3,
                 15,
                 "subdir",
-                WordType::Variable,
+                Token::Variable,
             ),
             TestGetCurrentWordTypeAnsible::new(
                 r#"
@@ -125,22 +129,16 @@ mod tests {
                 1,
                 8,
                 "subdir/nested-role-name",
-                WordType::Role,
+                Token::Role,
             ),
             TestGetCurrentWordTypeAnsible::new(
                 "abc {{ abc.def }}",
                 0,
                 8,
                 "abc.def",
-                WordType::Variable,
+                Token::Variable,
             ),
-            TestGetCurrentWordTypeAnsible::new(
-                "abc {{ abc.def }}",
-                0,
-                1,
-                "abc",
-                WordType::Variable,
-            ),
+            TestGetCurrentWordTypeAnsible::new("abc {{ abc.def }}", 0, 1, "abc", Token::Variable),
             TestGetCurrentWordTypeAnsible::new_result("abc {{ abc.def }}", 0, 5, None),
         ];
 

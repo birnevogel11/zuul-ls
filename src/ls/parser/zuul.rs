@@ -1,48 +1,45 @@
 use ropey::Rope;
 use tower_lsp::lsp_types::Position;
 
-use crate::ls::parser::word::find_path_word;
-
-use super::word::find_name_word;
-use super::WordType;
-use yaml_rust2::yaml::Yaml;
-use yaml_rust2::yaml::YamlLoader;
+use super::token::{find_name_word, find_path_word, AutoCompleteToken, Token, TokenSide};
+use yaml_rust2::yaml::{Yaml, YamlLoader};
 
 const SEARCH_PATTERN: &str = "SeRpAt";
 
-fn retrieve_value_key_stack(value: &Yaml, keys: &mut Vec<String>) -> bool {
+fn retrieve_value_key_stack(value: &Yaml, keys: &mut Vec<String>) -> (bool, TokenSide) {
     match value {
-        Yaml::String(s) => s.contains(SEARCH_PATTERN),
+        Yaml::String(s) => (s.contains(SEARCH_PATTERN), TokenSide::Right),
         Yaml::Array(xs) => {
             for x in xs {
-                if retrieve_value_key_stack(x, keys) {
-                    return true; // TODO: Should we support index operator ? Skip it now
+                if retrieve_value_key_stack(x, keys).0 {
+                    return (true, TokenSide::Right); // TODO: Should we support index operator ? Skip it now
                 }
             }
-            false
+            (false, TokenSide::Unknown)
         }
         Yaml::Hash(xs) => {
             for (k, v) in xs {
                 let key_name = k.as_str();
                 if key_name.is_none() {
-                    return false;
+                    return (false, TokenSide::Unknown);
                 }
                 if key_name.unwrap().contains(SEARCH_PATTERN) {
-                    return true;
+                    return (true, TokenSide::Left);
                 }
                 keys.push(key_name.unwrap().to_string());
-                if retrieve_value_key_stack(v, keys) {
-                    return true;
+                let check = retrieve_value_key_stack(v, keys);
+                if check.0 {
+                    return check;
                 }
             }
-            false
+            (false, TokenSide::Unknown)
         }
         Yaml::Real(_)
         | Yaml::Integer(_)
         | Yaml::Boolean(_)
         | Yaml::Alias(_)
         | Yaml::Null
-        | Yaml::BadValue => false,
+        | Yaml::BadValue => (false, TokenSide::Unknown),
     }
 }
 
@@ -54,7 +51,11 @@ fn insert_search_word(content: &Rope, line: usize, col: usize) -> Rope {
     new_content
 }
 
-pub fn retrieve_key_stack(content: &Rope, line: usize, col: usize) -> Option<Vec<String>> {
+pub fn retrieve_key_stack(
+    content: &Rope,
+    line: usize,
+    col: usize,
+) -> Option<(Vec<String>, TokenSide)> {
     let search_rope = insert_search_word(content, line, col);
     let content = search_rope.to_string();
     let docs = YamlLoader::load_from_str(&content).ok()?;
@@ -73,7 +74,7 @@ pub fn retrieve_key_stack(content: &Rope, line: usize, col: usize) -> Option<Vec
             let zuul = *raw_zuul_name.keys().collect::<Vec<_>>().first()?;
             let zuul_name = zuul.as_str()?;
             if zuul_name.contains(SEARCH_PATTERN) {
-                return Some(key_stack);
+                return Some((key_stack, TokenSide::Left));
             }
             key_stack.push(zuul_name.to_string());
 
@@ -81,14 +82,15 @@ pub fn retrieve_key_stack(content: &Rope, line: usize, col: usize) -> Option<Vec
             let zuul_config = raw_zuul_name.get(zuul).unwrap().as_hash()?;
             for (key, value) in zuul_config {
                 if key.as_str()?.contains(SEARCH_PATTERN) {
-                    return Some(key_stack);
+                    return Some((key_stack, TokenSide::Left));
                 }
 
                 let mut value_stack = Vec::new();
-                if retrieve_value_key_stack(value, &mut value_stack) {
+                let check = retrieve_value_key_stack(value, &mut value_stack);
+                if check.0 {
                     key_stack.push(key.as_str()?.to_string());
                     key_stack.extend(value_stack);
-                    return Some(key_stack);
+                    return Some((key_stack, check.1));
                 }
             }
         }
@@ -97,11 +99,8 @@ pub fn retrieve_key_stack(content: &Rope, line: usize, col: usize) -> Option<Vec
     None
 }
 
-pub fn parse_word_zuul_config(
-    content: &Rope,
-    position: &Position,
-) -> Option<(String, Vec<WordType>)> {
-    let key_stack =
+pub fn parse_word_zuul_config(content: &Rope, position: &Position) -> Option<AutoCompleteToken> {
+    let (key_stack, token_side) =
         retrieve_key_stack(content, position.line as usize, position.character as usize)?;
     log::info!("key_stack: {:#?}", key_stack);
 
@@ -112,19 +111,19 @@ pub fn parse_word_zuul_config(
     if key_stack.len() >= 2 && key_stack[0] == "job" {
         if key_stack[1] == "name" || key_stack[1] == "parent" {
             let current_word = find_name_word(content, position)?;
-            return Some((current_word, vec![WordType::Job]));
+            return Some(AutoCompleteToken::new(current_word, Token::Job));
         }
         if key_stack[1] == "vars" {
             // TODO: fix it. how to jump lhs value correctly?
             let current_word = find_name_word(content, position)?;
-            return Some((current_word, vec![WordType::Variable]));
+            return Some(AutoCompleteToken::new(current_word, Token::Variable));
         }
         if ["run", "pre-run", "post-run", "clean-run"]
             .into_iter()
             .any(|key| key == key_stack[1])
         {
             let current_word = find_path_word(content, position)?;
-            return Some((current_word, vec![WordType::Playbook]));
+            return Some(AutoCompleteToken::new(current_word, Token::Playbook));
         }
     }
 
@@ -145,12 +144,13 @@ mod tests {
         let xs = retrieve_key_stack(&Rope::from_str(content), 3, 12);
         assert_eq!(
             xs,
-            Some(
+            Some((
                 (["job", "parent"])
                     .iter()
                     .map(|x| x.to_string())
-                    .collect::<Vec<_>>()
-            )
+                    .collect::<Vec<_>>(),
+                TokenSide::Right
+            ))
         );
         // println!("xs: {:#?}", xs);
     }

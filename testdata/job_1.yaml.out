@@ -19,7 +19,6 @@
             pre_run_playbooks: [],
             run_playbooks: [],
             post_run_playbooks: [],
-            clean_run_playbooks: [],
             vars: {
                 StringLoc {
                     value: "var1",

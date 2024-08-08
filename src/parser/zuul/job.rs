@@ -20,7 +20,6 @@ pub struct Job {
     pre_run_playbooks: Vec<(StringLoc, PathBuf)>,
     run_playbooks: Vec<(StringLoc, PathBuf)>,
     post_run_playbooks: Vec<(StringLoc, PathBuf)>,
-    clean_run_playbooks: Vec<(StringLoc, PathBuf)>,
     vars: VarTable,
 }
 
@@ -47,10 +46,6 @@ impl Job {
 
     pub fn post_run_playbooks(&self) -> &Vec<(StringLoc, PathBuf)> {
         &self.post_run_playbooks
-    }
-
-    pub fn clean_run_playbooks(&self) -> &Vec<(StringLoc, PathBuf)> {
-        &self.clean_run_playbooks
     }
 
     fn parse_playbook_list_item(
@@ -123,7 +118,6 @@ impl ZuulParse<Job> for Job {
         let mut pre_run_playbooks: Vec<(StringLoc, PathBuf)> = Vec::new();
         let mut run_playbooks: Vec<(StringLoc, PathBuf)> = Vec::new();
         let mut post_run_playbooks: Vec<(StringLoc, PathBuf)> = Vec::new();
-        let mut clean_run_playbooks: Vec<(StringLoc, PathBuf)> = Vec::new();
         let mut vars: VarTable = VarTable::new();
 
         for (key, value) in xs {
@@ -147,9 +141,6 @@ impl ZuulParse<Job> for Job {
                     "post-run" => {
                         post_run_playbooks = Job::parse_playbooks(value, path, "post-run")?;
                     }
-                    "clean-run" => {
-                        clean_run_playbooks = Job::parse_playbooks(value, path, "clean-run")?;
-                    }
                     "vars" => {
                         vars = parse_var_table(value, path, "vars")?;
                     }
@@ -169,7 +160,6 @@ impl ZuulParse<Job> for Job {
             pre_run_playbooks,
             run_playbooks,
             post_run_playbooks,
-            clean_run_playbooks,
             vars,
         })
     }

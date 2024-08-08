@@ -2,6 +2,39 @@ use ropey::Rope;
 use ropey::RopeSlice;
 use tower_lsp::lsp_types::Position;
 
+#[derive(Copy, Clone, PartialEq, PartialOrd, Debug, Eq, Ord, Hash, Default)]
+pub enum TokenSide {
+    #[default]
+    Unknown,
+    Left,
+    Right,
+}
+
+#[derive(Clone, PartialEq, PartialOrd, Debug, Eq, Ord, Hash, Default)]
+pub enum Token {
+    #[default]
+    Variable,
+    Role,
+    Job,
+    ZuulProperty(String),
+    Playbook,
+}
+
+#[derive(Clone, PartialEq, PartialOrd, Debug, Eq, Ord, Hash, Default)]
+pub struct AutoCompleteToken {
+    pub token: String,
+    pub token_type: Token,
+}
+
+impl AutoCompleteToken {
+    pub fn new(word: String, word_type: Token) -> Self {
+        Self {
+            token: word,
+            token_type: word_type,
+        }
+    }
+}
+
 fn is_letter_role(ch: char) -> bool {
     matches!(ch, 'a'..='z' | 'A'..='Z' | '0'..='9' | '_' | '.' | '/' | '-')
 }

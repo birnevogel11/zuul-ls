@@ -18,7 +18,6 @@ pub struct JobPlaybooks {
     pre_run: Vec<PlaybookInfo>,
     run: Vec<PlaybookInfo>,
     post_run: Vec<PlaybookInfo>,
-    clean_run: Vec<PlaybookInfo>,
 }
 
 fn append_playbooks(
@@ -71,10 +70,7 @@ pub fn list_job_playbooks(name: &str, zuul_jobs: &ZuulJobs) -> JobPlaybooks {
     for job in jobs {
         let job_name = Rc::new(job.name().value.to_string());
 
-        for (new_ps, ps) in [
-            (job.post_run_playbooks(), &mut jp.post_run),
-            (job.clean_run_playbooks(), &mut jp.clean_run),
-        ] {
+        for (new_ps, ps) in [(job.post_run_playbooks(), &mut jp.post_run)] {
             append_playbooks(new_ps, &job_name, ps);
         }
     }
@@ -89,5 +85,4 @@ pub fn list_jobs_playbooks_cli(job_name: String, work_dir: &Path, config_path: O
     show_playbooks("pre-run", &jps.pre_run);
     show_playbooks("run", &jps.run);
     show_playbooks("post-run", &jps.post_run);
-    show_playbooks("clean-run", &jps.clean_run);
 }

@@ -7,7 +7,7 @@ use tower_lsp::lsp_types::*;
 use tower_lsp::{Client, LanguageServer, LspService};
 
 use crate::config::get_work_dir;
-use crate::ls::parser::{parse_word_type, WordType};
+use crate::ls::parser::{parse_word_type, AutoCompleteToken, Token};
 use crate::parser::common::StringLoc;
 use crate::parser::zuul::var_table::VariableInfo;
 use crate::path::{get_role_repo_dirs, retrieve_repo_path, to_path};
@@ -136,10 +136,9 @@ impl Backend {
         let position = &params.text_document_position_params.position;
 
         if let Some(content) = content {
-            if let Some((current_word, search_types)) = parse_word_type(uri, &content, position) {
-                log::info!("current_word: {:#?}", &current_word);
-                log::info!("search_types: {:#?}", &search_types);
-                return Ok(self.get_definition_list(uri.path(), &current_word, &search_types));
+            if let Some(ac_word) = parse_word_type(uri, &content, position) {
+                log::info!("AutoCompleteWord: {:#?}", &ac_word);
+                return Ok(self.get_definition_list(uri.path(), &ac_word));
             }
         }
 
@@ -149,54 +148,55 @@ impl Backend {
     fn get_definition_list(
         &self,
         path: &str,
-        current_word: &str,
-        search_types: &[WordType],
+        ac_word: &AutoCompleteToken,
     ) -> Option<GotoDefinitionResponse> {
-        let mut locs: Vec<Location> = Vec::new();
+        let word = &ac_word.token;
 
-        search_types.iter().for_each(|search_type| {
-            match search_type {
-                WordType::Variable => {
-                    if let Some(var_infos) = self.vars.get(current_word) {
-                        locs.extend(var_infos.iter().map(|var| var.name.clone().into()));
-                    }
+        match ac_word.token_type {
+            Token::Variable => {
+                if let Some(var_infos) = self.vars.get(word) {
+                    return Some(GotoDefinitionResponse::Array(
+                        var_infos
+                            .iter()
+                            .map(|var| var.name.clone().into())
+                            .collect::<Vec<_>>(),
+                    ));
                 }
-                WordType::Job => {
-                    if let Some(job_locs) = self.jobs.get(current_word) {
-                        locs.extend(job_locs.iter().map(|job_loc| job_loc.clone().into()));
-                    }
+            }
+            Token::Job => {
+                if let Some(job_locs) = self.jobs.get(word) {
+                    return Some(GotoDefinitionResponse::Array(
+                        job_locs
+                            .iter()
+                            .map(|job_loc| job_loc.clone().into())
+                            .collect::<Vec<_>>(),
+                    ));
                 }
-                WordType::Role => {
-                    if let Some(role) = self.role_dirs.get(current_word) {
-                        locs.push(Location::new(
-                            Url::from_file_path(role.value()).unwrap(),
+            }
+            Token::Role => {
+                if let Some(role) = self.role_dirs.get(word) {
+                    return Some(GotoDefinitionResponse::Scalar(Location::new(
+                        Url::from_file_path(role.value()).unwrap(),
+                        Range::new(Position::new(0, 0), Position::new(0, 0)),
+                    )));
+                }
+            }
+            Token::ZuulProperty(_) => {}
+            Token::Playbook => {
+                let path = to_path(path);
+                if let Some(repo_path) = retrieve_repo_path(&path) {
+                    let playbook_path = repo_path.join(word);
+                    if playbook_path.is_file() {
+                        return Some(GotoDefinitionResponse::Scalar(Location::new(
+                            Url::from_file_path(playbook_path).unwrap(),
                             Range::new(Position::new(0, 0), Position::new(0, 0)),
-                        ))
+                        )));
                     }
                 }
-                WordType::ZuulProperty(_) => {}
-                WordType::Playbook => {
-                    let path = to_path(path);
-                    if let Some(repo_path) = retrieve_repo_path(&path) {
-                        let playbook_path = repo_path.join(current_word);
-                        if playbook_path.is_file() {
-                            locs.push(Location::new(
-                                Url::from_file_path(playbook_path).unwrap(),
-                                Range::new(Position::new(0, 0), Position::new(0, 0)),
-                            ));
-                        }
-                    }
-                }
-            };
-        });
+            }
+        };
 
-        if locs.is_empty() {
-            None
-        } else if locs.len() == 1 {
-            Some(GotoDefinitionResponse::Scalar(locs.remove(0)))
-        } else {
-            Some(GotoDefinitionResponse::Array(locs))
-        }
+        None
     }
 }
 
