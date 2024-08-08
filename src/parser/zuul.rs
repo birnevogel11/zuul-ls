@@ -41,7 +41,11 @@ static ZUUL_PARSE_KEYWORDS: phf::Map<&'static str, ZuulParseType> = phf_map! {
 };
 
 impl ZuulParseType {
-    pub fn determine(xs: &LinkedHashMap<YValue, YValue>) -> Option<ZuulParseType> {
+    pub fn determine(key: &str) -> Option<ZuulParseType> {
+        ZUUL_PARSE_KEYWORDS.get(key).cloned()
+    }
+
+    pub fn determine_old(xs: &LinkedHashMap<YValue, YValue>) -> Option<ZuulParseType> {
         for (key, _) in xs {
             if let Some(key) = key.as_str() {
                 return ZUUL_PARSE_KEYWORDS.get(key).cloned();
@@ -63,46 +67,48 @@ enum ZuulConfigParsedElement {
 }
 
 impl ZuulConfigParsedElement {
-    fn get_config_value(
-        xs: &LinkedHashMap<YValue, YValue>,
-    ) -> Option<&LinkedHashMap<YValue, YValue>> {
-        if let Some((_, value)) = xs.into_iter().next() {
-            value.as_hash()
-        } else {
-            None
+    fn retrieve_key_and_value(
+        config: &YValue,
+    ) -> Option<(ZuulParseType, &LinkedHashMap<YValue, YValue>)> {
+        match config.as_hash() {
+            Some(config) => {
+                let (key, value) = config.into_iter().next()?;
+                let key = key.as_str()?;
+                let value = value.as_hash()?;
+                let parse_type = ZuulParseType::determine(key)?;
+
+                Some((parse_type, value))
+            }
+            None => None,
         }
     }
-    pub fn parse(raw_config: &YValue, path: &Rc<PathBuf>) -> Option<ZuulConfigParsedElement> {
-        if let YValueYaml::Hash(xs) = raw_config.value() {
-            let values = ZuulConfigParsedElement::get_config_value(xs)?;
 
-            match ZuulParseType::determine(xs) {
-                Some(p) => match p {
+    pub fn parse(raw_config: &YValue, path: &Rc<PathBuf>) -> Option<ZuulConfigParsedElement> {
+        match ZuulConfigParsedElement::retrieve_key_and_value(raw_config) {
+            None => None,
+            Some((parse_type, values)) => {
+                let e = match parse_type {
                     ZuulParseType::Job => {
-                        Some(ZuulConfigParsedElement::Job(Job::parse(values, path).ok()?))
+                        ZuulConfigParsedElement::Job(Job::parse(values, path).ok()?)
                     }
-                    ZuulParseType::ProjectTemplate => {
-                        Some(ZuulConfigParsedElement::ProjectTemplate(
-                            ProjectTemplate::parse(values, path).ok()?,
-                        ))
+                    ZuulParseType::ProjectTemplate => ZuulConfigParsedElement::ProjectTemplate(
+                        ProjectTemplate::parse(values, path).ok()?,
+                    ),
+                    ZuulParseType::Nodeset => {
+                        ZuulConfigParsedElement::Nodeset(Nodeset::parse(values, path).ok()?)
                     }
-                    ZuulParseType::Nodeset => Some(ZuulConfigParsedElement::Nodeset(
-                        Nodeset::parse(values, path).ok()?,
-                    )),
-                    ZuulParseType::Queue => Some(ZuulConfigParsedElement::Queue(
-                        Queue::parse(values, path).ok()?,
-                    )),
-                    ZuulParseType::Pipeline => Some(ZuulConfigParsedElement::Pipeline(
-                        Pipeline::parse(values, path).ok()?,
-                    )),
-                    ZuulParseType::Secret => Some(ZuulConfigParsedElement::Secret(
-                        Secret::parse(values, path).ok()?,
-                    )),
-                },
-                None => None,
+                    ZuulParseType::Queue => {
+                        ZuulConfigParsedElement::Queue(Queue::parse(values, path).ok()?)
+                    }
+                    ZuulParseType::Pipeline => {
+                        ZuulConfigParsedElement::Pipeline(Pipeline::parse(values, path).ok()?)
+                    }
+                    ZuulParseType::Secret => {
+                        ZuulConfigParsedElement::Secret(Secret::parse(values, path).ok()?)
+                    }
+                };
+                Some(e)
             }
-        } else {
-            None
         }
     }
 }
