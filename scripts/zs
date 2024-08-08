@@ -58,7 +58,7 @@ zs-job-hierarchy() {
   local -r job_name="${1:-$(zs-job-name)}"
   echo "zs h ${job_name}"
 
-  local -r result=$(${ZS_PROGRAM} list-job-hierarchy "${job_name}" | \
+  local -r result=$(${ZS_PROGRAM} job-hierarchy "${job_name}" | \
     fzf \
       -d'\t' \
       --with-nth=1,2 \
@@ -79,7 +79,7 @@ zs-job-vars() {
   local -r job_name="${1:-$(zs-job-name)}"
   echo "zs v ${job_name}"
 
-  local -r result=$(${ZS_PROGRAM} list-job-vars "${job_name}" | \
+  local -r result=$(${ZS_PROGRAM} job-vars "${job_name}" | \
     fzf \
       -d'\t' \
       --with-nth=1,2,6 \
@@ -118,7 +118,7 @@ zs-job-playbooks() {
   local -r job_name="${1:-$(zs-job-name)}"
   echo "zs p ${job_name}"
 
-  local -r result=$(${ZS_PROGRAM} list-job-playbooks "${job_name}" | \
+  local -r result=$(${ZS_PROGRAM} job-playbooks "${job_name}" | \
     fzf \
       -d'\t' \
       --with-nth=1,2,3 \

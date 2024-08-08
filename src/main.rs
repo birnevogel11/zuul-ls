@@ -15,9 +15,9 @@ enum ZuulSearchCli {
     Roles(ZuulSearchCliRolesArgs),
     Jobs(ZuulSearchCliJobArgs),
     ProjectTemplates(ZuulSearchCliProjectTemplateArgs),
-    ListJobHierarchy(ZuulSearchCliJobHierarchyArgs),
-    ListJobVars(ZuulSearchCliJobVariablesArgs),
-    ListJobPlaybooks(ZuulSearchCliJobPlaybooksArgs),
+    JobHierarchy(ZuulSearchCliJobHierarchyArgs),
+    JobVars(ZuulSearchCliJobVariablesArgs),
+    JobPlaybooks(ZuulSearchCliJobPlaybooksArgs),
     WorkdirVars(ZuulSearchCliWorkDirVarsArgs),
 }
 
@@ -113,17 +113,17 @@ fn main() {
                 args.config_path,
             );
         }
-        ZuulSearchCli::ListJobHierarchy(args) => {
+        ZuulSearchCli::JobHierarchy(args) => {
             jobs::list_jobs_hierarchy_names_cli(
                 args.name,
                 &get_work_dir(args.work_dir),
                 args.config_path,
             );
         }
-        ZuulSearchCli::ListJobVars(args) => {
+        ZuulSearchCli::JobVars(args) => {
             jobs::list_jobs_vars_cli(args.name, &get_work_dir(args.work_dir), args.config_path);
         }
-        ZuulSearchCli::ListJobPlaybooks(args) => {
+        ZuulSearchCli::JobPlaybooks(args) => {
             jobs::list_jobs_playbooks_cli(
                 args.name,
                 &get_work_dir(args.work_dir),
