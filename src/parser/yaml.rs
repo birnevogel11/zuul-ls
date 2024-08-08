@@ -26,6 +26,7 @@ fn parse_f64(v: &str) -> Option<f64> {
 pub struct Loc {
     line: usize,
     col: usize,
+    index: usize,
 }
 
 impl Loc {
@@ -33,6 +34,7 @@ impl Loc {
         Loc {
             line: mark.line(),
             col: mark.col(),
+            index: mark.index(),
         }
     }
 }
