@@ -1,11 +1,10 @@
 use ropey::Rope;
 use tower_lsp::lsp_types::Position;
 
-use hashlink::LinkedHashMap;
-use yaml_rust2::yaml::{Yaml, YamlLoader};
+use yaml_rust2::yaml::YamlLoader;
 
 use super::key_stack::{insert_search_word, parse_value, ARRAY_INDEX_KEY, SEARCH_PATTERN};
-use super::utils::{find_name_word, find_path_word};
+use super::utils::{find_name_word, find_path_word, find_var_word};
 use super::{AutoCompleteToken, TokenFileType, TokenSide, TokenType};
 
 fn retrieve_key_stack(content: &Rope, line: usize, col: usize) -> Option<(Vec<String>, TokenSide)> {
@@ -62,14 +61,14 @@ fn parse_project_token(
                 token_side,
                 key_stack,
             ));
-        } else if key_stack.len() >= 5 && key_stack[4] == "vars" {
+        } else if key_stack.len() >= 6 && key_stack[5] == "vars" {
             let mut var_stack = None;
-            if key_stack.len() >= 6 {
-                var_stack = Some(key_stack[5..].to_vec());
-                key_stack = key_stack[..5].to_vec();
+            if key_stack.len() >= 7 {
+                var_stack = Some(key_stack[6..].to_vec());
+                key_stack = key_stack[..6].to_vec();
             }
 
-            let token = find_name_word(content, position)?;
+            let token = find_var_word(content, position)?;
             return Some(match token_side {
                 TokenSide::Left => AutoCompleteToken::new(
                     token,
@@ -183,7 +182,7 @@ pub fn parse_token_zuul_config(
 
     match key_stack[0].as_str() {
         "job" => parse_job_token(content, position, file_type, token_side, key_stack),
-        "project" | "project_template" => {
+        "project" | "project-template" => {
             parse_project_token(content, position, file_type, token_side, key_stack)
         }
         _ => None,
@@ -194,20 +193,8 @@ pub fn parse_token_zuul_config(
 mod tests {
     use super::*;
 
-    #[test]
-    fn test_parse_token_zuul_project() {
-        let content = r#"
-- project:
-    check:
-      jobs:
-        - check_job1
-        - check_job2:
-            dependencies:
-               - dependencies_job_1
-            voting: false
-    "#;
-        let xs = retrieve_key_stack(&Rope::from_str(content), 7, 22);
-        println!("xs: {:#?}", xs);
+    fn to_vec_str(xs: &[&str]) -> Vec<String> {
+        xs.iter().map(|s| s.to_string()).collect()
     }
 
     #[test]
@@ -218,16 +205,7 @@ mod tests {
     parent: parent-job
     "#;
         let xs = retrieve_key_stack(&Rope::from_str(content), 3, 12);
-        assert_eq!(
-            xs,
-            Some((
-                (["job", "parent"])
-                    .iter()
-                    .map(|x| x.to_string())
-                    .collect::<Vec<_>>(),
-                TokenSide::Right
-            ))
-        );
+        assert_eq!(xs, Some((to_vec_str(&["job", "parent"]), TokenSide::Right)));
     }
 
     #[test]
@@ -243,13 +221,123 @@ mod tests {
         let xs = retrieve_key_stack(&Rope::from_str(content), 6, 14);
         assert_eq!(
             xs,
+            Some((to_vec_str(&["job", "vars", "test_var"]), TokenSide::Left))
+        );
+    }
+
+    #[test]
+    fn test_parse_token_zuul_project() {
+        let content = r#"
+- project:
+    check:
+      jobs:
+        - check_job1
+        - check_job2:
+            dependencies:
+               - dependencies_job_1
+            voting: false
+    "#;
+        let xs = retrieve_key_stack(&Rope::from_str(content), 7, 22);
+        assert_eq!(
+            xs,
             Some((
-                (["job", "vars", "test_var"])
-                    .iter()
-                    .map(|x| x.to_string())
-                    .collect::<Vec<_>>(),
-                TokenSide::Left
+                to_vec_str(&[
+                    "project",
+                    "check",
+                    "jobs",
+                    "ArRaY_InDeX",
+                    "check_job2",
+                    "dependencies",
+                    "ArRaY_InDeX",
+                ]),
+                TokenSide::Right
             ))
+        )
+    }
+
+    #[test]
+    fn test_parse_token_zuul_project_var() {
+        let content = r#"
+- project:
+    check:
+      jobs:
+        - check_job1
+        - check_job2:
+            vars:
+              test_var1: var_value_1
+              test_var2:
+                nest_var2_1: nest_var2_value
+    "#;
+        let xs = retrieve_key_stack(&Rope::from_str(content), 9, 22);
+        assert!(xs.is_some());
+
+        let (key_stack, token_side) = xs.unwrap();
+        let token = parse_project_token(
+            &Rope::from_str(content),
+            &Position::new(9, 22),
+            TokenFileType::ZuulConfig,
+            token_side,
+            key_stack,
+        );
+        assert_eq!(
+            token,
+            Some(AutoCompleteToken {
+                value: "nest_var2_1".to_string(),
+                file_type: TokenFileType::ZuulConfig,
+                token_type: TokenType::VariableWithPrefix(to_vec_str(&["test_var2"])),
+                token_side: TokenSide::Left,
+                key_stack: to_vec_str(&[
+                    "project",
+                    "check",
+                    "jobs",
+                    "ArRaY_InDeX",
+                    "check_job2",
+                    "vars",
+                ]),
+            },)
+        );
+    }
+
+    #[test]
+    fn test_parse_token_zuul_project_var2() {
+        let content = r#"
+- project:
+    check:
+      jobs:
+        - check_job1
+        - check_job2:
+            vars:
+              test_var1: var_value_1
+              test_var2:
+                nest_var2_1: nest_var2_value
+    "#;
+        let xs = retrieve_key_stack(&Rope::from_str(content), 7, 22);
+        assert!(xs.is_some());
+
+        let (key_stack, token_side) = xs.unwrap();
+        let token = parse_project_token(
+            &Rope::from_str(content),
+            &Position::new(7, 22),
+            TokenFileType::ZuulConfig,
+            token_side,
+            key_stack,
+        );
+        assert_eq!(
+            token,
+            Some(AutoCompleteToken {
+                value: "test_var1".to_string(),
+                file_type: TokenFileType::ZuulConfig,
+                token_type: TokenType::VariableWithPrefix(Vec::new()),
+                token_side: TokenSide::Left,
+                key_stack: to_vec_str(&[
+                    "project",
+                    "check",
+                    "jobs",
+                    "ArRaY_InDeX",
+                    "check_job2",
+                    "vars",
+                ]),
+            },)
         );
     }
 }
