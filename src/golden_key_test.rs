@@ -20,6 +20,7 @@ pub struct TestFiles {
 }
 
 impl TestFiles {
+    #[allow(dead_code)]
     pub fn new(input_fn: &str) -> TestFiles {
         let mut output_fn: String = input_fn.into();
         output_fn.push_str(".out");
@@ -31,35 +32,42 @@ impl TestFiles {
         }
     }
 
+    #[allow(dead_code)]
     pub fn read_input(&self) -> String {
         fs::read_to_string(&self.input_path).unwrap()
     }
 
+    #[allow(dead_code)]
     pub fn read_assert_output(&self) -> String {
         fs::read_to_string(&self.assert_output_path).unwrap()
     }
 
+    #[allow(dead_code)]
     pub fn write_output<T: Debug>(&self, var: &T) {
         self.write_output_str(&TestFiles::output_string(var));
     }
 
+    #[allow(dead_code)]
     pub fn write_output_str(&self, contents: &str) {
         fs::write(&self.output_path, contents).unwrap();
     }
 
-    pub fn assert_output<T: Debug>(&self, var: &T) -> bool {
+    #[allow(dead_code)]
+    pub fn assert_output<T: Debug>(&self, var: &T) {
         let output = TestFiles::output_string(var);
         self.write_output_str(&output);
 
-        self.read_assert_output() == output
+        assert_eq!(self.read_assert_output(), output)
     }
 
-    pub fn assert_output_str(&self, output: &str) -> bool {
+    #[allow(dead_code)]
+    pub fn assert_output_str(&self, output: &str) {
         self.write_output_str(output);
 
-        self.read_assert_output() == output
+        assert_eq!(self.read_assert_output(), output)
     }
 
+    #[allow(dead_code)]
     fn output_string<T: Debug>(var: &T) -> String {
         format!("{:?}", var)
     }

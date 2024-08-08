@@ -199,26 +199,28 @@ pub fn parse_zuul(paths: &[Rc<PathBuf>]) -> ZuulConfigElement {
 
 #[cfg(test)]
 mod tests {
-    use std::fs;
-
     use super::*;
     use crate::golden_key_test::TestFiles;
 
-    const TEST_DATA_PATH: &str = "./testdata/";
-    const TEST_DATA_OUTPUT_PATH: &str = "./testdata/output";
+    fn load_test_doc(input_path: &Path) -> Vec<ZuulConfigParsedElement> {
+        let docs = load_yvalue(input_path).unwrap();
+        let input_path = Rc::new(input_path.to_path_buf());
+
+        docs.iter()
+            .map(|doc| parse_doc(doc, &input_path))
+            .collect::<Vec<_>>()
+            .concat()
+    }
 
     #[test]
     fn test_parse_job() {
+        // Configure the test input information
         let ts = TestFiles::new("test.yaml");
 
-        let docs = load_yvalue(&ts.input_path).unwrap();
-        let input_path = Rc::new(ts.input_path.clone());
-        let zuul = docs
-            .iter()
-            .map(|doc| parse_doc(doc, &input_path))
-            .collect::<Vec<_>>()
-            .concat();
+        // Parse the input
+        let es = load_test_doc(&ts.input_path);
 
-        assert!(ts.assert_output(&zuul));
+        // Compare with the assert output
+        ts.assert_output(&es);
     }
 }
