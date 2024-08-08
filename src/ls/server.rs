@@ -7,8 +7,8 @@ use tower_lsp::lsp_types::*;
 use tower_lsp::{Client, LanguageServer, LspService};
 
 use crate::config::get_work_dir;
-use crate::ls::parser::parse_current_word_type;
-use crate::ls::parser::SearchType;
+use crate::ls::parser::parse_word_type;
+use crate::ls::parser::WordType;
 use crate::parser::common::StringLoc;
 use crate::path::get_role_repo_dirs;
 use crate::search::job_vars::VariableInfo;
@@ -103,7 +103,8 @@ impl LanguageServer for Backend {
         .await
     }
 
-    async fn did_save(&self, params: DidSaveTextDocumentParams) {}
+    // TODO: implement it
+    async fn did_save(&self, _params: DidSaveTextDocumentParams) {}
 
     async fn goto_definition(
         &self,
@@ -145,9 +146,7 @@ impl Backend {
         let position = &params.text_document_position_params.position;
 
         if let Some(content) = content {
-            if let Some((current_word, search_types)) =
-                parse_current_word_type(uri, &content, position)
-            {
+            if let Some((current_word, search_types)) = parse_word_type(uri, &content, position) {
                 log::info!("current_word: {:#?}", &current_word);
                 log::info!("search_types: {:#?}", &search_types);
                 return Ok(self.get_definition_list(&current_word, &search_types));
@@ -160,13 +159,13 @@ impl Backend {
     fn get_definition_list(
         &self,
         current_word: &str,
-        search_types: &[SearchType],
+        search_types: &[WordType],
     ) -> Option<GotoDefinitionResponse> {
         let mut locs: Vec<Location> = Vec::new();
 
         search_types.iter().for_each(|search_type| {
             match search_type {
-                SearchType::Variable => {
+                WordType::Variable => {
                     let var_infos = self.vars.get(current_word);
                     if let Some(var_infos) = var_infos {
                         locs.extend(var_infos.iter().map(|var| {
@@ -184,8 +183,8 @@ impl Backend {
                         }));
                     }
                 }
-                SearchType::Job => todo!(), // TODO: implement it
-                SearchType::Role => {
+                WordType::Job => {} // TODO: implement it
+                WordType::Role => {
                     let role = self.role_dirs.get(current_word);
                     if let Some(role) = role {
                         let path = role.value();
@@ -195,7 +194,8 @@ impl Backend {
                         ))
                     }
                 }
-                SearchType::ZuulProperty => {}
+                WordType::ZuulProperty(_) => {}
+                WordType::Playbook => {}
             };
         });
 

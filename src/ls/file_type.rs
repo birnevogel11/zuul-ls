@@ -11,10 +11,6 @@ pub enum LSFileType {
     AnsibleRoleTemplates,
 }
 
-pub fn hello() {
-    println!("hello: {:#?}", "hello");
-}
-
 fn retrieve_repo_path(path: &Path) -> Option<PathBuf> {
     path.ancestors().find_map(|x| {
         let mut base_path = PathBuf::from(x);
@@ -27,7 +23,7 @@ fn retrieve_repo_path(path: &Path) -> Option<PathBuf> {
     })
 }
 
-pub fn get_file_type(path: &Path) -> Option<LSFileType> {
+pub fn resolve_ls_file_type(path: &Path) -> Option<LSFileType> {
     let path = to_path(path.to_str().unwrap());
     let repo_path = retrieve_repo_path(&path)?;
 
