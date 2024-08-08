@@ -3,8 +3,6 @@ use crate::parser::zuul::project_template::ProjectTemplate;
 use crate::search::job_vars::VariableInfo;
 use crate::search::path::shorten_path;
 
-use super::project_templates;
-
 #[macro_export]
 macro_rules! safe_println {
     ( $( $t:tt )* ) => {

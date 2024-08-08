@@ -1,9 +1,10 @@
 use std::path::Path;
 use std::path::PathBuf;
 
-use log::debug;
+use log;
 
 use crate::safe_println;
+use crate::search::path::to_path;
 use crate::search::path::{get_role_repo_dirs, shorten_path, traversal_dirs};
 
 fn get_roles_prefix_dir(repo_dir: &Path) -> String {
@@ -62,12 +63,22 @@ pub fn list_roles(repo_dirs: &[PathBuf]) -> Vec<(String, PathBuf)> {
     xs
 }
 
-pub fn list_roles_cli(work_dir: &PathBuf, config_path: Option<PathBuf>) {
+pub fn list_roles_cli(work_dir: &PathBuf, config_path: Option<PathBuf>, is_local: bool) {
     let repo_dirs = get_role_repo_dirs(work_dir, config_path);
-    let role_dirs = list_roles(&repo_dirs);
 
-    debug!("work_dir: {}", work_dir.display());
-    debug!("role_repo_dirs: {:#?}", repo_dirs);
+    let mut role_dirs: Vec<(String, PathBuf)> = list_roles(&repo_dirs);
+    if is_local {
+        let sw = to_path(work_dir.to_str().unwrap());
+        let sw = sw.to_str().unwrap();
+        role_dirs.retain(|(_, path)| {
+            let s = to_path(path.to_str().unwrap());
+            s.to_str().unwrap().starts_with(sw)
+        });
+    }
+    let role_dirs = role_dirs;
+
+    log::debug!("work_dir: {}", work_dir.display());
+    log::debug!("role_repo_dirs: {:#?}", repo_dirs);
 
     for (name, path) in role_dirs {
         safe_println!("{}\t{}", name, shorten_path(&path).display());

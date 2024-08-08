@@ -1,4 +1,4 @@
-use log::debug;
+use log;
 use std::path::PathBuf;
 
 use clap::Parser;
@@ -32,6 +32,9 @@ struct CliRolesArgs {
 
     #[arg(long)]
     config_path: Option<PathBuf>,
+
+    #[arg(long, short)]
+    local: bool,
 }
 
 #[derive(clap::Args, Debug)]
@@ -42,6 +45,9 @@ struct CliJobArgs {
 
     #[arg(long)]
     config_path: Option<PathBuf>,
+
+    #[arg(long, short)]
+    local: bool,
 }
 
 #[derive(clap::Args, Debug)]
@@ -52,6 +58,9 @@ struct CliProjectTemplateArgs {
 
     #[arg(long)]
     config_path: Option<PathBuf>,
+
+    #[arg(long, short)]
+    local: bool,
 }
 
 #[derive(clap::Args, Debug)]
@@ -103,19 +112,20 @@ struct CliJobPlaybooksArgs {
 fn main() {
     env_logger::init();
     let args = ZuulSearchCli::parse();
-    debug!("Parse args: {:#?}", args);
+    log::debug!("Parse args: {:#?}", args);
 
     match args {
         ZuulSearchCli::Roles(args) => {
-            roles::list_roles_cli(&get_work_dir(args.work_dir), args.config_path);
+            roles::list_roles_cli(&get_work_dir(args.work_dir), args.config_path, args.local);
         }
         ZuulSearchCli::Jobs(args) => {
-            jobs::list_jobs_cli(&get_work_dir(args.work_dir), args.config_path);
+            jobs::list_jobs_cli(&get_work_dir(args.work_dir), args.config_path, args.local);
         }
         ZuulSearchCli::ProjectTemplates(args) => {
-            project_templates::list_project_templates(
+            project_templates::list_project_templates_cli(
                 &get_work_dir(args.work_dir),
                 args.config_path,
+                args.local,
             );
         }
         ZuulSearchCli::JobHierarchy(args) => {

@@ -12,6 +12,7 @@ use crate::parser::common::StringLoc;
 use crate::parser::zuul::job::Job;
 use crate::parser::zuul::parse_zuul;
 use crate::search::path::get_zuul_yaml_paths_cwd;
+use crate::search::path::to_path;
 use crate::search::report_print::print_string_locs;
 
 #[derive(Clone, PartialEq, PartialOrd, Debug, Eq, Ord, Hash)]
@@ -200,9 +201,21 @@ pub fn list_jobs(work_dir: &Path, config_path: Option<PathBuf>) -> ZuulJobs {
     ZuulJobs::from_raw_input(work_dir, config_path)
 }
 
-pub fn list_jobs_cli(work_dir: &Path, config_path: Option<PathBuf>) {
+pub fn list_jobs_cli(work_dir: &Path, config_path: Option<PathBuf>, is_local: bool) {
     let zuul_jobs = list_jobs(work_dir, config_path);
-    let locs: Vec<StringLoc> = zuul_jobs.jobs().iter().map(|x| x.name().clone()).collect();
+
+    let mut locs: Vec<StringLoc> = zuul_jobs.jobs().iter().map(|x| x.name().clone()).collect();
+    if is_local {
+        let sw = to_path(work_dir.to_str().unwrap());
+        let sw = sw.to_str().unwrap();
+
+        locs.retain(|x| {
+            let s = to_path(x.path.to_str().unwrap());
+            s.to_str().unwrap().starts_with(sw)
+        });
+    }
+    let locs = locs;
+
     print_string_locs(&locs);
 }
 
