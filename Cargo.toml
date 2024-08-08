@@ -7,7 +7,9 @@ edition = "2021"
 
 [dependencies]
 clap = "4.5.4"
+env_logger = "0.11.3"
 hashlink = "0.8"
+log = "0.4.21"
 yaml-rust2 = "0.8.0"
 # chumsky = "0.8.0"
 # env_logger = "0.9.0"
