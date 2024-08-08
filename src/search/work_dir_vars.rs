@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 
@@ -57,6 +57,26 @@ pub fn list_work_dir_vars(work_dir: &Path, config_path: Option<PathBuf>) -> Hash
     }
 
     vars
+}
+
+pub fn list_work_dir_vars_group(
+    work_dir: &Path,
+    config_path: Option<PathBuf>,
+) -> HashMap<String, Vec<VariableInfo>> {
+    let vars = list_work_dir_vars(work_dir, config_path);
+    let mut var_groups: HashMap<String, Vec<VariableInfo>> = HashMap::new();
+
+    vars.into_iter()
+        .for_each(|var| match var_groups.get_mut(&var.name.value) {
+            Some(var_group) => {
+                var_group.push(var);
+            }
+            None => {
+                var_groups.insert(var.name.value.clone(), vec![var]);
+            }
+        });
+
+    var_groups
 }
 
 pub fn list_work_dir_vars_cli(work_dir: &Path, config_path: Option<PathBuf>) {

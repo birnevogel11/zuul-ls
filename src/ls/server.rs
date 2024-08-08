@@ -3,7 +3,6 @@ use std::path::PathBuf;
 use dashmap::DashMap;
 use ropey::Rope;
 use tower_lsp::jsonrpc::Result;
-use tower_lsp::lsp_types::lsif::LocationOrRangeId;
 use tower_lsp::lsp_types::*;
 use tower_lsp::{Client, LanguageServer, LspService};
 
@@ -11,7 +10,9 @@ use crate::config::get_work_dir;
 use crate::ls::parser::parse_current_word_type;
 use crate::ls::parser::SearchType;
 use crate::path::get_role_repo_dirs;
+use crate::search::job_vars::VariableInfo;
 use crate::search::roles::list_roles;
+use crate::search::work_dir_vars::list_work_dir_vars_group;
 
 struct TextDocumentItem {
     uri: Url,
@@ -23,6 +24,7 @@ pub struct Backend {
     client: Client,
     document_map: DashMap<String, Rope>,
     role_dirs: DashMap<String, PathBuf>,
+    variables: DashMap<String, PathBuf>,
 }
 
 #[tower_lsp::async_trait]
@@ -97,13 +99,14 @@ impl LanguageServer for Backend {
 impl Backend {
     async fn initialize_zuul(&self) {
         let work_dir = get_work_dir(None);
-        let config_path = None;
-        let repo_dirs = get_role_repo_dirs(&work_dir, config_path);
+        let repo_dirs = get_role_repo_dirs(&work_dir, None);
         let role_dirs: Vec<(String, PathBuf)> = list_roles(&repo_dirs);
 
-        for (name, path) in role_dirs {
+        role_dirs.into_iter().for_each(|(name, path)| {
             self.role_dirs.insert(name, path);
-        }
+        });
+
+        let vars = list_work_dir_vars_group(&work_dir, None);
     }
 
     async fn on_change(&self, params: TextDocumentItem) {
@@ -172,6 +175,7 @@ pub fn initialize_service() -> (tower_lsp::LspService<Backend>, tower_lsp::Clien
         client,
         document_map: DashMap::new(),
         role_dirs: DashMap::new(),
+        variables: DashMap::new(),
     })
     .finish();
 
