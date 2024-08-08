@@ -1,11 +1,11 @@
 use std::path::Path;
 
-use crate::parser::yaml::load_yvalue_from_str;
 use crate::parser::var_table::{
     collect_variables, group_variables, parse_var_table, VarGroup, VariableSource,
 };
+use crate::parser::yaml::load_yvalue_from_str;
 
-pub fn parse_template_vars(
+pub fn parse_defaults_vars(
     content: &str,
     path: &Path,
     role_name: &str,

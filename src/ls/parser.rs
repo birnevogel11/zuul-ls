@@ -1,6 +1,7 @@
-pub mod ansible;
+mod ansible;
+mod key_stack;
 mod utils;
-pub mod zuul;
+mod zuul;
 
 use std::path::{Path, PathBuf};
 
@@ -113,7 +114,7 @@ pub enum TokenType {
 
 #[derive(Clone, PartialEq, PartialOrd, Debug, Eq, Ord, Hash, Default)]
 pub struct AutoCompleteToken {
-    pub token: String,
+    pub value: String,
     pub file_type: TokenFileType,
     pub token_type: TokenType,
     pub token_side: TokenSide,
@@ -121,24 +122,24 @@ pub struct AutoCompleteToken {
 }
 
 impl AutoCompleteToken {
-    pub fn new_simple(token: String, file_type: TokenFileType, token_type: TokenType) -> Self {
+    pub fn new_simple(value: String, file_type: TokenFileType, token_type: TokenType) -> Self {
         Self {
-            token,
+            value,
             file_type,
             token_type,
             ..Self::default()
         }
     }
 
-    pub fn new2(
-        token: String,
+    pub fn new(
+        value: String,
         file_type: TokenFileType,
         token_type: TokenType,
         token_side: TokenSide,
         key_stack: Vec<String>,
     ) -> Self {
         Self {
-            token,
+            value,
             file_type,
             token_type,
             token_side,

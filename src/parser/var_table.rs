@@ -190,3 +190,19 @@ pub fn group_variables(group_vars: VarGroup, vars: HashMap<String, VariableInfo>
 
     group_vars
 }
+
+pub fn merge_var_group(xs: VarGroup, ys: VarGroup) -> VarGroup {
+    let mut xs = xs;
+
+    ys.into_iter()
+        .for_each(|(key, var_info)| match xs.get_mut(&key) {
+            Some(info) => {
+                info.extend(var_info);
+            }
+            None => {
+                xs.insert(key, var_info);
+            }
+        });
+
+    xs
+}

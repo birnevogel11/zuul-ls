@@ -1,59 +1,12 @@
 use ropey::Rope;
 use tower_lsp::lsp_types::Position;
 
+use super::key_stack::{insert_search_word, retrieve_config_attribute, SEARCH_PATTERN};
 use super::utils::{find_name_word, find_path_word};
-use super::TokenFileType;
-use crate::ls::parser::{AutoCompleteToken, TokenSide, TokenType};
-use yaml_rust2::yaml::{Yaml, YamlLoader};
+use super::{AutoCompleteToken, TokenFileType, TokenSide, TokenType};
+use yaml_rust2::yaml::YamlLoader;
 
-const SEARCH_PATTERN: &str = "SeRpAt";
-
-fn retrieve_value_key_stack(value: &Yaml, keys: &mut Vec<String>) -> (bool, TokenSide) {
-    match value {
-        Yaml::String(s) => (s.contains(SEARCH_PATTERN), TokenSide::Right),
-        Yaml::Array(xs) => {
-            for x in xs {
-                if retrieve_value_key_stack(x, keys).0 {
-                    return (true, TokenSide::Right); // TODO: Should we support index operator ? Skip it now
-                }
-            }
-            (false, TokenSide::default())
-        }
-        Yaml::Hash(xs) => {
-            for (k, v) in xs {
-                let key_name = k.as_str();
-                if key_name.is_none() {
-                    return (false, TokenSide::Left);
-                }
-                if key_name.unwrap().contains(SEARCH_PATTERN) {
-                    return (true, TokenSide::Left);
-                }
-                keys.push(key_name.unwrap().to_string());
-                let check = retrieve_value_key_stack(v, keys);
-                if check.0 {
-                    return check;
-                }
-            }
-            (false, TokenSide::default())
-        }
-        Yaml::Real(_)
-        | Yaml::Integer(_)
-        | Yaml::Boolean(_)
-        | Yaml::Alias(_)
-        | Yaml::Null
-        | Yaml::BadValue => (false, TokenSide::default()),
-    }
-}
-
-fn insert_search_word(content: &Rope, line: usize, col: usize) -> Rope {
-    let cidx = content.line_to_char(line) + col;
-    let mut new_content = content.clone();
-    new_content.insert(cidx, SEARCH_PATTERN);
-
-    new_content
-}
-
-pub fn retrieve_key_stack(
+pub fn retrieve_zuul_key_stack(
     content: &Rope,
     line: usize,
     col: usize,
@@ -82,22 +35,9 @@ pub fn retrieve_key_stack(
 
             // Traverse all attributes and values of this zuul config
             let zuul_config = raw_zuul_name.get(zuul).unwrap().as_hash()?;
-            for (key, value) in zuul_config {
-                if key.as_str()?.contains(SEARCH_PATTERN) {
-                    return Some((key_stack, None, TokenSide::Left));
-                }
-
-                let mut value_stack = Vec::new();
-                let check = retrieve_value_key_stack(value, &mut value_stack);
-                if check.0 {
-                    key_stack.push(key.as_str()?.to_string());
-                    let var_stack = if value_stack.is_empty() {
-                        None
-                    } else {
-                        Some(value_stack)
-                    };
-                    return Some((key_stack, var_stack, check.1));
-                }
+            let token = retrieve_config_attribute(zuul_config, key_stack);
+            if token.is_some() {
+                return token;
             }
         }
     }
@@ -111,7 +51,7 @@ pub fn parse_token_zuul_config(
     position: &Position,
 ) -> Option<AutoCompleteToken> {
     let (key_stack, var_stack, token_side) =
-        retrieve_key_stack(content, position.line as usize, position.character as usize)?;
+        retrieve_zuul_key_stack(content, position.line as usize, position.character as usize)?;
     log::info!(
         "key_stack: {:#?}, token_side: {:#?}",
         &key_stack,
@@ -124,7 +64,7 @@ pub fn parse_token_zuul_config(
 
     if key_stack.len() == 1 && token_side == TokenSide::Left {
         let token = find_name_word(content, position)?;
-        return Some(AutoCompleteToken::new2(
+        return Some(AutoCompleteToken::new(
             token,
             file_type,
             TokenType::ZuulProperty(key_stack[0].clone()),
@@ -136,7 +76,7 @@ pub fn parse_token_zuul_config(
     if key_stack.len() >= 2 && key_stack[0] == "job" {
         if key_stack[1] == "name" || key_stack[1] == "parent" {
             let token = find_name_word(content, position)?;
-            return Some(AutoCompleteToken::new2(
+            return Some(AutoCompleteToken::new(
                 token,
                 file_type,
                 TokenType::Job,
@@ -147,14 +87,14 @@ pub fn parse_token_zuul_config(
         if key_stack[1] == "vars" {
             let token = find_name_word(content, position)?;
             return Some(match token_side {
-                TokenSide::Left => AutoCompleteToken::new2(
+                TokenSide::Left => AutoCompleteToken::new(
                     token,
                     file_type,
                     TokenType::VariableWithPrefix(var_stack.unwrap_or_default()),
                     token_side,
                     key_stack,
                 ),
-                TokenSide::Right => AutoCompleteToken::new2(
+                TokenSide::Right => AutoCompleteToken::new(
                     token,
                     file_type,
                     TokenType::Variable,
@@ -168,7 +108,7 @@ pub fn parse_token_zuul_config(
             .any(|key| key == key_stack[1])
         {
             let token = find_path_word(content, position)?;
-            return Some(AutoCompleteToken::new2(
+            return Some(AutoCompleteToken::new(
                 token,
                 file_type,
                 TokenType::Playbook,
@@ -192,7 +132,7 @@ mod tests {
     name: test-job
     parent: parent-job
     "#;
-        let xs = retrieve_key_stack(&Rope::from_str(content), 3, 12);
+        let xs = retrieve_zuul_key_stack(&Rope::from_str(content), 3, 12);
         assert_eq!(
             xs,
             Some((
@@ -202,6 +142,35 @@ mod tests {
                     .collect::<Vec<_>>(),
                 None,
                 TokenSide::Right
+            ))
+        );
+    }
+
+    #[test]
+    fn test_retrieve_property_stack_left() {
+        let content = r#"
+- job:
+    name: test-job
+    parent: parent-job
+    vars:
+        test_var:
+          nested_var: value
+    "#;
+        let xs = retrieve_zuul_key_stack(&Rope::from_str(content), 6, 14);
+        assert_eq!(
+            xs,
+            Some((
+                (["job", "vars"])
+                    .iter()
+                    .map(|x| x.to_string())
+                    .collect::<Vec<_>>(),
+                Some(
+                    ["test_var"]
+                        .iter()
+                        .map(|x| x.to_string())
+                        .collect::<Vec<_>>()
+                ),
+                TokenSide::Left
             ))
         );
     }

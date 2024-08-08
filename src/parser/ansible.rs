@@ -1,2 +1,2 @@
-pub mod task;
-pub mod template;
+pub mod defaults;
+pub mod tasks;
