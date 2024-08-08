@@ -150,17 +150,10 @@ pub fn shorten_path(path: &Path) -> PathBuf {
     let work_dir = to_path(".");
     let work_dir = work_dir.to_str().unwrap();
 
-    let home_dir = dirs::home_dir().unwrap();
-    let home_dir = home_dir.to_str().unwrap();
-
     let path = path.to_str().unwrap();
     let path = if path.starts_with(work_dir) {
         let mut p = ".".to_string();
         p.push_str(path.strip_prefix(work_dir).unwrap());
-        p
-    } else if path.starts_with(home_dir) {
-        let mut p = "~".to_string();
-        p.push_str(path.strip_prefix(home_dir).unwrap());
         p
     } else {
         path.to_string()
