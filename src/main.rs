@@ -1,5 +1,6 @@
 use crate::repo::list_repos;
 use crate::repo::list_roles;
+use crate::yaml_parse::YValueLoader;
 
 use std::path::PathBuf;
 
@@ -12,5 +13,7 @@ fn main() {
     println!("{:?}", repo_dirs);
     println!("{:?}", role_dirs);
 
-    crate::yaml_parse::hello();
+    let docs = YValueLoader::load_from_str("test: [1, 2, 3]").unwrap();
+    let doc = &docs[0]; // select the first YAML document
+    println!("{:?}", doc)
 }
