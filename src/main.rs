@@ -4,6 +4,7 @@ use std::path::PathBuf;
 use clap::Parser;
 
 use zuul_parser::config::get_work_dir;
+use zuul_parser::search::job_vars;
 use zuul_parser::search::jobs;
 use zuul_parser::search::project_templates;
 use zuul_parser::search::roles;
@@ -124,7 +125,7 @@ fn main() {
             );
         }
         ZuulSearchCli::JobVars(args) => {
-            jobs::list_jobs_vars_cli(args.name, &get_work_dir(args.work_dir), args.config_path);
+            job_vars::list_jobs_vars_cli(args.name, &get_work_dir(args.work_dir), args.config_path);
         }
         ZuulSearchCli::JobPlaybooks(args) => {
             jobs::list_jobs_playbooks_cli(
