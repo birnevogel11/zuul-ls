@@ -9,7 +9,7 @@ pub fn list_job_vars(name: &str, zuul_jobs: &ZuulJobs) -> VariableGroup {
     let mut vg = VariableGroup::default();
 
     jobs.iter()
-        .map(|job| job.vars2().clone().into())
+        .map(|job| job.vars().clone().into())
         .for_each(|sub_vg| vg.add(sub_vg));
 
     vg

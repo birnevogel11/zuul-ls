@@ -1,125 +1,121 @@
 Some(
     [
-        (
-            "block_vars1",
-            [
-                VariableInfo {
-                    name: StringLoc {
-                        value: "block_vars1",
-                        path: "/fake/play.yaml",
-                        line: 11,
-                        col: 8,
-                    },
-                    value: "block_vars1_value",
-                    source: Role {
-                        name: "fake_role",
-                        path: "/fake/roles/fake_role",
-                    },
-                },
-            ],
-        ),
-        (
-            "block_vars2.nested_block_vars2",
-            [
-                VariableInfo {
-                    name: StringLoc {
-                        value: "block_vars2.nested_block_vars2",
-                        path: "/fake/play.yaml",
-                        line: 13,
-                        col: 10,
-                    },
-                    value: "nested_block_vars2_value",
-                    source: Role {
-                        name: "fake_role",
-                        path: "/fake/roles/fake_role",
-                    },
-                },
-            ],
-        ),
-        (
-            "local_vars_1",
-            [
-                VariableInfo {
-                    name: StringLoc {
-                        value: "local_vars_1",
-                        path: "/fake/play.yaml",
-                        line: 24,
-                        col: 4,
-                    },
-                    value: "local_vars_1_value",
-                    source: Role {
-                        name: "fake_role",
-                        path: "/fake/roles/fake_role",
-                    },
-                },
-            ],
-        ),
-        (
-            "set_fact_vars1",
-            [
-                VariableInfo {
-                    name: StringLoc {
-                        value: "set_fact_vars1",
-                        path: "/fake/play.yaml",
-                        line: 2,
-                        col: 4,
-                    },
-                    value: "set_fact_vars1_value",
-                    source: Role {
-                        name: "fake_role",
-                        path: "/fake/roles/fake_role",
-                    },
-                },
-                VariableInfo {
-                    name: StringLoc {
-                        value: "set_fact_vars1",
-                        path: "/fake/play.yaml",
-                        line: 17,
-                        col: 4,
-                    },
-                    value: "set_fact_vars1_value",
-                    source: Role {
-                        name: "fake_role",
-                        path: "/fake/roles/fake_role",
-                    },
-                },
-            ],
-        ),
-        (
-            "set_fact_vars2.nested_set_fact_vars2",
-            [
-                VariableInfo {
-                    name: StringLoc {
-                        value: "set_fact_vars2.nested_set_fact_vars2",
-                        path: "/fake/play.yaml",
-                        line: 4,
-                        col: 6,
-                    },
-                    value: "nested_set_fact_vars2_value",
-                    source: Role {
-                        name: "fake_role",
-                        path: "/fake/roles/fake_role",
-                    },
-                },
-            ],
-        ),
-        (
-            "set_fact_vars3",
-            [
-                VariableInfo {
-                    name: StringLoc {
-                        value: "set_fact_vars3",
-                        path: "/fake/play.yaml",
-                        line: 22,
-                        col: 4,
-                    },
-                    value: "{{ local_vars_1 }}",
-                    source: Role {
-                        name: "fake_role",
-                        path: "/fake/roles/fake_role",
-                    },
-                },
-            ],
-        ),
+        VariablePrintInfo {
+            name: StringLoc {
+                value: "block_vars1",
+                path: "/fake/play.yaml",
+                line: 11,
+                col: 8,
+            },
+            value: "block_vars1_value",
+            source: Role {
+                name: "fake_role",
+                path: "/fake/roles/fake_role",
+            },
+        },
+        VariablePrintInfo {
+            name: StringLoc {
+                value: "block_vars2",
+                path: "/fake/play.yaml",
+                line: 12,
+                col: 8,
+            },
+            value: "VariableTable({\"nested_block_vars2\": Variable { name: StringLoc { value: \"nested_block_vars2\", path: \"/fake/play.yaml\", line: 13, col: 10 }, value: String(\"nested_block_vars2_value\"), source: Role { name: \"fake_role\", path: \"/fake/roles/fake_role\" } }})",
+            source: Role {
+                name: "fake_role",
+                path: "/fake/roles/fake_role",
+            },
+        },
+        VariablePrintInfo {
+            name: StringLoc {
+                value: "block_vars2.nested_block_vars2",
+                path: "/fake/play.yaml",
+                line: 13,
+                col: 10,
+            },
+            value: "nested_block_vars2_value",
+            source: Role {
+                name: "fake_role",
+                path: "/fake/roles/fake_role",
+            },
+        },
+        VariablePrintInfo {
+            name: StringLoc {
+                value: "local_vars_1",
+                path: "/fake/play.yaml",
+                line: 24,
+                col: 4,
+            },
+            value: "local_vars_1_value",
+            source: Role {
+                name: "fake_role",
+                path: "/fake/roles/fake_role",
+            },
+        },
+        VariablePrintInfo {
+            name: StringLoc {
+                value: "set_fact_vars1",
+                path: "/fake/play.yaml",
+                line: 2,
+                col: 4,
+            },
+            value: "set_fact_vars1_value",
+            source: Role {
+                name: "fake_role",
+                path: "/fake/roles/fake_role",
+            },
+        },
+        VariablePrintInfo {
+            name: StringLoc {
+                value: "set_fact_vars1",
+                path: "/fake/play.yaml",
+                line: 17,
+                col: 4,
+            },
+            value: "set_fact_vars1_value",
+            source: Role {
+                name: "fake_role",
+                path: "/fake/roles/fake_role",
+            },
+        },
+        VariablePrintInfo {
+            name: StringLoc {
+                value: "set_fact_vars2",
+                path: "/fake/play.yaml",
+                line: 3,
+                col: 4,
+            },
+            value: "VariableTable({\"nested_set_fact_vars2\": Variable { name: StringLoc { value: \"nested_set_fact_vars2\", path: \"/fake/play.yaml\", line: 4, col: 6 }, value: String(\"nested_set_fact_vars2_value\"), source: Role { name: \"fake_role\", path: \"/fake/roles/fake_role\" } }})",
+            source: Role {
+                name: "fake_role",
+                path: "/fake/roles/fake_role",
+            },
+        },
+        VariablePrintInfo {
+            name: StringLoc {
+                value: "set_fact_vars2.nested_set_fact_vars2",
+                path: "/fake/play.yaml",
+                line: 4,
+                col: 6,
+            },
+            value: "nested_set_fact_vars2_value",
+            source: Role {
+                name: "fake_role",
+                path: "/fake/roles/fake_role",
+            },
+        },
+        VariablePrintInfo {
+            name: StringLoc {
+                value: "set_fact_vars3",
+                path: "/fake/play.yaml",
+                line: 22,
+                col: 4,
+            },
+            value: "{{ local_vars_1 }}",
+            source: Role {
+                name: "fake_role",
+                path: "/fake/roles/fake_role",
+            },
+        },
     ],
 )

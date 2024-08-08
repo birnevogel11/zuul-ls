@@ -42,7 +42,7 @@ fn get_token(path: &Path, content: &Rope, position: &Position) -> Option<AutoCom
 
             let insert_text = if line.to_string().trim().starts_with('-') {
                 // Guess it's a list item
-                "fake_value"
+                " fake_value"
             } else {
                 // Guess it's a dict item
                 ": fake_value"

@@ -4,21 +4,18 @@ use dashmap::DashMap;
 
 use crate::config::get_work_dir;
 use crate::parser::common::StringLoc;
-use crate::parser::var_table::VariableInfo;
 use crate::parser::variable::VariableGroup;
 use crate::path::get_role_repo_dirs;
 use crate::search::jobs::list_job_locs_by_name;
 use crate::search::roles::list_roles;
-use crate::search::work_dir_vars::list_work_dir_vars_group;
-use crate::search::work_dir_vars2::list_work_dir_vars;
+use crate::search::work_dir_vars::list_work_dir_vars;
 
 #[derive(Clone, Debug, Default)]
 pub struct ZuulSymbol {
     role_dirs: DashMap<String, PathBuf>,
-    vars: DashMap<String, Vec<VariableInfo>>,
     jobs: DashMap<String, Vec<StringLoc>>,
 
-    vars2: VariableGroup,
+    vars: VariableGroup,
     role_docs: DashMap<String, Option<String>>,
 }
 
@@ -27,12 +24,8 @@ impl ZuulSymbol {
         &self.role_dirs
     }
 
-    pub fn vars(&self) -> &DashMap<String, Vec<VariableInfo>> {
+    pub fn vars(&self) -> &VariableGroup {
         &self.vars
-    }
-
-    pub fn vars2(&self) -> &VariableGroup {
-        &self.vars2
     }
 
     pub fn jobs(&self) -> &DashMap<String, Vec<StringLoc>> {
@@ -53,16 +46,9 @@ impl ZuulSymbol {
             self.role_docs.insert(name, doc);
         });
 
-        let vars = list_work_dir_vars_group(&work_dir, None);
-        vars.into_iter().for_each(|(name, var_info)| {
-            self.vars.insert(name, var_info);
-        });
-
-        // TODO: optimize it
-        let vars2 = list_work_dir_vars(&work_dir, None);
-        vars2.iter().for_each(|entry| {
-            self.vars2
-                .insert(entry.key().clone(), entry.value().clone());
+        let vars = list_work_dir_vars(&work_dir, None);
+        vars.iter().for_each(|entry| {
+            self.vars.insert(entry.key().clone(), entry.value().clone());
         });
 
         let jobs = list_job_locs_by_name(&work_dir, None);

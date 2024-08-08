@@ -6,8 +6,6 @@ use hashlink::LinkedHashMap;
 use crate::parser::common::{
     parse_optional_string_value, parse_string_value, StringLoc, ZuulParse, ZuulParseError,
 };
-use crate::parser::var_table::parse_var_table;
-use crate::parser::var_table::VarTable;
 use crate::parser::variable::VariableSource;
 use crate::parser::variable::VariableTable;
 use crate::parser::yaml::{YValue, YValueYaml};
@@ -21,8 +19,7 @@ pub struct Job {
     pre_run_playbooks: Vec<(StringLoc, PathBuf)>,
     run_playbooks: Vec<(StringLoc, PathBuf)>,
     post_run_playbooks: Vec<(StringLoc, PathBuf)>,
-    vars: VarTable,
-    vars2: VariableTable,
+    vars: VariableTable,
 }
 
 impl Job {
@@ -34,12 +31,8 @@ impl Job {
         &self.parent
     }
 
-    pub fn vars(&self) -> &VarTable {
+    pub fn vars(&self) -> &VariableTable {
         &self.vars
-    }
-
-    pub fn vars2(&self) -> &VariableTable {
-        &self.vars2
     }
 
     pub fn pre_run_playbooks(&self) -> &Vec<(StringLoc, PathBuf)> {
@@ -124,8 +117,7 @@ impl ZuulParse<Job> for Job {
         let mut pre_run_playbooks: Vec<(StringLoc, PathBuf)> = Vec::new();
         let mut run_playbooks: Vec<(StringLoc, PathBuf)> = Vec::new();
         let mut post_run_playbooks: Vec<(StringLoc, PathBuf)> = Vec::new();
-        let mut vars: VarTable = VarTable::new();
-        let mut vars2 = VariableTable::default();
+        let mut vars = VariableTable::default();
 
         for (key, value) in xs {
             match key.as_str() {
@@ -149,8 +141,7 @@ impl ZuulParse<Job> for Job {
                         post_run_playbooks = Job::parse_playbooks(value, path, "post-run")?;
                     }
                     "vars" => {
-                        vars = parse_var_table(value, path, "vars")?;
-                        vars2 = VariableTable::parse_yaml(
+                        vars = VariableTable::parse_yaml(
                             value,
                             path,
                             "zuul",
@@ -174,7 +165,6 @@ impl ZuulParse<Job> for Job {
             run_playbooks,
             post_run_playbooks,
             vars,
-            vars2,
         })
     }
 }

@@ -2,10 +2,8 @@ use ropey::Rope;
 use tower_lsp::lsp_types::Position;
 use yaml_rust2::Yaml;
 
-use super::key_stack::insert_search_word;
-use super::key_stack::parse_value;
-use super::key_stack::SEARCH_PATTERN;
-use super::utils::{find_role_token, find_var_token};
+use super::key_stack::{insert_search_word, parse_value, SEARCH_PATTERN};
+use super::utils::find_role_token;
 use super::TokenSide;
 use super::{AutoCompleteToken, TokenFileType, TokenType, VariableTokenBuilder};
 use yaml_rust2::yaml::YamlLoader;
@@ -196,11 +194,11 @@ pub fn parse_token_ansible(
     let docs = YamlLoader::load_from_str(&search_rope.to_string()).ok()?;
     docs.iter().find_map(|doc| match &file_type {
         TokenFileType::AnsibleRoleDefaults => parse_var(doc, &file_type, content, position, None),
-        TokenFileType::AnsibleRoleTemplates { .. } => Some(AutoCompleteToken::new_simple(
-            find_var_token(content, position)?,
-            file_type.clone(),
-            TokenType::Variable,
-        )),
+        TokenFileType::AnsibleRoleTemplates { .. } => Some(
+            VariableTokenBuilder::new(None, TokenSide::Right, content, position)?
+                .set_file_type(&file_type)
+                .build(),
+        ),
         TokenFileType::AnsibleRoleTasks { .. } => {
             parse_ansible_tasks(doc, &file_type, content, position)
         }
@@ -265,18 +263,18 @@ mod tests {
             self
         }
 
-        fn set_token_type(mut self, token_type: TokenType) -> Self {
-            self.token_type = match token_type {
-                TokenType::Variable => {
-                    if self.var_stack.is_empty() {
-                        token_type
-                    } else {
-                        TokenType::VariableWithPrefix(self.var_stack.clone())
-                    }
-                }
-                _ => token_type,
-            };
+        fn set_var_token_type(mut self) -> Self {
+            self.token_type = TokenType::Variable(if self.var_stack.is_empty() {
+                None
+            } else {
+                Some(self.var_stack.clone())
+            });
 
+            self
+        }
+
+        fn set_token_type(mut self, token_type: TokenType) -> Self {
+            self.token_type = token_type;
             self
         }
 
@@ -361,7 +359,7 @@ mod tests {
             .set_location(3, 15)
             .set_value("subdir")
             .set_file_type(&TOKEN_FILE_TYPE_ANSIBLE_ROLE_TASKS)
-            .set_token_type(TokenType::Variable)
+            .set_var_token_type()
             .append_key_stack("set_fact")
             .create_token()
             .build()
@@ -381,7 +379,7 @@ mod tests {
             .set_location(3, 7)
             .set_value("name")
             .set_file_type(&TOKEN_FILE_TYPE_ANSIBLE_ROLE_TASKS)
-            .set_token_type(TokenType::VariableWithPrefix(Vec::new()))
+            .set_token_type(TokenType::Variable(None))
             .set_token_side(TokenSide::Left)
             .append_key_stack("set_fact")
             .create_token()
@@ -404,7 +402,7 @@ mod tests {
             .set_value("nested")
             .set_file_type(&TOKEN_FILE_TYPE_ANSIBLE_ROLE_TASKS)
             .append_var_stack("name")
-            .set_token_type(TokenType::Variable)
+            .set_var_token_type()
             .set_token_side(TokenSide::Left)
             .append_key_stack("set_fact")
             .create_token()
@@ -426,7 +424,7 @@ mod tests {
             .set_location(4, 18)
             .set_value("subdir")
             .set_file_type(&TOKEN_FILE_TYPE_ANSIBLE_ROLE_TASKS)
-            .set_token_type(TokenType::Variable)
+            .set_var_token_type()
             .set_token_side(TokenSide::Right)
             .append_key_stack("set_fact")
             .create_token()
@@ -445,9 +443,10 @@ mod tests {
              "#,
             )
             .set_location(3, 20)
-            .set_value("abc.def")
+            .set_value("def")
             .set_file_type(&TOKEN_FILE_TYPE_ANSIBLE_ROLE_TASKS)
-            .set_token_type(TokenType::Variable)
+            .append_var_stack("abc")
+            .set_var_token_type()
             .append_key_stack("set_fact")
             .create_token()
             .build()
@@ -489,7 +488,7 @@ mod tests {
             .set_location(6, 22)
             .set_value("subdir")
             .set_file_type(&TOKEN_FILE_TYPE_ANSIBLE_ROLE_TASKS)
-            .set_token_type(TokenType::Variable)
+            .set_var_token_type()
             .set_token_side(TokenSide::Right)
             .append_key_stack("block")
             .append_key_stack("set_fact")
@@ -517,7 +516,7 @@ mod tests {
             .set_location(9, 34)
             .set_value("nested_var_value")
             .set_file_type(&TOKEN_FILE_TYPE_ANSIBLE_ROLE_TASKS)
-            .set_token_type(TokenType::Variable)
+            .set_var_token_type()
             .set_token_side(TokenSide::Right)
             .append_key_stack("block")
             .append_key_stack("vars")
@@ -539,7 +538,7 @@ var_name_3: value3
             .set_location(2, 17)
             .set_value("value2")
             .set_file_type(&TOKEN_FILE_TYPE_ANSIBLE_ROLE_DEFAULTS)
-            .set_token_type(TokenType::Variable)
+            .set_var_token_type()
             .set_token_side(TokenSide::Right)
             .create_token()
             .build()
@@ -559,7 +558,7 @@ var_name_3: value3
             .set_location(2, 8)
             .set_value("var_name_2")
             .set_file_type(&TOKEN_FILE_TYPE_ANSIBLE_ROLE_DEFAULTS)
-            .set_token_type(TokenType::VariableWithPrefix(Vec::new()))
+            .set_token_type(TokenType::Variable(None))
             .set_token_side(TokenSide::Left)
             .create_token()
             .build()
@@ -581,7 +580,7 @@ var_name_3: value3
             .set_value("nested_var_name2")
             .set_file_type(&TOKEN_FILE_TYPE_ANSIBLE_ROLE_DEFAULTS)
             .append_var_stack("var_name_2")
-            .set_token_type(TokenType::Variable)
+            .set_var_token_type()
             .set_token_side(TokenSide::Left)
             .create_token()
             .build()
@@ -599,7 +598,7 @@ abc def {{ ghi }}
             .set_location(1, 6)
             .set_value("def")
             .set_file_type(&TOKEN_FILE_TYPE_ANSIBLE_ROLE_TEMPLATES)
-            .set_token_type(TokenType::Variable)
+            .set_var_token_type()
             .create_token()
             .build()
             .test();

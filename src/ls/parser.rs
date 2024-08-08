@@ -11,7 +11,7 @@ use yaml_rust2::Yaml;
 
 use self::ansible::parse_token_ansible;
 use self::key_stack::parse_value;
-use self::utils::find_var_token2;
+use self::utils::find_var_token;
 use self::zuul::parse_token_zuul_config;
 use crate::path::{retrieve_repo_path, to_path};
 
@@ -100,16 +100,19 @@ pub enum TokenSide {
     Right,
 }
 
-#[derive(Clone, PartialEq, PartialOrd, Debug, Eq, Ord, Hash, Default)]
+#[derive(Clone, PartialEq, PartialOrd, Debug, Eq, Ord, Hash)]
 pub enum TokenType {
-    #[default]
-    Variable,
-    VariableWithPrefix(Vec<String>),
-    VariableNew(Option<Vec<String>>),
+    Variable(Option<Vec<String>>),
     Role,
     Job,
     ZuulProperty(String),
     Playbook,
+}
+
+impl Default for TokenType {
+    fn default() -> Self {
+        TokenType::Variable(None)
+    }
 }
 
 #[derive(Clone, PartialEq, PartialOrd, Debug, Eq, Ord, Hash, Default)]
@@ -172,15 +175,21 @@ impl VariableTokenBuilder {
         content: &Rope,
         position: &Position,
     ) -> Option<Self> {
-        let mut var_tokens = find_var_token2(content, position)?;
+        let mut var_tokens = find_var_token(content, position)?;
         let token = var_tokens.pop()?;
 
-        let mut var_stack = var_stack.unwrap_or_default();
-        var_stack.extend(var_tokens);
+        let var_stack = match token_side {
+            TokenSide::Left => {
+                let mut var_stack = var_stack.unwrap_or_default();
+                var_stack.extend(var_tokens);
+                var_stack
+            }
+            TokenSide::Right => var_tokens,
+        };
 
         Some(VariableTokenBuilder(AutoCompleteToken {
             value: token,
-            token_type: TokenType::VariableNew(Some(var_stack)),
+            token_type: TokenType::Variable((!var_stack.is_empty()).then_some(var_stack)),
             token_side,
             ..AutoCompleteToken::default()
         }))

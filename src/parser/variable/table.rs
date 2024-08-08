@@ -102,6 +102,7 @@ impl Value {
                     .join(", ");
                 ["[", &s, "]"].join("")
             }
+            // TODO: pretty print
             Value::Hash(v) => format!("{:?}", v),
         }
     }
