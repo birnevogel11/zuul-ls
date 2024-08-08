@@ -1,8 +1,8 @@
 mod config;
+mod parser;
 mod repo;
 mod search;
 mod study_parser;
-mod yaml_parse;
 
 use std::path::PathBuf;
 

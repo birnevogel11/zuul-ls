@@ -77,28 +77,28 @@ impl YValue {
     pub fn from_str(v: &str, mark: &Marker) -> YValue {
         if let Some(number) = v.strip_prefix("0x") {
             if let Ok(i) = i64::from_str_radix(number, 16) {
-                return YValue::Integer(i, Loc::new(&mark));
+                return YValue::Integer(i, Loc::new(mark));
             }
         } else if let Some(number) = v.strip_prefix("0o") {
             if let Ok(i) = i64::from_str_radix(number, 8) {
-                return YValue::Integer(i, Loc::new(&mark));
+                return YValue::Integer(i, Loc::new(mark));
             }
         } else if let Some(number) = v.strip_prefix('+') {
             if let Ok(i) = number.parse::<i64>() {
-                return YValue::Integer(i, Loc::new(&mark));
+                return YValue::Integer(i, Loc::new(mark));
             }
         }
         match v {
-            "~" | "null" => YValue::Null(Loc::new(&mark)),
-            "true" => YValue::Boolean(true, Loc::new(&mark)),
-            "false" => YValue::Boolean(false, Loc::new(&mark)),
+            "~" | "null" => YValue::Null(Loc::new(mark)),
+            "true" => YValue::Boolean(true, Loc::new(mark)),
+            "false" => YValue::Boolean(false, Loc::new(mark)),
             _ => {
                 if let Ok(integer) = v.parse::<i64>() {
-                    YValue::Integer(integer, Loc::new(&mark))
+                    YValue::Integer(integer, Loc::new(mark))
                 } else if parse_f64(v).is_some() {
-                    YValue::Real(v.to_owned(), Loc::new(&mark))
+                    YValue::Real(v.to_owned(), Loc::new(mark))
                 } else {
-                    YValue::String(v.to_owned(), Loc::new(&mark))
+                    YValue::String(v.to_owned(), Loc::new(mark))
                 }
             }
         }
