@@ -36,7 +36,13 @@ impl LanguageServer for Backend {
                 // TODO: implement it
                 completion_provider: Some(CompletionOptions {
                     resolve_provider: Some(false),
-                    trigger_characters: Some(('a'..='z').map(|x| x.to_string()).collect()),
+                    trigger_characters: Some(
+                        ('a'..='z')
+                            .chain(std::iter::once('/'))
+                            .chain(std::iter::once('.'))
+                            .map(|x| x.to_string())
+                            .collect(),
+                    ),
                     work_done_progress_options: Default::default(),
                     all_commit_characters: None,
                     completion_item: None,
@@ -121,36 +127,15 @@ impl Backend {
         let uri_path = &uri.to_string();
         let position = &params.text_document_position.position;
 
-        let response = match self.token_cache.get(uri_path) {
-            Some(token_cache) => {
-                if token_cache.is_valid(uri_path, position) {
-                    todo!()
-                }
-                None
-            }
-            None => {
-                let content = self.document_map.get(&uri.to_string());
-                let position = &params.text_document_position.position;
-                let path = uri.to_file_path().unwrap();
-                log::info!("params: {:#?}", params);
+        let content = self.document_map.get(&uri.to_string());
+        let position = &params.text_document_position.position;
+        let path = uri.to_file_path().unwrap();
 
-                match content
-                    .as_ref()
-                    .and_then(|c| complete_items(&self.symbols, &path, c, position))
-                {
-                    Some((response, token)) => {
-                        self.token_cache.insert(
-                            uri_path.clone(),
-                            AutoCompleteTokenCache::new(uri_path.clone(), *position, token),
-                        );
-                        Some(response)
-                    }
-                    None => None,
-                }
-            }
-        };
-
-        Ok(response)
+        log::info!("params: {:#?}", params);
+        Ok(content
+            .as_ref()
+            .and_then(|c| complete_items(&self.symbols, &path, c, position))
+            .map(|(response, _)| response))
     }
 }
 
