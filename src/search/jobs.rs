@@ -8,11 +8,7 @@ use crate::search::path::get_zuul_yaml_paths;
 pub fn list_jobs(work_dir: Option<PathBuf>, config_path: Option<PathBuf>) -> Vec<Job> {
     let repo_dirs = get_repo_dirs(work_dir, config_path);
     let yaml_paths = get_zuul_yaml_paths(&repo_dirs);
-
-    parse_zuul(&yaml_paths)
-        .into_iter()
-        .map_while(|x| x.into_job())
-        .collect::<Vec<_>>()
+    parse_zuul(&yaml_paths).into_jobs()
 }
 
 pub fn list_jobs_cli(

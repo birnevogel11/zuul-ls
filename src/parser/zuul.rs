@@ -53,7 +53,7 @@ impl ZuulParseType {
 }
 
 #[derive(Clone, PartialEq, PartialOrd, Debug, Eq, Ord, Hash)]
-pub enum ZuulConfigElement {
+enum ZuulConfigParsedElement {
     Job(Job),
     ProjectTemplate(ProjectTemplate),
     Nodeset(Nodeset),
@@ -62,44 +62,31 @@ pub enum ZuulConfigElement {
     Secret(Secret),
 }
 
-// macro_rules! define_into (
-//     ($name:ident, $t:ty, $yt:ident) => (
-// /// Get the inner object in the YAML enum if it is a `$t`.
-// ///
-// /// # Return
-// /// If the variant of `self` is `Yaml::$yt`, return `Some($t)` with the `$t` contained. Otherwise,
-// /// return `None`.
-// #[must_use]
-// pub fn $name(self) -> Option<$t> {
-//     match self.value {
-//         YValueYaml::$yt(v) => Some(v),
-//         _ => None
-//     }
-// }
-//     );
-// );
-
-impl ZuulConfigElement {
-    pub fn parse(raw_config: &YValue, path: &Rc<PathBuf>) -> Option<ZuulConfigElement> {
+impl ZuulConfigParsedElement {
+    pub fn parse(raw_config: &YValue, path: &Rc<PathBuf>) -> Option<ZuulConfigParsedElement> {
         if let YValueYaml::Hash(xs) = raw_config.value() {
             match ZuulParseType::determine(xs) {
                 Some(p) => match p {
-                    ZuulParseType::Job => Some(ZuulConfigElement::Job(Job::parse(xs, path).ok()?)),
-                    ZuulParseType::ProjectTemplate => Some(ZuulConfigElement::ProjectTemplate(
-                        ProjectTemplate::parse(xs, path).ok()?,
+                    ZuulParseType::Job => {
+                        Some(ZuulConfigParsedElement::Job(Job::parse(xs, path).ok()?))
+                    }
+                    ZuulParseType::ProjectTemplate => {
+                        Some(ZuulConfigParsedElement::ProjectTemplate(
+                            ProjectTemplate::parse(xs, path).ok()?,
+                        ))
+                    }
+                    ZuulParseType::Nodeset => Some(ZuulConfigParsedElement::Nodeset(
+                        Nodeset::parse(xs, path).ok()?,
                     )),
-                    ZuulParseType::Nodeset => {
-                        Some(ZuulConfigElement::Nodeset(Nodeset::parse(xs, path).ok()?))
-                    }
                     ZuulParseType::Queue => {
-                        Some(ZuulConfigElement::Queue(Queue::parse(xs, path).ok()?))
+                        Some(ZuulConfigParsedElement::Queue(Queue::parse(xs, path).ok()?))
                     }
-                    ZuulParseType::Pipeline => {
-                        Some(ZuulConfigElement::Pipeline(Pipeline::parse(xs, path).ok()?))
-                    }
-                    ZuulParseType::Secret => {
-                        Some(ZuulConfigElement::Secret(Secret::parse(xs, path).ok()?))
-                    }
+                    ZuulParseType::Pipeline => Some(ZuulConfigParsedElement::Pipeline(
+                        Pipeline::parse(xs, path).ok()?,
+                    )),
+                    ZuulParseType::Secret => Some(ZuulConfigParsedElement::Secret(
+                        Secret::parse(xs, path).ok()?,
+                    )),
                 },
                 None => None,
             }
@@ -107,41 +94,107 @@ impl ZuulConfigElement {
             None
         }
     }
-
-    pub fn into_job(self) -> Option<Job> {
-        match self {
-            ZuulConfigElement::Job(job) => Some(job),
-            _ => None,
-        }
-    }
 }
 
-fn parse_doc(doc: &YValue, path: &Rc<PathBuf>) -> Vec<ZuulConfigElement> {
+macro_rules! define_as_ref (
+    ($name:ident, $t:ty) => (
+/// Get a reference to the inner object in the YAML enum if it is a `$t`.
+///
+/// # Return
+/// If the variant of `self` is `Yaml::$yt`, return `Some(&$t)` with the `$t` contained. Otherwise,
+/// return `None`.
+#[must_use]
+pub fn $name(&self) -> &Vec<$t> {
+    &self.$name
+}
+    );
+);
+
+macro_rules! define_into (
+    ($name:ident, $var:ident, $t:ty) => (
+/// Get a reference to the inner object in the YAML enum if it is a `$t`.
+///
+/// # Return
+/// If the variant of `self` is `Yaml::$yt`, return `Some(&$t)` with the `$t` contained. Otherwise,
+/// return `None`.
+#[must_use]
+pub fn $name(self) -> Vec<$t> {
+    self.$var
+}
+    );
+);
+
+#[derive(Clone, PartialEq, PartialOrd, Debug, Eq, Ord, Hash, Default)]
+pub struct ZuulConfigElement {
+    jobs: Vec<Job>,
+    project_templates: Vec<ProjectTemplate>,
+    nodesets: Vec<Nodeset>,
+    queues: Vec<Queue>,
+    pipelines: Vec<Pipeline>,
+    secrets: Vec<Secret>,
+}
+
+impl ZuulConfigElement {
+    pub fn new(ps: Vec<ZuulConfigParsedElement>) -> ZuulConfigElement {
+        let mut zuul = ZuulConfigElement::default();
+
+        for p in ps {
+            match p {
+                ZuulConfigParsedElement::Job(p) => zuul.jobs.push(p),
+                ZuulConfigParsedElement::ProjectTemplate(p) => zuul.project_templates.push(p),
+                ZuulConfigParsedElement::Nodeset(p) => zuul.nodesets.push(p),
+                ZuulConfigParsedElement::Queue(p) => zuul.queues.push(p),
+                ZuulConfigParsedElement::Pipeline(p) => zuul.pipelines.push(p),
+                ZuulConfigParsedElement::Secret(p) => zuul.secrets.push(p),
+            }
+        }
+
+        zuul
+    }
+
+    define_as_ref!(jobs, Job);
+    define_as_ref!(project_templates, ProjectTemplate);
+    define_as_ref!(nodesets, Nodeset);
+    define_as_ref!(queues, Queue);
+    define_as_ref!(pipelines, Pipeline);
+    define_as_ref!(secrets, Secret);
+
+    define_into!(into_jobs, jobs, Job);
+    define_into!(into_project_templates, project_templates, ProjectTemplate);
+    define_into!(into_nodesets, nodesets, Nodeset);
+    define_into!(into_queues, queues, Queue);
+    define_into!(into_pipelines, pipelines, Pipeline);
+    define_into!(into_secrets, secrets, Secret);
+}
+
+fn parse_doc(doc: &YValue, path: &Rc<PathBuf>) -> Vec<ZuulConfigParsedElement> {
     if let YValueYaml::Array(xs) = doc.value() {
         xs.iter()
-            .map_while(|x| ZuulConfigElement::parse(x, path))
+            .map_while(|x| ZuulConfigParsedElement::parse(x, path))
             .collect()
     } else {
         vec![]
     }
 }
 
-pub fn parse_zuul(paths: &[Rc<PathBuf>]) -> Vec<ZuulConfigElement> {
-    paths
-        .iter()
-        .map(|path| {
-            let doc = load_yvalue(path);
-            match doc {
-                Ok(ys) => ys
-                    .iter()
-                    .map(|y| parse_doc(y, path))
-                    .collect::<Vec<_>>()
-                    .concat(),
-                _ => Vec::new(),
-            }
-        })
-        .collect::<Vec<_>>()
-        .concat()
+pub fn parse_zuul(paths: &[Rc<PathBuf>]) -> ZuulConfigElement {
+    ZuulConfigElement::new(
+        paths
+            .iter()
+            .map(|path| {
+                let doc = load_yvalue(path);
+                match doc {
+                    Ok(ys) => ys
+                        .iter()
+                        .map(|y| parse_doc(y, path))
+                        .collect::<Vec<_>>()
+                        .concat(),
+                    _ => Vec::new(),
+                }
+            })
+            .collect::<Vec<_>>()
+            .concat(),
+    )
 }
 
 pub fn job_parser_study(path: &Path) {
