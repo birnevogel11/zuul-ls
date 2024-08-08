@@ -1,19 +1,21 @@
-use crate::repo::list_repos;
-use crate::repo::list_roles;
-use crate::yaml_parse::YValueLoader;
+use std::path::Path;
 
-use std::path::PathBuf;
+use crate::config::Config;
 
+mod config;
 mod repo;
 mod yaml_parse;
 
 fn main() {
-    let repo_dirs = list_repos(PathBuf::from("/home/yen3/carit"));
-    let role_dirs = list_roles(&repo_dirs);
-    println!("{:?}", repo_dirs);
-    println!("{:?}", role_dirs);
+    // let repo_dirs = list_repos(PathBuf::from("/home/yen3/carit"));
+    // let role_dirs = list_roles(&repo_dirs);
+    // println!("{:?}", repo_dirs);
+    // println!("{:?}", role_dirs);
+    //
+    // let docs = YValueLoader::load_from_str("test: [1, 2, 3]").unwrap();
+    // let doc = &docs[0]; // select the first YAML document
+    // println!("{:?}", doc);
 
-    let docs = YValueLoader::load_from_str("test: [1, 2, 3]").unwrap();
-    let doc = &docs[0]; // select the first YAML document
-    println!("{:?}", doc)
+    println!("{:?}", Config::read_config());
+    println!("{:?}", Config::read_config_path(Path::new("./config.yaml")));
 }
