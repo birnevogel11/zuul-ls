@@ -1,3 +1,4 @@
+pub mod job_playbooks;
 pub mod job_vars;
 pub mod jobs;
 pub mod path;
