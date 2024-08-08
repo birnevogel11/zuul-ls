@@ -4,12 +4,31 @@ use std::fs::File;
 use std::io::Write;
 
 use dashmap::DashMap;
-use tower_lsp::Client;
+use ropey::Rope;
+use tower_lsp::jsonrpc::Result;
+use tower_lsp::lsp_types::*;
+use tower_lsp::{Client, LanguageServer, LspService, Server};
 use zuul_parser::search::path::to_path;
 
 #[derive(Debug)]
 struct Backend {
     client: Client,
+    document_map: DashMap<String, Rope>,
+}
+
+#[tower_lsp::async_trait]
+impl LanguageServer for Backend {
+    async fn initialize(&self, _: InitializeParams) -> Result<InitializeResult> {
+        todo!()
+    }
+
+    async fn initialized(&self, _: InitializedParams) {
+        todo!()
+    }
+
+    async fn shutdown(&self) -> Result<()> {
+        Ok(())
+    }
 }
 
 fn init_logging() -> Option<env_logger::Builder> {
@@ -40,9 +59,18 @@ fn init_logging() -> Option<env_logger::Builder> {
     }
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let _ = init_logging();
 
     let stdin = tokio::io::stdin();
     let stdout = tokio::io::stdout();
+
+    let (service, socket) = LspService::build(|client| Backend {
+        client,
+        document_map: DashMap::new(),
+    })
+    .finish();
+
+    Server::new(stdin, stdout, socket).serve(service).await;
 }
