@@ -11,8 +11,6 @@ use crate::parser::common::ZuulParseError;
 use crate::parser::yaml::{YValue, YValueYaml};
 use crate::search::path::retrieve_repo_path;
 
-use super::yaml::YValueYaml;
-
 #[derive(Clone, PartialEq, PartialOrd, Debug, Eq, Ord, Hash)]
 pub enum VarValue {
     Null,
