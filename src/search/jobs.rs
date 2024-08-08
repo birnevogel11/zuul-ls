@@ -11,6 +11,7 @@ use petgraph::graph::{DiGraph, Graph, NodeIndex};
 use crate::parser::common::StringLoc;
 use crate::parser::zuul::job::{Job, VarTable, VarValue};
 use crate::parser::zuul::parse_zuul;
+use crate::safe_println;
 use crate::search::path::{get_repo_dirs, get_zuul_yaml_paths, shorten_path};
 
 #[derive(Clone, PartialEq, PartialOrd, Debug, Eq, Ord, Hash)]
@@ -256,7 +257,7 @@ fn append_playbooks(
 
 fn print_string_locs(locs: &[StringLoc]) {
     for loc in locs {
-        println!(
+        safe_println!(
             "{}\t{}\t{}\t{}",
             loc.value,
             shorten_path(&loc.path).display(),
@@ -309,7 +310,7 @@ fn show_playbooks(name: &str, pbs: &[PlaybookInfo]) {
         return;
     }
     for pb in pbs {
-        println!(
+        safe_println!(
             "{}\t{}\t{}",
             shorten_path(&pb.path).display(),
             name,
@@ -328,8 +329,6 @@ pub fn list_jobs_playbooks_cli(job_name: String, work_dir: &PathBuf, config_path
     show_playbooks("run", &jps.run);
     show_playbooks("post-run", &jps.post_run);
     show_playbooks("clean-run", &jps.clean_run);
-
-    // println!("{:#?}", &jps);
 }
 
 pub fn list_jobs_vars_cli(job_name: String, work_dir: &PathBuf, config_path: Option<PathBuf>) {
@@ -361,7 +360,7 @@ pub fn list_jobs_hierarchy_names_cli(
     let zuul_jobs = ZuulJobs::from_paths(&yaml_paths);
     let jobs = list_job_hierarchy_names(&job_name, &zuul_jobs);
 
-    print_string_locs(&jobs);
+    print_string_locs(&jobs)
 }
 
 pub fn list_jobs_from_cli(work_dir: &PathBuf, config_path: Option<PathBuf>) -> ZuulJobs {

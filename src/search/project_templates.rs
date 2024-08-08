@@ -3,6 +3,7 @@ use std::path::PathBuf;
 
 use crate::parser::zuul::parse_zuul;
 use crate::parser::zuul::project_template::ProjectTemplate;
+use crate::safe_println;
 use crate::search::path::{get_repo_dirs, get_zuul_yaml_paths, shorten_path};
 
 pub fn list_project_templates_from_cli(
@@ -19,7 +20,7 @@ pub fn list_project_templates(work_dir: &Path, config_path: Option<PathBuf>) {
 
     for pt in project_templates {
         let name = pt.name();
-        println!(
+        safe_println!(
             "{}\t{}\t{}\t{}",
             name.value,
             shorten_path(&name.path).display(),

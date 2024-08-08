@@ -12,6 +12,7 @@ path = "src/lib.rs"
 
 [dependencies]
 bimap = "0.6.3"
+calm_io = "0.1.1"
 clap = { version = "4.5.4", features = ["derive"] }
 dirs = "5.0.1"
 env_logger = "0.11.3"
