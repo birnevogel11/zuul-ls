@@ -15,7 +15,6 @@ bimap = "0.6.3"
 clap = { version = "4.5.4", features = ["derive"] }
 dirs = "5.0.1"
 env_logger = "0.11.3"
-glob = "0.3.1"
 hashlink = "0.8"
 log = "0.4.21"
 path-absolutize = "3.1.1"
@@ -23,7 +22,9 @@ pathdiff = "0.2.1"
 petgraph = "0.6.5"
 phf = { version = "0.11.2", features = ["macros"] }
 shellexpand = "3.1.0"
+walkdir = "2.5.0"
 yaml-rust2 = "0.8.0"
+
 # chumsky = "0.8.0"
 # env_logger = "0.9.0"
 # ropey = "1.5.0"

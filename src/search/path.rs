@@ -2,8 +2,8 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::rc::Rc;
 
-use glob::glob;
 use path_absolutize::*;
+use walkdir::WalkDir;
 
 use crate::config::{get_config, Config};
 
@@ -122,12 +122,10 @@ fn find_tenant_dirs(
 }
 
 fn list_zuul_yaml_paths(repo_dir: &Path) -> Vec<Rc<PathBuf>> {
-    match glob(repo_dir.join("zuul.d/*.yaml").to_str().unwrap()) {
-        Ok(xs) => xs
-            .into_iter()
-            .map_while(|x| x.ok())
-            .map(Rc::new)
-            .collect::<Vec<_>>(),
-        _ => Vec::new(),
-    }
+    WalkDir::new(repo_dir.join("zuul.d"))
+        .into_iter()
+        .filter_map(|e| e.ok())
+        .filter(|x| x.file_name().to_str().unwrap().ends_with(".yaml"))
+        .map(|x| Rc::new(x.into_path()))
+        .collect()
 }
