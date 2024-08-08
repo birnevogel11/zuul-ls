@@ -5,6 +5,7 @@ use tower_lsp::lsp_types::*;
 use tower_lsp::{Client, LanguageServer, LspService};
 
 use super::auto_complete::complete_items;
+use super::auto_complete::get_trigger_char;
 use super::cache::AutoCompleteTokenCache;
 use super::go_to_definition::get_definition_list;
 use super::symbols::ZuulSymbol;

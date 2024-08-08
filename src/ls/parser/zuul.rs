@@ -52,7 +52,7 @@ fn parse_project_token(
 
     if key_stack[2] == "jobs" {
         if (key_stack.len() == 4 && key_stack[3] == ARRAY_INDEX_KEY)
-            || (key_stack.len() >= 5 && key_stack[4] == "dependencies")
+            || (key_stack.len() >= 6 && key_stack[5] == "dependencies")
         {
             return Some(AutoCompleteToken::new(
                 find_name_token(content, position)?,

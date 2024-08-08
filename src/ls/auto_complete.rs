@@ -2,16 +2,20 @@ use std::path::Path;
 use std::path::PathBuf;
 
 use ropey::Rope;
-use tower_lsp::lsp_types::{CompletionResponse, Position};
+use tower_lsp::lsp_types::{
+    CompletionContext, CompletionResponse, CompletionTriggerKind, Position,
+};
 
 use crate::ls::symbols::ZuulSymbol;
 
 use super::parser::AutoCompleteToken;
 
-#[derive(Clone, PartialEq, PartialOrd, Debug, Eq, Ord, Default)]
-struct AutoCompleteTokenCache {
-    path: PathBuf,
-    position: Position,
+pub fn get_trigger_char(context: Option<CompletionContext>) -> Option<String> {
+    let context = context?;
+    if context.trigger_kind == CompletionTriggerKind::TRIGGER_CHARACTER {
+        return context.trigger_character.clone();
+    }
+    None
 }
 
 pub fn complete_items(
