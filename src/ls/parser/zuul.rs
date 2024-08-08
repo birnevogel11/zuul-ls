@@ -3,85 +3,87 @@ use tower_lsp::lsp_types::Position;
 
 use super::word::find_name_word;
 use super::WordType;
-use crate::parser::yaml::load_yvalue_from_str;
-use crate::parser::yaml::YValue;
-use crate::parser::yaml::YValueYaml;
+use yaml_rust2::yaml::Yaml;
+use yaml_rust2::yaml::YamlLoader;
 
-fn is_in_loc(value: &YValue, line: usize, col: usize) -> bool {
-    match value.as_str() {
-        Some(s) => value.line() == line && col >= value.col() && col < value.col() + s.len(),
-        None => false,
-    }
-}
+const SEARCH_PATTERN: &str = "SeRpAt";
 
-fn retrieve_value_key_stack(
-    value: &YValue,
-    line: usize,
-    col: usize,
-    keys: &mut Vec<String>,
-) -> bool {
-    match value.value() {
-        YValueYaml::String(_) => is_in_loc(value, line, col),
-        YValueYaml::Array(xs) => {
+fn retrieve_value_key_stack(value: &Yaml, keys: &mut Vec<String>) -> bool {
+    match value {
+        Yaml::String(s) => s.contains(SEARCH_PATTERN),
+        Yaml::Array(xs) => {
             for x in xs {
-                if retrieve_value_key_stack(x, line, col, keys) {
+                if retrieve_value_key_stack(x, keys) {
                     return true; // TODO: fix it
                 }
             }
             false
         }
-        YValueYaml::Hash(xs) => {
+        Yaml::Hash(xs) => {
             for (k, v) in xs {
                 let key_name = k.as_str();
                 if key_name.is_none() {
                     return false;
                 }
-                if is_in_loc(k, line, col) {
+                if key_name.unwrap().contains(SEARCH_PATTERN) {
                     return true;
                 }
                 keys.push(key_name.unwrap().to_string());
-                if retrieve_value_key_stack(v, line, col, keys) {
+                if retrieve_value_key_stack(v, keys) {
                     return true;
                 }
             }
             false
         }
-        YValueYaml::Real(_)
-        | YValueYaml::Integer(_)
-        | YValueYaml::Boolean(_)
-        | YValueYaml::Alias(_)
-        | YValueYaml::Null
-        | YValueYaml::BadValue => false,
+        Yaml::Real(_)
+        | Yaml::Integer(_)
+        | Yaml::Boolean(_)
+        | Yaml::Alias(_)
+        | Yaml::Null
+        | Yaml::BadValue => false,
     }
 }
 
-// FIXME: try to handle multiline string
+fn insert_search_word(content: &Rope, line: usize, col: usize) -> Rope {
+    let cidx = content.line_to_char(line) + col;
+    let mut new_content = content.clone();
+    new_content.insert(cidx, SEARCH_PATTERN);
+
+    new_content
+}
+
 pub fn retrieve_key_stack(content: &Rope, line: usize, col: usize) -> Option<Vec<String>> {
-    let content = content.to_string();
-    let docs = load_yvalue_from_str(&content).ok()?;
+    let search_rope = insert_search_word(content, line, col);
+    let content = search_rope.to_string();
+    let docs = YamlLoader::load_from_str(&content).ok()?;
     for doc in docs {
         let zuul_config_units = doc.as_vec()?;
         for zuul_config_unit in zuul_config_units {
             let mut key_stack: Vec<String> = Vec::new();
 
+            // Each zuul config item only contains one key (e.g. job)
             let raw_zuul_name = zuul_config_unit.as_hash()?;
             if raw_zuul_name.keys().len() != 1 {
                 return None;
             }
-            let zuul_name = *raw_zuul_name.keys().collect::<Vec<_>>().first().unwrap();
-            if zuul_name.line() == line {
+
+            // Get the key (e.g. job)
+            let zuul = *raw_zuul_name.keys().collect::<Vec<_>>().first()?;
+            let zuul_name = zuul.as_str()?;
+            if zuul_name.contains(SEARCH_PATTERN) {
                 return Some(key_stack);
             }
-            key_stack.push(zuul_name.as_str()?.to_string());
+            key_stack.push(zuul_name.to_string());
 
-            let zuul_config = raw_zuul_name.get(zuul_name).unwrap().as_hash()?;
+            // Traverse all attributes and values of this zuul config
+            let zuul_config = raw_zuul_name.get(zuul).unwrap().as_hash()?;
             for (key, value) in zuul_config {
-                if is_in_loc(key, line, col) {
+                if key.as_str()?.contains(SEARCH_PATTERN) {
                     return Some(key_stack);
                 }
 
                 let mut value_stack = Vec::new();
-                if retrieve_value_key_stack(value, line, col, &mut value_stack) {
+                if retrieve_value_key_stack(value, &mut value_stack) {
                     key_stack.push(key.as_str()?.to_string());
                     key_stack.extend(value_stack);
                     return Some(key_stack);
