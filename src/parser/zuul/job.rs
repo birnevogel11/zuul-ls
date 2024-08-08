@@ -30,9 +30,9 @@ fn parse_value(
 ) -> Result<VarValue, ZuulParseError> {
     Ok(match value.value() {
         YValueYaml::Real(v) => VarValue::Real(v.clone()),
-        YValueYaml::Integer(v) => VarValue::Integer(v.clone()),
+        YValueYaml::Integer(v) => VarValue::Integer(*v),
         YValueYaml::String(v) => VarValue::String(v.clone()),
-        YValueYaml::Boolean(v) => VarValue::Boolean(v.clone()),
+        YValueYaml::Boolean(v) => VarValue::Boolean(*v),
         YValueYaml::Array(vs) => {
             let mut xs = Vec::new();
             for v in vs {
@@ -89,7 +89,7 @@ pub struct Job {
     run_playbooks: Vec<(StringLoc, PathBuf)>,
     post_run_playbooks: Vec<(StringLoc, PathBuf)>,
     clean_run_playbooks: Vec<(StringLoc, PathBuf)>,
-    variables: VarTable,
+    vars: VarTable,
 }
 
 impl Job {
@@ -99,6 +99,10 @@ impl Job {
 
     pub fn parent(&self) -> &Option<StringLoc> {
         &self.parent
+    }
+
+    pub fn vars(&self) -> &VarTable {
+        &self.vars
     }
 
     fn parse_playbook_list_item(
@@ -173,7 +177,7 @@ impl ZuulParse<Job> for Job {
         let mut run_playbooks: Vec<(StringLoc, PathBuf)> = Vec::new();
         let mut post_run_playbooks: Vec<(StringLoc, PathBuf)> = Vec::new();
         let mut clean_run_playbooks: Vec<(StringLoc, PathBuf)> = Vec::new();
-        let mut variables: VarTable = VarTable::new();
+        let mut vars: VarTable = VarTable::new();
 
         for (key, value) in xs {
             match key.as_str() {
@@ -200,7 +204,7 @@ impl ZuulParse<Job> for Job {
                         clean_run_playbooks = Job::parse_playbooks(value, path, "clean-run")?;
                     }
                     "vars" => {
-                        variables = parse_variables(value, path, "vars")?;
+                        vars = parse_variables(value, path, "vars")?;
                     }
                     "roles" => todo!(),
                     _ => {}
@@ -219,7 +223,7 @@ impl ZuulParse<Job> for Job {
             run_playbooks,
             post_run_playbooks,
             clean_run_playbooks,
-            variables,
+            vars,
         })
     }
 }

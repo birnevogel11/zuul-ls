@@ -9,7 +9,7 @@ use petgraph::algo::{toposort, DfsSpace};
 use petgraph::graph::{DiGraph, Graph, NodeIndex};
 
 use crate::parser::common::StringLoc;
-use crate::parser::zuul::job::Job;
+use crate::parser::zuul::job::{Job, VarTable, VarValue};
 use crate::parser::zuul::parse_zuul;
 use crate::search::path::{get_repo_dirs, get_zuul_yaml_paths};
 
@@ -162,6 +162,67 @@ impl ZuulJobs {
 
         hs
     }
+}
+
+pub struct VariableInfo {
+    pub name: StringLoc,
+    pub job_name: Rc<StringLoc>,
+    pub value: String,
+}
+
+fn collect_variables(
+    name_prefix: &str,
+    job_vars: &VarTable,
+    job_name: &Rc<StringLoc>,
+) -> LinkedHashMap<String, VariableInfo> {
+    let mut vs = LinkedHashMap::new();
+
+    for (job_var, value) in job_vars {
+        let mut var_name = name_prefix.to_string();
+        if !var_name.is_empty() {
+            var_name.push('.');
+        }
+        var_name.push_str(&job_var.value);
+
+        if !vs.contains_key(&var_name) {
+            match value {
+                VarValue::Hash(value) => {
+                    let nested_vs = collect_variables(&var_name, value, job_name)
+                        .into_iter()
+                        .filter(|(x, _)| !vs.contains_key(x))
+                        .collect::<LinkedHashMap<_, _>>();
+                    vs.extend(nested_vs.into_iter());
+                }
+                _ => {
+                    vs.insert(
+                        var_name,
+                        VariableInfo {
+                            name: job_var.clone(),
+                            job_name: job_name.clone(),
+                            value: format!("{:?}", value),
+                        },
+                    );
+                }
+            }
+        }
+    }
+    vs
+}
+
+pub fn list_job_variables(name: &str, zuul_jobs: &ZuulJobs) -> LinkedHashMap<String, VariableInfo> {
+    let jobs = zuul_jobs.get_job_hierarchy(name);
+    let mut vs = LinkedHashMap::new();
+
+    for job in jobs {
+        let job_name = Rc::new(job.name().clone());
+        let ys = collect_variables("", job.vars(), &job_name)
+            .into_iter()
+            .filter(|(x, _)| !vs.contains_key(x))
+            .collect::<LinkedHashMap<_, _>>();
+        vs.extend(ys.into_iter());
+    }
+
+    vs
 }
 
 pub fn list_job_hierarchy_names(name: &str, zuul_jobs: &ZuulJobs) -> Vec<StringLoc> {
