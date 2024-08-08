@@ -3,7 +3,7 @@ use std::rc::Rc;
 
 use hashlink::LinkedHashMap;
 
-use crate::parser::yaml::YValue;
+use crate::parser::yaml::{YValue, YValueYaml};
 
 pub trait ZuulParse<T> {
     fn parse(xs: &LinkedHashMap<YValue, YValue>, path: &Rc<PathBuf>) -> Result<T, ZuulParseError>;
@@ -78,6 +78,17 @@ pub fn parse_string_value(
             value,
             path,
         )),
+    }
+}
+
+pub fn parse_optional_string_value(
+    value: &YValue,
+    path: &Rc<PathBuf>,
+    field_name: &str,
+) -> Result<Option<StringLoc>, ZuulParseError> {
+    match value.value() {
+        YValueYaml::Null => Ok(None),
+        _ => Ok(Some(parse_string_value(value, path, field_name)?)),
     }
 }
 

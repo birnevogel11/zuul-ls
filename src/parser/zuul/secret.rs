@@ -3,8 +3,7 @@ use std::rc::Rc;
 
 use hashlink::LinkedHashMap;
 
-use crate::parser::common::parse_string_value;
-use crate::parser::common::{StringLoc, ZuulParse, ZuulParseError};
+use crate::parser::common::{parse_string_value, StringLoc, ZuulParse, ZuulParseError};
 use crate::parser::yaml::YValue;
 
 #[derive(Clone, PartialEq, PartialOrd, Debug, Eq, Ord, Hash, Default)]

@@ -3,10 +3,9 @@ use std::rc::Rc;
 
 use hashlink::LinkedHashMap;
 
-use crate::parser::common::parse_string_value;
-use crate::parser::common::StringLoc;
-use crate::parser::common::ZuulParse;
-use crate::parser::common::ZuulParseError;
+use crate::parser::common::{
+    parse_optional_string_value, parse_string_value, StringLoc, ZuulParse, ZuulParseError,
+};
 use crate::parser::yaml::{YValue, YValueYaml};
 use crate::search::path::retrieve_repo_path;
 
@@ -223,10 +222,7 @@ impl ZuulParse<Job> for Job {
                         name = parse_string_value(value, path, "name")?;
                     }
                     "parent" => {
-                        parent = match value.value() {
-                            YValueYaml::Null => None,
-                            _ => Some(parse_string_value(value, path, "parent")?),
-                        };
+                        parent = parse_optional_string_value(value, path, "parent")?;
                     }
                     "description" => {
                         description = Some(parse_string_value(value, path, "description")?);

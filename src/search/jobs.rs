@@ -11,15 +11,8 @@ use petgraph::graph::{DiGraph, Graph, NodeIndex};
 use crate::parser::common::StringLoc;
 use crate::parser::zuul::job::Job;
 use crate::parser::zuul::parse_zuul;
-use crate::safe_println;
-use crate::search::path::{get_repo_dirs, get_zuul_yaml_paths, shorten_path};
-
-#[derive(Clone, PartialEq, PartialOrd, Debug, Eq, Ord, Hash)]
-pub struct VariableInfo {
-    pub name: StringLoc,
-    pub job_name: Rc<StringLoc>,
-    pub value: String,
-}
+use crate::search::path::{get_repo_dirs, get_zuul_yaml_paths};
+use crate::search::report_print::print_string_locs;
 
 #[derive(Clone, PartialEq, PartialOrd, Debug, Eq, Ord, Hash)]
 pub struct ZuulJobs {
@@ -189,49 +182,18 @@ impl ZuulJobs {
     }
 }
 
-fn print_string_locs(locs: &[StringLoc]) {
-    for loc in locs {
-        safe_println!(
-            "{}\t{}\t{}\t{}",
-            loc.value,
-            shorten_path(&loc.path).display(),
-            loc.line,
-            loc.col
-        );
-    }
-}
-
-pub fn list_job_hierarchy_names(name: &str, zuul_jobs: &ZuulJobs) -> Vec<StringLoc> {
-    zuul_jobs
-        .get_job_hierarchy(name)
-        .iter()
-        .map(|x| x.name().clone())
-        .collect()
-}
-
-pub fn print_var_info_list(vars: Vec<VariableInfo>) {
-    for var_info in vars {
-        println!(
-            "{}\t{}\t{}\t{}\t{}\t{}",
-            var_info.name.value,
-            var_info.job_name.value,
-            var_info.value,
-            shorten_path(&var_info.name.path).display(),
-            var_info.name.line,
-            var_info.name.col,
-        )
-    }
-}
-
 pub fn list_jobs_hierarchy_names_cli(
     job_name: String,
     work_dir: &Path,
     config_path: Option<PathBuf>,
 ) {
-    let zuul_jobs = ZuulJobs::from_raw_input(work_dir, config_path);
-    let jobs = list_job_hierarchy_names(&job_name, &zuul_jobs);
+    let job_names = ZuulJobs::from_raw_input(work_dir, config_path)
+        .get_job_hierarchy(&job_name)
+        .iter()
+        .map(|x| x.name().clone())
+        .collect::<Vec<_>>();
 
-    print_string_locs(&jobs)
+    print_string_locs(&job_names)
 }
 
 pub fn list_jobs(work_dir: &Path, config_path: Option<PathBuf>) -> ZuulJobs {

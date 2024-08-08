@@ -5,7 +5,15 @@ use hashlink::LinkedHashMap;
 
 use crate::parser::common::StringLoc;
 use crate::parser::zuul::job::{VarTable, VarValue};
-use crate::search::jobs::{print_var_info_list, VariableInfo, ZuulJobs};
+use crate::search::jobs::ZuulJobs;
+use crate::search::report_print::print_var_info_list;
+
+#[derive(Clone, PartialEq, PartialOrd, Debug, Eq, Ord, Hash)]
+pub struct VariableInfo {
+    pub name: StringLoc,
+    pub job_name: Rc<StringLoc>,
+    pub value: String,
+}
 
 fn collect_variables(
     name_prefix: &str,
