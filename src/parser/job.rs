@@ -4,8 +4,7 @@ use std::rc::Rc;
 
 use hashlink::LinkedHashMap;
 
-use crate::parser::yaml::load_yvalue;
-use crate::parser::yaml::YValue;
+use crate::parser::yaml::{load_yvalue, YValue, YValueYaml};
 
 #[derive(Clone, PartialEq, PartialOrd, Debug, Eq, Ord, Hash, Default)]
 pub struct ZuulParseError {
@@ -18,13 +17,12 @@ pub struct ZuulParseError {
 
 impl ZuulParseError {
     pub fn from(msg: &str, value: &YValue, path: &Rc<PathBuf>) -> ZuulParseError {
-        let (line, col) = value.get_loc();
         ZuulParseError {
             msg: msg.to_string(),
             value: format!("{:?}", value),
             path: path.to_str().unwrap().to_string(),
-            line,
-            col,
+            line: value.line(),
+            col: value.col(),
         }
     }
 }
@@ -37,7 +35,7 @@ enum ZuulParseType {
 impl ZuulParseType {
     pub fn determine(xs: &LinkedHashMap<YValue, YValue>) -> Option<ZuulParseType> {
         for (key, _) in xs {
-            if let YValue::String(key, _) = key {
+            if let YValueYaml::String(key) = key.value() {
                 if key == "job" {
                     return Some(ZuulParseType::Job);
                 }
@@ -58,13 +56,11 @@ pub struct StringLoc {
 
 impl StringLoc {
     pub fn from(value: &YValue, path: &Rc<PathBuf>) -> StringLoc {
-        let (line, col) = value.get_loc();
-
         StringLoc {
             value: value.as_str().unwrap().to_string(),
             path: path.clone(),
-            line,
-            col,
+            line: value.line(),
+            col: value.col(),
         }
     }
 }
@@ -129,7 +125,7 @@ pub enum ZuulConfigElement {
 
 impl ZuulConfigElement {
     pub fn parse(raw_config: &YValue, path: &Rc<PathBuf>) -> Option<ZuulConfigElement> {
-        if let YValue::Hash(xs, _) = raw_config {
+        if let YValueYaml::Hash(xs) = raw_config.value() {
             match ZuulParseType::determine(xs) {
                 Some(p) => match p {
                     ZuulParseType::Job => {
@@ -146,7 +142,7 @@ impl ZuulConfigElement {
 }
 
 fn parse_doc(doc: &YValue, path: &Rc<PathBuf>) -> Vec<ZuulConfigElement> {
-    if let YValue::Array(xs, _) = doc {
+    if let YValueYaml::Array(xs) = doc.value() {
         xs.iter()
             .map_while(|x| ZuulConfigElement::parse(x, path))
             .collect()

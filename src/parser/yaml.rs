@@ -12,31 +12,6 @@ pub type Array = Vec<YValue>;
 /// The type contained in the `Yaml::Hash` variant. This corresponds to YAML mappings.
 pub type Hash = LinkedHashMap<YValue, YValue>;
 
-#[derive(Clone, PartialEq, PartialOrd, Debug, Eq, Ord, Hash)]
-pub struct Loc {
-    index: usize,
-    line: usize,
-    col: usize,
-}
-
-impl Loc {
-    pub fn new(mark: &Marker) -> Loc {
-        Loc {
-            index: mark.index(),
-            line: mark.line(),
-            col: mark.col(),
-        }
-    }
-
-    pub fn line(&self) -> usize {
-        self.line
-    }
-
-    pub fn col(&self) -> usize {
-        self.col
-    }
-}
-
 // parse f64 as Core schema
 // See: https://github.com/chyh1990/yaml-rust/issues/51
 fn parse_f64(v: &str) -> Option<f64> {
@@ -49,101 +24,119 @@ fn parse_f64(v: &str) -> Option<f64> {
 }
 
 #[derive(Clone, PartialEq, PartialOrd, Debug, Eq, Ord, Hash)]
-pub enum YValue {
+pub struct Loc {
+    line: usize,
+    col: usize,
+}
+
+impl Loc {
+    pub fn new(mark: &Marker) -> Loc {
+        Loc {
+            line: mark.line(),
+            col: mark.col(),
+        }
+    }
+}
+
+#[derive(Clone, PartialEq, PartialOrd, Debug, Eq, Ord, Hash)]
+pub struct YValue {
+    value: YValueYaml,
+    loc: Loc,
+}
+
+#[derive(Clone, PartialEq, PartialOrd, Debug, Eq, Ord, Hash)]
+pub enum YValueYaml {
     /// Float types are stored as String and parsed on demand.
     /// Note that `f64` does NOT implement Eq trait and can NOT be stored in `BTreeMap`.
-    Real(String, Loc),
+    Real(String),
     /// YAML int is stored as i64.
-    Integer(i64, Loc),
+    Integer(i64),
     /// YAML scalar.
-    String(String, Loc),
+    String(String),
     /// YAML bool, e.g. `true` or `false`.
-    Boolean(bool, Loc),
+    Boolean(bool),
     /// YAML array, can be accessed as a `Vec`.
-    Array(Array, Loc),
+    Array(Array),
     /// YAML hash, can be accessed as a `LinkedHashMap`.
     ///
     /// Insertion order will match the order of insertion into the map.
-    Hash(Hash, Loc),
+    Hash(Hash),
     /// Alias, not fully supported yet.
-    Alias(usize, Loc),
+    Alias(usize),
     /// YAML null, e.g. `null` or `~`.
-    Null(Loc),
+    Null,
     /// Accessing a nonexistent node via the Index trait returns `BadValue`. This
     /// simplifies error handling in the calling code. Invalid type conversion also
     /// returns `BadValue`.
-    BadValue(Loc),
+    BadValue,
 }
 
 impl YValue {
+    pub fn new(value: YValueYaml, mark: &Marker) -> YValue {
+        YValue {
+            value,
+            loc: Loc::new(mark),
+        }
+    }
+
+    pub fn value(&self) -> &YValueYaml {
+        &self.value
+    }
+
+    pub fn loc(&self) -> &Loc {
+        &self.loc
+    }
+
+    pub fn line(&self) -> usize {
+        self.loc.line
+    }
+
+    pub fn col(&self) -> usize {
+        self.loc.col
+    }
+
     /// Return whether `self` is a [`Yaml::BadValue`] node.
     #[must_use]
     pub fn is_badvalue(&self) -> bool {
-        matches!(*self, YValue::BadValue(_))
+        matches!(self.value, YValueYaml::BadValue)
     }
 
     #[must_use]
     pub fn from_str(v: &str, mark: &Marker) -> YValue {
         if let Some(number) = v.strip_prefix("0x") {
             if let Ok(i) = i64::from_str_radix(number, 16) {
-                return YValue::Integer(i, Loc::new(mark));
+                return YValue::new(YValueYaml::Integer(i), mark);
             }
         } else if let Some(number) = v.strip_prefix("0o") {
             if let Ok(i) = i64::from_str_radix(number, 8) {
-                return YValue::Integer(i, Loc::new(mark));
+                return YValue::new(YValueYaml::Integer(i), mark);
             }
         } else if let Some(number) = v.strip_prefix('+') {
             if let Ok(i) = number.parse::<i64>() {
-                return YValue::Integer(i, Loc::new(mark));
+                return YValue::new(YValueYaml::Integer(i), mark);
             }
         }
         match v {
-            "~" | "null" => YValue::Null(Loc::new(mark)),
-            "true" => YValue::Boolean(true, Loc::new(mark)),
-            "false" => YValue::Boolean(false, Loc::new(mark)),
+            "~" | "null" => YValue::new(YValueYaml::Null, mark),
+            "true" => YValue::new(YValueYaml::Boolean(true), mark),
+            "false" => YValue::new(YValueYaml::Boolean(false), mark),
             _ => {
                 if let Ok(integer) = v.parse::<i64>() {
-                    YValue::Integer(integer, Loc::new(mark))
+                    YValue::new(YValueYaml::Integer(integer), mark)
                 } else if parse_f64(v).is_some() {
-                    YValue::Real(v.to_owned(), Loc::new(mark))
+                    YValue::new(YValueYaml::Real(v.to_owned()), mark)
                 } else {
-                    YValue::String(v.to_owned(), Loc::new(mark))
+                    YValue::new(YValueYaml::String(v.to_owned()), mark)
                 }
             }
         }
     }
 
-    pub fn get_loc(&self) -> (usize, usize) {
-        match self {
-            YValue::Real(_, loc) => (loc.line(), loc.col()),
-            YValue::Integer(_, loc) => (loc.line(), loc.col()),
-            YValue::String(_, loc) => (loc.line(), loc.col()),
-            YValue::Boolean(_, loc) => (loc.line(), loc.col()),
-            YValue::Array(_, loc) => (loc.line(), loc.col()),
-            YValue::Hash(_, loc) => (loc.line(), loc.col()),
-            YValue::Alias(_, loc) => (loc.line(), loc.col()),
-            YValue::Null(loc) => (loc.line(), loc.col()),
-            YValue::BadValue(loc) => (loc.line(), loc.col()),
-        }
-    }
-
-    pub fn get_line(&self) -> usize {
-        self.get_loc().0
-    }
-
-    pub fn get_col(&self) -> usize {
-        self.get_loc().1
-    }
-
     pub fn as_str(&self) -> Option<&String> {
-        match self {
-            YValue::String(x, _) => Some(x),
+        match self.value {
+            YValueYaml::String(ref x) => Some(x),
             _ => None,
         }
-    }
-
-    pub fn is_str(&self) -> bool {
-        matches!(self, YValue::String(_, _))
     }
 }
 
@@ -183,14 +176,14 @@ impl YValueLoader {
             Event::DocumentEnd => {
                 match self.doc_stack.len() {
                     // empty document
-                    0 => self.docs.push(YValue::BadValue(Loc::new(&mark))),
+                    0 => self.docs.push(YValue::new(YValueYaml::BadValue, &mark)),
                     1 => self.docs.push(self.doc_stack.pop().unwrap().0),
                     _ => unreachable!(),
                 }
             }
             Event::SequenceStart(aid, _) => {
                 self.doc_stack
-                    .push((YValue::Array(Vec::new(), Loc::new(&mark)), aid));
+                    .push((YValue::new(YValueYaml::Array(Vec::new()), &mark), aid));
             }
             Event::SequenceEnd => {
                 let node = self.doc_stack.pop().unwrap();
@@ -198,8 +191,9 @@ impl YValueLoader {
             }
             Event::MappingStart(aid, _) => {
                 self.doc_stack
-                    .push((YValue::Hash(Hash::new(), Loc::new(&mark)), aid));
-                self.key_stack.push(YValue::BadValue(Loc::new(&mark)));
+                    .push((YValue::new(YValueYaml::Hash(Hash::new()), &mark), aid));
+                self.key_stack
+                    .push(YValue::new(YValueYaml::BadValue, &mark));
             }
             Event::MappingEnd => {
                 self.key_stack.pop().unwrap();
@@ -208,7 +202,7 @@ impl YValueLoader {
             }
             Event::Scalar(v, style, aid, tag) => {
                 let node = if style != TScalarStyle::Plain {
-                    YValue::String(v, Loc::new(&mark))
+                    YValue::new(YValueYaml::String(v), &mark)
                 } else if let Some(Tag {
                     ref handle,
                     ref suffix,
@@ -219,26 +213,26 @@ impl YValueLoader {
                             "bool" => {
                                 // "true" or "false"
                                 match v.parse::<bool>() {
-                                    Err(_) => YValue::BadValue(Loc::new(&mark)),
-                                    Ok(v) => YValue::Boolean(v, Loc::new(&mark)),
+                                    Err(_) => YValue::new(YValueYaml::BadValue, &mark),
+                                    Ok(v) => YValue::new(YValueYaml::Boolean(v), &mark),
                                 }
                             }
                             "int" => match v.parse::<i64>() {
-                                Err(_) => YValue::BadValue(Loc::new(&mark)),
-                                Ok(v) => YValue::Integer(v, Loc::new(&mark)),
+                                Err(_) => YValue::new(YValueYaml::BadValue, &mark),
+                                Ok(v) => YValue::new(YValueYaml::Integer(v), &mark),
                             },
                             "float" => match parse_f64(&v) {
-                                Some(_) => YValue::Real(v, Loc::new(&mark)),
-                                None => YValue::BadValue(Loc::new(&mark)),
+                                Some(_) => YValue::new(YValueYaml::Real(v), &mark),
+                                None => YValue::new(YValueYaml::BadValue, &mark),
                             },
                             "null" => match v.as_ref() {
-                                "~" | "null" => YValue::Null(Loc::new(&mark)),
-                                _ => YValue::BadValue(Loc::new(&mark)),
+                                "~" | "null" => YValue::new(YValueYaml::Null, &mark),
+                                _ => YValue::new(YValueYaml::BadValue, &mark),
                             },
-                            _ => YValue::String(v, Loc::new(&mark)),
+                            _ => YValue::new(YValueYaml::String(v), &mark),
                         }
                     } else {
-                        YValue::String(v, Loc::new(&mark))
+                        YValue::new(YValueYaml::String(v), &mark)
                     }
                 } else {
                     // Datatype is not specified, or unrecognized
@@ -249,6 +243,7 @@ impl YValueLoader {
             }
             _ => unreachable!(),
         }
+
         Ok(())
     }
 
@@ -260,17 +255,17 @@ impl YValueLoader {
         if self.doc_stack.is_empty() {
             self.doc_stack.push(node);
         } else {
-            let parent = self.doc_stack.last_mut().unwrap();
-            match *parent {
-                (YValue::Array(ref mut v, _), _) => v.push(node.0),
-                (YValue::Hash(ref mut h, _), _) => {
+            let parent = &mut self.doc_stack.last_mut().unwrap().0;
+            match parent.value {
+                YValueYaml::Array(ref mut v) => v.push(node.0),
+                YValueYaml::Hash(ref mut h) => {
                     let cur_key = self.key_stack.last_mut().unwrap();
                     // current node is a key
                     if cur_key.is_badvalue() {
                         *cur_key = node.0;
                     // current node is a value
                     } else {
-                        let mut newkey = YValue::BadValue(Loc::new(&mark));
+                        let mut newkey = YValue::new(YValueYaml::BadValue, &mark);
                         mem::swap(&mut newkey, cur_key);
                         if h.insert(newkey, node.0).is_some() {
                             let inserted_key = h.back().unwrap().0;
