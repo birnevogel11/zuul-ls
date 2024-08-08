@@ -1,0 +1,7 @@
+default_tenant: "node0"
+
+tenant:
+  node0:
+    base_dir: "~/carit/node0"
+    extra_roles_dir:
+      - "~/carit/codecraft/cilibs"
