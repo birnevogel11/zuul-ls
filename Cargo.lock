@@ -735,7 +735,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "zuul-static-parser-study"
+name = "zuul-search"
 version = "0.1.0"
 dependencies = [
  "bimap",

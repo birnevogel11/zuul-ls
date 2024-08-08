@@ -2,7 +2,7 @@
 
 set -Eeuo pipefail
 
-readonly ZS_PROGRAM="${HOME}/Trek/zuul-static-parser-study/target/debug/zuul-static-parser-study"
+readonly ZS_PROGRAM="${HOME}/Trek/zuul-search/target/debug/zuul-search"
 
 zs-job() {
   local -r result=$(${ZS_PROGRAM} jobs | \
