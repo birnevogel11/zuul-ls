@@ -4,3 +4,10 @@
     vars:
       var1: "123"
       var2: "456"
+
+- job:
+    name: repo3_child_job
+    parent: repo2_base_job
+    vars:
+      var1: "123"
+      var2: "456"

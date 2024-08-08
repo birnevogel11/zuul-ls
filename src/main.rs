@@ -2,8 +2,8 @@ use std::path::PathBuf;
 
 use clap::Parser;
 
-use zuul_parser::search::roles;
 use zuul_parser::search::jobs;
+use zuul_parser::search::roles;
 
 #[derive(Parser)]
 #[command(name = "zuul-search")]
@@ -11,6 +11,7 @@ use zuul_parser::search::jobs;
 enum ZuulSearchCli {
     Roles(ZuulSearchCliRolesArgs),
     Jobs(ZuulSearchCliJobArgs),
+    ListJobHierarchy(ZuulSearchCliJobHierarchyArgs),
 }
 
 #[derive(clap::Args)]
@@ -33,6 +34,18 @@ struct ZuulSearchCliJobArgs {
     config_path: Option<PathBuf>,
 }
 
+#[derive(clap::Args)]
+#[command(version, about, long_about = "Search jobs")]
+struct ZuulSearchCliJobHierarchyArgs {
+    #[arg(long)]
+    work_dir: Option<PathBuf>,
+
+    #[arg(long)]
+    config_path: Option<PathBuf>,
+
+    name: String,
+}
+
 fn main() {
     let args = ZuulSearchCli::parse();
 
@@ -42,6 +55,9 @@ fn main() {
         }
         ZuulSearchCli::Jobs(args) => {
             jobs::list_jobs_cli(args.work_dir, args.config_path);
+        }
+        ZuulSearchCli::ListJobHierarchy(args) => {
+            jobs::list_jobs_hierarchy_names_cli(args.name, args.work_dir, args.config_path);
         }
     };
 }

@@ -127,14 +127,21 @@ impl ZuulJobs {
             collect_names.insert(name);
 
             for job in parent_jobs {
-                let new_name = &job.name().value;
-                if !collect_names.contains(new_name) {
-                    search_names.push_back(new_name.clone());
+                if let Some(parent) = &job.parent() {
+                    let new_name = parent.value.clone();
+                    println!("{:?}", new_name);
+
+                    if jobs.contains_key(&new_name) && !collect_names.contains(&new_name) {
+                        search_names.push_back(new_name.clone());
+                    }
                 }
             }
         }
 
-        collect_names.into_iter().collect()
+        let keys: Vec<_> = jobs.keys().collect();
+        let ys = collect_names.into_iter().collect();
+        println!("job_names: {:?}, jobs: {:?}", &ys, &keys);
+        ys
     }
 
     fn gather_jobs_by_name(jobs: &Vec<Rc<Job>>) -> LinkedHashMap<String, Vec<Rc<Job>>> {
@@ -163,6 +170,18 @@ pub fn list_job_hierarchy_names(name: &str, zuul_jobs: &ZuulJobs) -> Vec<StringL
         .iter()
         .map(|x| x.name().clone())
         .collect()
+}
+
+pub fn list_jobs_hierarchy_names_cli(
+    job_name: String,
+    work_dir: Option<PathBuf>,
+    config_path: Option<PathBuf>,
+) {
+    let repo_dirs = get_repo_dirs(work_dir, config_path);
+    let yaml_paths = get_zuul_yaml_paths(&repo_dirs);
+    let zuul_jobs = ZuulJobs::from_paths(&yaml_paths);
+    let jobs = list_job_hierarchy_names(&job_name, &zuul_jobs);
+    println!("{:#?}", jobs);
 }
 
 pub fn list_jobs_from_cli(work_dir: Option<PathBuf>, config_path: Option<PathBuf>) -> ZuulJobs {

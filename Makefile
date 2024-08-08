@@ -8,4 +8,5 @@ sync-test-output:
 
 .PHONY: run
 run:
-	cargo run -- jobs --work-dir ./testdata/manual_cli/base/repo3_work/ --config-path ./testdata/manual_cli/config.yaml
+	# cargo run -- jobs --work-dir ./testdata/manual_cli/base/repo3_work/ --config-path ./testdata/manual_cli/config.yaml
+	cargo run -- list-job-hierarchy --work-dir ./testdata/manual_cli/base/repo3_work/ --config-path ./testdata/manual_cli/config.yaml repo3_child_job
