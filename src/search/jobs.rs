@@ -14,6 +14,28 @@ use crate::parser::zuul::parse_zuul;
 use crate::search::path::{get_repo_dirs, get_zuul_yaml_paths, shorten_path};
 
 #[derive(Clone, PartialEq, PartialOrd, Debug, Eq, Ord, Hash)]
+pub struct VariableInfo {
+    pub name: StringLoc,
+    pub job_name: Rc<StringLoc>,
+    pub value: String,
+}
+
+#[derive(Clone, PartialEq, Debug, Eq, Default)]
+pub struct PlaybookInfo {
+    name: StringLoc,
+    path: PathBuf,
+    job_name: Rc<String>,
+}
+
+#[derive(Clone, PartialEq, Debug, Eq, Default)]
+pub struct JobPlaybooks {
+    pre_run: Vec<PlaybookInfo>,
+    run: Vec<PlaybookInfo>,
+    post_run: Vec<PlaybookInfo>,
+    clean_run: Vec<PlaybookInfo>,
+}
+
+#[derive(Clone, PartialEq, PartialOrd, Debug, Eq, Ord, Hash)]
 pub struct ZuulJobs {
     jobs: Vec<Rc<Job>>,
     name_jobs: LinkedHashMap<String, Vec<Rc<Job>>>,
@@ -160,13 +182,6 @@ impl ZuulJobs {
     }
 }
 
-#[derive(Clone, PartialEq, PartialOrd, Debug, Eq, Ord, Hash)]
-pub struct VariableInfo {
-    pub name: StringLoc,
-    pub job_name: Rc<StringLoc>,
-    pub value: String,
-}
-
 fn collect_variables(
     name_prefix: &str,
     job_vars: &VarTable,
@@ -222,19 +237,33 @@ pub fn list_job_vars(name: &str, zuul_jobs: &ZuulJobs) -> LinkedHashMap<String, 
     vs
 }
 
-#[derive(Clone, PartialEq, Debug, Eq, Default)]
-pub struct PlaybookInfo {
-    name: StringLoc,
-    path: PathBuf,
-    job_name: Rc<String>,
+fn append_playbooks(
+    new_ps: &[(StringLoc, PathBuf)],
+    job_name: &Rc<String>,
+    ps: &mut Vec<PlaybookInfo>,
+) {
+    let mut new_ps = new_ps
+        .iter()
+        .map(|(name, path)| PlaybookInfo {
+            name: name.clone(),
+            path: path.clone(),
+            job_name: job_name.clone(),
+        })
+        .collect::<Vec<_>>();
+
+    ps.append(&mut new_ps);
 }
 
-#[derive(Clone, PartialEq, Debug, Eq, Default)]
-pub struct JobPlaybooks {
-    pre_run: Vec<PlaybookInfo>,
-    run: Vec<PlaybookInfo>,
-    post_run: Vec<PlaybookInfo>,
-    clean_run: Vec<PlaybookInfo>,
+fn print_string_locs(locs: &[StringLoc]) {
+    for loc in locs {
+        println!(
+            "{}\t{}\t{}\t{}",
+            loc.value,
+            shorten_path(&loc.path).display(),
+            loc.line,
+            loc.col
+        );
+    }
 }
 
 pub fn list_job_playbooks(name: &str, zuul_jobs: &ZuulJobs) -> JobPlaybooks {
@@ -267,41 +296,12 @@ pub fn list_job_playbooks(name: &str, zuul_jobs: &ZuulJobs) -> JobPlaybooks {
     jp
 }
 
-fn append_playbooks(
-    new_ps: &[(StringLoc, PathBuf)],
-    job_name: &Rc<String>,
-    ps: &mut Vec<PlaybookInfo>,
-) {
-    let mut new_ps = new_ps
-        .iter()
-        .map(|(name, path)| PlaybookInfo {
-            name: name.clone(),
-            path: path.clone(),
-            job_name: job_name.clone(),
-        })
-        .collect::<Vec<_>>();
-
-    ps.append(&mut new_ps);
-}
-
 pub fn list_job_hierarchy_names(name: &str, zuul_jobs: &ZuulJobs) -> Vec<StringLoc> {
     zuul_jobs
         .get_job_hierarchy(name)
         .iter()
         .map(|x| x.name().clone())
         .collect()
-}
-
-fn print_string_locs(locs: &[StringLoc]) {
-    for loc in locs {
-        println!(
-            "{}\t{}\t{}\t{}",
-            loc.value,
-            shorten_path(&loc.path).display(),
-            loc.line,
-            loc.col
-        );
-    }
 }
 
 pub fn list_jobs_vars_cli(
