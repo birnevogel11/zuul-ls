@@ -94,6 +94,10 @@ pub struct Job {
 }
 
 impl Job {
+    pub fn name(&self) -> &StringLoc {
+        &self.job_name
+    }
+
     fn parse_playbook_list_item(
         value: &YValue,
         path: &Rc<PathBuf>,

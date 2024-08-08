@@ -62,6 +62,23 @@ pub enum ZuulConfigElement {
     Secret(Secret),
 }
 
+// macro_rules! define_into (
+//     ($name:ident, $t:ty, $yt:ident) => (
+// /// Get the inner object in the YAML enum if it is a `$t`.
+// ///
+// /// # Return
+// /// If the variant of `self` is `Yaml::$yt`, return `Some($t)` with the `$t` contained. Otherwise,
+// /// return `None`.
+// #[must_use]
+// pub fn $name(self) -> Option<$t> {
+//     match self.value {
+//         YValueYaml::$yt(v) => Some(v),
+//         _ => None
+//     }
+// }
+//     );
+// );
+
 impl ZuulConfigElement {
     pub fn parse(raw_config: &YValue, path: &Rc<PathBuf>) -> Option<ZuulConfigElement> {
         if let YValueYaml::Hash(xs) = raw_config.value() {
@@ -90,6 +107,13 @@ impl ZuulConfigElement {
             None
         }
     }
+
+    pub fn into_job(self) -> Option<Job> {
+        match self {
+            ZuulConfigElement::Job(job) => Some(job),
+            _ => None,
+        }
+    }
 }
 
 fn parse_doc(doc: &YValue, path: &Rc<PathBuf>) -> Vec<ZuulConfigElement> {
@@ -100,6 +124,24 @@ fn parse_doc(doc: &YValue, path: &Rc<PathBuf>) -> Vec<ZuulConfigElement> {
     } else {
         vec![]
     }
+}
+
+pub fn parse_zuul(paths: &[Rc<PathBuf>]) -> Vec<ZuulConfigElement> {
+    paths
+        .iter()
+        .map(|path| {
+            let doc = load_yvalue(path);
+            match doc {
+                Ok(ys) => ys
+                    .iter()
+                    .map(|y| parse_doc(y, path))
+                    .collect::<Vec<_>>()
+                    .concat(),
+                _ => Vec::new(),
+            }
+        })
+        .collect::<Vec<_>>()
+        .concat()
 }
 
 pub fn job_parser_study(path: &Path) {

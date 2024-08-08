@@ -32,10 +32,10 @@ impl ZuulParseError {
 
 #[derive(Clone, PartialEq, PartialOrd, Debug, Eq, Ord, Hash, Default)]
 pub struct StringLoc {
-    value: String,
-    path: Rc<PathBuf>,
-    line: usize,
-    col: usize,
+    pub value: String,
+    pub path: Rc<PathBuf>,
+    pub line: usize,
+    pub col: usize,
 }
 
 impl StringLoc {

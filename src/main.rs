@@ -13,6 +13,7 @@ use clap::Parser;
 #[command(bin_name = "zuul-search")]
 enum ZuulSearchCli {
     Roles(ZuulSearchCliRolesArgs),
+    Jobs(ZuulSearchCliJobArgs),
 }
 
 #[derive(clap::Args)]
@@ -28,14 +29,28 @@ struct ZuulSearchCliRolesArgs {
     search_key: Option<String>,
 }
 
-fn main() {
-    crate::parser::zuul::job_parser_study(PathBuf::from("./test.yaml").as_path());
+#[derive(clap::Args)]
+#[command(version, about, long_about = "Search jobs")]
+struct ZuulSearchCliJobArgs {
+    #[arg(long)]
+    work_dir: Option<PathBuf>,
 
-    // let args = ZuulSearchCli::parse();
-    //
-    // match args {
-    //     ZuulSearchCli::Roles(args) => {
-    //         crate::search::roles::list_roles_cli(args.search_key, args.work_dir, args.config_path);
-    //     }
-    // };
+    #[arg(long)]
+    config_path: Option<PathBuf>,
+
+    #[arg()]
+    search_key: Option<String>,
+}
+
+fn main() {
+    let args = ZuulSearchCli::parse();
+
+    match args {
+        ZuulSearchCli::Roles(args) => {
+            crate::search::roles::list_roles_cli(args.search_key, args.work_dir, args.config_path);
+        }
+        ZuulSearchCli::Jobs(args) => {
+            crate::search::jobs::list_jobs_cli(args.search_key, args.work_dir, args.config_path);
+        }
+    };
 }

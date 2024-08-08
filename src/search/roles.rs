@@ -1,15 +1,9 @@
 use std::path::Path;
 use std::path::PathBuf;
 
-use crate::config::{get_config, Config};
-use crate::search::path::{list_role_dir, to_path};
-
-fn get_work_dir(work_dir: Option<PathBuf>) -> PathBuf {
-    match work_dir {
-        Some(work_dir) => work_dir,
-        None => to_path("."),
-    }
-}
+use crate::config::Config;
+use crate::search::path::get_role_repo_dirs;
+use crate::search::path::traversal_dirs;
 
 fn get_roles_prefix_dir(repo_dir: &Path) -> String {
     let mut raw_path: String = repo_dir.to_str().unwrap().into();
@@ -22,7 +16,29 @@ fn get_roles_prefix_dir(repo_dir: &Path) -> String {
     raw_path
 }
 
-pub fn list_dir_roles(repo_dirs: &[PathBuf]) -> Vec<(String, PathBuf)> {
+fn list_roles_internal(base_dir: PathBuf) -> Vec<PathBuf> {
+    traversal_dirs(base_dir, "tasks")
+}
+
+fn list_role_dir(repo_dir: &Path) -> Vec<PathBuf> {
+    let mut xs = Vec::new();
+
+    let role_dir = repo_dir.join("roles");
+    if let Ok(dir_iter) = role_dir.read_dir() {
+        for entry in dir_iter.map_while(|x| x.ok()) {
+            let path = entry.path();
+            if path.join("tasks").is_dir() {
+                xs.push(path);
+            } else {
+                xs.append(&mut list_roles_internal(path));
+            }
+        }
+    }
+
+    xs
+}
+
+pub fn list_roles(repo_dirs: &[PathBuf]) -> Vec<(String, PathBuf)> {
     let xs: Vec<Vec<(String, PathBuf)>> = repo_dirs
         .iter()
         .map(|repo_dir| {
@@ -44,36 +60,13 @@ pub fn list_dir_roles(repo_dirs: &[PathBuf]) -> Vec<(String, PathBuf)> {
     xs
 }
 
-fn find_tenant_work_dir_impl(config: Option<Config>, work_dir: &Path) -> Option<Vec<PathBuf>> {
-    let config = config?;
-    let tenant = config.find_tenant(work_dir)?;
-    let tenant_config = config.tenants.get(&tenant)?;
-    Some(tenant_config.extra_role_dirs.clone())
-}
-
-fn find_repo_dirs(config: Option<Config>, work_dir: &Path) -> Vec<PathBuf> {
-    let mut repo_dirs: Vec<PathBuf> = vec![PathBuf::from(work_dir)];
-    repo_dirs.append(&mut find_tenant_work_dir_impl(config, work_dir).unwrap_or_default());
-    repo_dirs
-}
-
-pub fn list_roles(
-    work_dir: Option<PathBuf>,
-    config_path: Option<PathBuf>,
-) -> Vec<(String, PathBuf)> {
-    let work_dir = get_work_dir(work_dir);
-    let config = get_config(&config_path);
-    let repo_dirs = find_repo_dirs(config, &work_dir);
-
-    list_dir_roles(&repo_dirs)
-}
-
 pub fn list_roles_cli(
     search_key: Option<String>,
     work_dir: Option<PathBuf>,
     config_path: Option<PathBuf>,
 ) {
-    let role_dirs = list_roles(work_dir, config_path);
+    let repo_dirs = get_role_repo_dirs(work_dir, config_path);
+    let role_dirs = list_roles(&repo_dirs);
     let role_dirs = match search_key {
         Some(search_key) => role_dirs
             .into_iter()
