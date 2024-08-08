@@ -16,7 +16,7 @@ pub enum VarValue {
     Boolean(bool),
     Real(String),
     String(String),
-    Array(Vec<VarValue>),
+    Array(Vec<Self>),
     Hash(VarTable),
 }
 

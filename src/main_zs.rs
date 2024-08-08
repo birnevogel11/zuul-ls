@@ -7,6 +7,7 @@ use zuul_parser::config::get_work_dir;
 use zuul_parser::search::job_playbooks;
 use zuul_parser::search::job_vars;
 use zuul_parser::search::jobs;
+use zuul_parser::search::path::{get_role_repo_dirs, shorten_path, traversal_dirs};
 use zuul_parser::search::project_templates;
 use zuul_parser::search::roles;
 use zuul_parser::search::work_dir_vars;
