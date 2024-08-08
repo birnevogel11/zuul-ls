@@ -55,9 +55,9 @@ impl StringLoc {
         }
     }
 
-    pub fn clone_loc(&self, new_value: String) -> StringLoc {
+    pub fn clone_loc(&self, new_value: &str) -> StringLoc {
         StringLoc {
-            value: STRING_POOL.get(&new_value),
+            value: STRING_POOL.get(new_value),
             ..self.clone()
         }
     }

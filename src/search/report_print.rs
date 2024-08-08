@@ -1,6 +1,6 @@
 use crate::parser::common::StringLoc;
-use crate::parser::var_table::VariableInfo;
-use crate::parser::var_table::VariableSource;
+use crate::parser::variable::VariablePrintInfo;
+use crate::parser::variable::VariableSource;
 use crate::parser::zuul::project_template::ProjectTemplate;
 use crate::path::shorten_path;
 
@@ -17,21 +17,18 @@ macro_rules! safe_println {
     };
 }
 
-pub fn print_var_info_list(vars: &[VariableInfo]) {
+pub fn print_var_info_list(vars: &[VariablePrintInfo]) {
     for var_info in vars {
-        match &var_info.source {
-            VariableSource::Job(job_name) => {
-                println!(
-                    "{}\t{}\t{}\t{}\t{}\t{}",
-                    var_info.name.value,
-                    job_name.value,
-                    var_info.value,
-                    shorten_path(&var_info.name.path).display(),
-                    var_info.name.line,
-                    var_info.name.col,
-                )
-            }
-            _ => {}
+        if let VariableSource::Job(job_name) = &var_info.source {
+            println!(
+                "{}\t{}\t{}\t{}\t{}\t{}",
+                var_info.name.value,
+                job_name.value,
+                var_info.value,
+                shorten_path(&var_info.name.path).display(),
+                var_info.name.line,
+                var_info.name.col,
+            )
         }
     }
 }

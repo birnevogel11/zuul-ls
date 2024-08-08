@@ -10,6 +10,7 @@ use zuul_parser::search::jobs;
 use zuul_parser::search::project_templates;
 use zuul_parser::search::roles;
 use zuul_parser::search::work_dir_vars;
+use zuul_parser::search::work_dir_vars2;
 
 #[derive(Parser, Debug)]
 #[command(name = "zuul-search")]
@@ -146,7 +147,7 @@ fn main() {
             );
         }
         ZuulSearchCli::WorkdirVars(args) => {
-            work_dir_vars::list_work_dir_vars_cli(&get_work_dir(args.work_dir), args.config_path);
+            work_dir_vars2::list_work_dir_vars_cli(&get_work_dir(args.work_dir), args.config_path);
         }
     };
 }

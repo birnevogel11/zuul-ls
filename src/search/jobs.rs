@@ -15,7 +15,7 @@ use crate::path::get_zuul_yaml_paths_cwd;
 use crate::path::to_path;
 use crate::search::report_print::print_string_locs;
 
-#[derive(Clone, PartialEq, PartialOrd, Debug, Eq, Ord, Hash)]
+#[derive(Clone, PartialEq, PartialOrd, Debug, Eq, Ord)]
 pub struct ZuulJobs {
     jobs: Vec<Rc<Job>>,
     name_jobs: LinkedHashMap<String, Vec<Rc<Job>>>,

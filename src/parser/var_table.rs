@@ -171,7 +171,7 @@ pub fn collect_variables(
                     vs.insert(
                         var_name.clone(),
                         VariableInfo {
-                            name: var.clone_loc(var_name),
+                            name: var.clone_loc(&var_name),
                             source: source.clone(),
                             value: value.to_show_value(),
                         },

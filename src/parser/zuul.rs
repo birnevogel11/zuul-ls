@@ -55,7 +55,7 @@ impl ZuulParseType {
     }
 }
 
-#[derive(Clone, PartialEq, PartialOrd, Debug, Eq, Ord, Hash)]
+#[derive(Clone, PartialEq, PartialOrd, Debug, Eq, Ord)]
 pub enum ZuulConfigParsedElement {
     Job(Job),
     ProjectTemplate(ProjectTemplate),
@@ -140,7 +140,7 @@ pub fn $name(self) -> Vec<$t> {
     );
 );
 
-#[derive(Clone, PartialEq, PartialOrd, Debug, Eq, Ord, Hash, Default)]
+#[derive(Clone, PartialEq, PartialOrd, Debug, Eq, Ord, Default)]
 pub struct ZuulConfigElements {
     jobs: Vec<Job>,
     project_templates: Vec<ProjectTemplate>,

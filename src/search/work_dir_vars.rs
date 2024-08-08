@@ -3,7 +3,6 @@ use std::path::{Path, PathBuf};
 
 use crate::parser::var_table::{VarTable, VarValue, VariableInfo, VariableSource};
 use crate::search::jobs::list_jobs;
-use crate::search::report_print::print_var_info_list;
 
 fn expand_vars(
     name_prefix: &str,
@@ -24,7 +23,7 @@ fn expand_vars(
             }
             _ => {
                 vs.insert(VariableInfo {
-                    name: job_var.clone_loc(var_name),
+                    name: job_var.clone_loc(&var_name),
                     source: source.clone(),
                     value: value.to_show_value(),
                 });
@@ -76,7 +75,7 @@ pub fn list_work_dir_vars_group(
     var_groups
 }
 
-pub fn list_work_dir_vars_cli(work_dir: &Path, config_path: Option<PathBuf>) {
-    let vars = list_work_dir_vars(work_dir, config_path);
-    print_var_info_list(&vars.into_iter().collect::<Vec<_>>());
-}
+// pub fn list_work_dir_vars_cli(work_dir: &Path, config_path: Option<PathBuf>) {
+//     let vars = list_work_dir_vars(work_dir, config_path);
+//     print_var_info_list(&vars.into_iter().collect::<Vec<_>>());
+// }

@@ -9,7 +9,7 @@ use crate::parser::common::{parse_string_value, StringLoc, ZuulParseError};
 use crate::parser::yaml::{YValue, YValueYaml};
 
 #[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Default)]
-pub struct VariableTable(LinkedHashMap<GlobalString, Variable>);
+pub struct VariableTable(pub LinkedHashMap<GlobalString, Variable>);
 
 impl Deref for VariableTable {
     type Target = LinkedHashMap<GlobalString, Variable>;

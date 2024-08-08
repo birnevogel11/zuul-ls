@@ -1,19 +1,16 @@
 mod group;
 mod table;
 
-use hashlink::LinkedHashMap;
-use std::ops::{Deref, DerefMut};
 use std::path::Path;
 
 use interner::global::{GlobalPath, GlobalString};
 
-use crate::parser::common::{
-    parse_string_value, StringLoc, ZuulParseError, PATH_POOL, STRING_POOL,
-};
-use crate::parser::yaml::{YValue, YValueYaml};
+use crate::parser::common::{StringLoc, PATH_POOL, STRING_POOL};
 
 pub use group::VariableGroup;
+pub use group::VariablePrintInfo;
 pub use table::Variable;
+pub use table::VariableTable;
 
 #[derive(Clone, PartialEq, PartialOrd, Debug, Eq, Ord, Hash, Default)]
 pub enum VariableSource {

@@ -8,10 +8,12 @@ use crate::parser::common::{
 };
 use crate::parser::var_table::parse_var_table;
 use crate::parser::var_table::VarTable;
+use crate::parser::variable::VariableSource;
+use crate::parser::variable::VariableTable;
 use crate::parser::yaml::{YValue, YValueYaml};
 use crate::path::retrieve_repo_path;
 
-#[derive(Clone, PartialEq, PartialOrd, Debug, Eq, Ord, Hash)]
+#[derive(Clone, PartialEq, PartialOrd, Debug, Eq, Ord)]
 pub struct Job {
     name: StringLoc,
     description: Option<StringLoc>,
@@ -20,6 +22,7 @@ pub struct Job {
     run_playbooks: Vec<(StringLoc, PathBuf)>,
     post_run_playbooks: Vec<(StringLoc, PathBuf)>,
     vars: VarTable,
+    vars2: VariableTable,
 }
 
 impl Job {
@@ -33,6 +36,10 @@ impl Job {
 
     pub fn vars(&self) -> &VarTable {
         &self.vars
+    }
+
+    pub fn vars2(&self) -> &VariableTable {
+        &self.vars2
     }
 
     pub fn pre_run_playbooks(&self) -> &Vec<(StringLoc, PathBuf)> {
@@ -118,6 +125,7 @@ impl ZuulParse<Job> for Job {
         let mut run_playbooks: Vec<(StringLoc, PathBuf)> = Vec::new();
         let mut post_run_playbooks: Vec<(StringLoc, PathBuf)> = Vec::new();
         let mut vars: VarTable = VarTable::new();
+        let mut vars2 = VariableTable::default();
 
         for (key, value) in xs {
             match key.as_str() {
@@ -142,6 +150,12 @@ impl ZuulParse<Job> for Job {
                     }
                     "vars" => {
                         vars = parse_var_table(value, path, "vars")?;
+                        vars2 = VariableTable::parse_yaml(
+                            value,
+                            path,
+                            "zuul",
+                            &VariableSource::Job(name.clone()),
+                        )?;
                     }
                     // "roles" => todo!(),
                     _ => {}
@@ -160,6 +174,7 @@ impl ZuulParse<Job> for Job {
             run_playbooks,
             post_run_playbooks,
             vars,
+            vars2,
         })
     }
 }
