@@ -317,7 +317,13 @@ impl YValueLoader {
 
                 self.insert_new_node((node, aid), mark)?;
             }
-            _ => unreachable!(),
+            Event::Alias(id) => {
+                let n = match self.anchor_map.get(&id) {
+                    Some(v) => v.clone(),
+                    None => YValue::new(YValueYaml::BadValue, &mark),
+                };
+                self.insert_new_node((n, 0), mark)?;
+            } // _ => unreachable!(),
         }
 
         Ok(())

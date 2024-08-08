@@ -222,7 +222,7 @@ impl ZuulParse<Job> for Job {
                     "vars" => {
                         vars = parse_variables(value, path, "vars")?;
                     }
-                    "roles" => todo!(),
+                    // "roles" => todo!(),
                     _ => {}
                 },
                 None => {
