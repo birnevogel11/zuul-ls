@@ -10,7 +10,7 @@ use crate::config::get_work_dir;
 use crate::ls::parser::parse_word_type;
 use crate::ls::parser::WordType;
 use crate::parser::common::StringLoc;
-use crate::path::get_role_repo_dirs;
+use crate::path::{get_role_repo_dirs, retrieve_repo_path, to_path};
 use crate::search::job_vars::VariableInfo;
 use crate::search::jobs::list_job_locs_by_name;
 use crate::search::roles::list_roles;
@@ -154,10 +154,9 @@ impl Backend {
 
         if let Some(content) = content {
             if let Some((current_word, search_types)) = parse_word_type(uri, &content, position) {
-                log::info!("uri: {:#?}", uri);
                 log::info!("current_word: {:#?}", &current_word);
                 log::info!("search_types: {:#?}", &search_types);
-                return Ok(self.get_definition_list(&current_word, &search_types));
+                return Ok(self.get_definition_list(uri.path(), &current_word, &search_types));
             }
         }
 
@@ -166,6 +165,7 @@ impl Backend {
 
     fn get_definition_list(
         &self,
+        path: &str,
         current_word: &str,
         search_types: &[WordType],
     ) -> Option<GotoDefinitionResponse> {
@@ -192,7 +192,16 @@ impl Backend {
                     }
                 }
                 WordType::ZuulProperty(_) => {}
-                WordType::Playbook => {}
+                WordType::Playbook => {
+                    let path = to_path(path);
+                    if let Some(repo_path) = retrieve_repo_path(&path) {
+                        let playbook_path = repo_path.join(current_word);
+                        locs.push(Location::new(
+                            Url::from_file_path(playbook_path).unwrap(),
+                            Range::new(Position::new(0, 0), Position::new(0, 0)),
+                        ));
+                    }
+                }
             };
         });
 

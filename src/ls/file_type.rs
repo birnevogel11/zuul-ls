@@ -1,5 +1,6 @@
 use std::path::{Path, PathBuf};
 
+use crate::path::retrieve_repo_path;
 use crate::path::to_path;
 
 #[derive(Clone, PartialEq, PartialOrd, Debug, Eq, Ord, Hash)]
@@ -9,18 +10,6 @@ pub enum LSFileType {
     AnsibleRoleTasks,
     AnsibleRoleDefaults,
     AnsibleRoleTemplates,
-}
-
-fn retrieve_repo_path(path: &Path) -> Option<PathBuf> {
-    path.ancestors().find_map(|x| {
-        let mut base_path = PathBuf::from(x);
-        base_path.push("zuul.d");
-        if base_path.is_dir() {
-            Some(PathBuf::from(x))
-        } else {
-            None
-        }
-    })
 }
 
 pub fn resolve_ls_file_type(path: &Path) -> Option<LSFileType> {

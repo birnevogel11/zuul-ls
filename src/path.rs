@@ -18,7 +18,19 @@ pub fn to_path(x: &str) -> PathBuf {
         .into_owned()
 }
 
-pub fn retrieve_repo_path(path: &str) -> PathBuf {
+pub fn retrieve_repo_path(path: &Path) -> Option<PathBuf> {
+    path.ancestors().find_map(|x| {
+        let mut base_path = PathBuf::from(x);
+        base_path.push("zuul.d");
+        if base_path.is_dir() {
+            Some(PathBuf::from(x))
+        } else {
+            None
+        }
+    })
+}
+
+pub fn retrieve_repo_path2(path: &str) -> PathBuf {
     let repo_path: String = to_path(path)
         .components()
         .take_while(|x| x.as_os_str() != "zuul.d")

@@ -167,7 +167,9 @@ impl Job {
             .into_iter()
             .map(|x| {
                 (
-                    retrieve_repo_path(path.to_str().unwrap()).join(x.as_str()),
+                    retrieve_repo_path(&PathBuf::from(path.to_str().unwrap()))
+                        .unwrap()
+                        .join(x.as_str()),
                     x,
                 )
             })
