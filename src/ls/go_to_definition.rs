@@ -173,6 +173,6 @@ pub fn get_definition_list(
     position: &Position,
 ) -> Option<GotoDefinitionResponse> {
     let token = parse_token(path, content, position)?;
-    log::info!("AutoCompleteToken: {:#?}", &token);
+    log::info!("Go to definition - AutoCompleteToken: {:#?}", &token);
     get_definition_list_internal(symbols, content, path, &token)
 }
