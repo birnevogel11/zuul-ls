@@ -51,63 +51,70 @@ fn parse_ansible_tasks(
                 return None;
             }
 
-            // Check nested tasks first
-            if ["block", "rescue", "always"].contains(&key_name) {
-                if let Some(token) = parse_ansible_tasks(value, file_type, content, position) {
-                    key_stack.push(key_name.to_string());
-                    key_stack.extend(token.key_stack.clone());
-                    return Some(AutoCompleteToken { key_stack, ..token });
-                }
-            }
-
-            // Check value
-            if let Some((value_stack, token_side)) = parse_value(value, Vec::new()) {
-                key_stack.push(key_name.to_string());
-
-                if [
-                    "include_role",
-                    "import_role",
-                    "ansible.builtin.include_role",
-                    "ansible.builtin.import_role",
-                ]
-                .contains(&key_name)
-                {
-                    if value_stack.len() == 1
-                        && value_stack[0] == "name"
-                        && token_side == TokenSide::Right
-                    {
-                        key_stack.extend(value_stack);
-
-                        return Some(AutoCompleteToken::new(
-                            find_role_word(content, position)?,
-                            file_type.clone(),
-                            TokenType::Role,
-                            token_side,
-                            key_stack,
-                        ));
+            match key_name {
+                // Check nested tasks first
+                "block" | "rescue" | "always" => {
+                    if let Some(token) = parse_ansible_tasks(value, file_type, content, position) {
+                        key_stack.push(key_name.to_string());
+                        key_stack.extend(token.key_stack.clone());
+                        return Some(AutoCompleteToken { key_stack, ..token });
                     }
-                } else if ["set_fact", "ansible.builtin.set_fact", "vars"].contains(&key_name) {
-                    let token_type = match token_side {
-                        TokenSide::Left => TokenType::VariableWithPrefix(value_stack),
-                        TokenSide::Right => TokenType::Variable,
-                    };
-                    return Some(AutoCompleteToken::new(
-                        find_var_word(content, position)?,
-                        file_type.clone(),
-                        token_type,
-                        token_side,
-                        key_stack,
-                    ));
-                } else {
-                    return Some(AutoCompleteToken::new(
-                        find_var_word(content, position)?,
-                        file_type.clone(),
-                        TokenType::Variable,
-                        token_side,
-                        key_stack,
-                    ));
                 }
-            }
+                // Check value
+                _ => {
+                    if let Some((value_stack, token_side)) = parse_value(value, Vec::new()) {
+                        key_stack.push(key_name.to_string());
+
+                        let token = match key_name {
+                            "include_role"
+                            | "import_role"
+                            | "ansible.builtin.include_role"
+                            | "ansible.builtin.import_role" => {
+                                if value_stack.len() == 1
+                                    && value_stack[0] == "name"
+                                    && token_side == TokenSide::Right
+                                {
+                                    key_stack.extend(value_stack);
+
+                                    Some(AutoCompleteToken::new(
+                                        find_role_word(content, position)?,
+                                        file_type.clone(),
+                                        TokenType::Role,
+                                        token_side,
+                                        key_stack.clone(),
+                                    ))
+                                } else {
+                                    None
+                                }
+                            }
+                            "set_fact" | "ansible.builtin.set_fact" | "vars" => {
+                                let token_type = match token_side {
+                                    TokenSide::Left => TokenType::VariableWithPrefix(value_stack),
+                                    TokenSide::Right => TokenType::Variable,
+                                };
+                                Some(AutoCompleteToken::new(
+                                    find_var_word(content, position)?,
+                                    file_type.clone(),
+                                    token_type,
+                                    token_side,
+                                    key_stack.clone(),
+                                ))
+                            }
+                            _ => Some(AutoCompleteToken::new(
+                                find_var_word(content, position)?,
+                                file_type.clone(),
+                                TokenType::Variable,
+                                token_side,
+                                key_stack.clone(),
+                            )),
+                        };
+
+                        if token.is_some() {
+                            return token;
+                        }
+                    }
+                }
+            };
         }
     }
 

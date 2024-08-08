@@ -1,9 +1,11 @@
 use std::collections::HashMap;
 use std::path::Path;
 
+use hashlink::LinkedHashMap;
+
 use crate::parser::common::StringLoc;
 use crate::parser::var_table::{
-    collect_variables, group_variables, parse_var_table, VarGroup, VariableInfo, VariableSource,
+    merge_var_group, parse_var_group_from_hash, VarGroup, VariableInfo, VariableSource,
 };
 use crate::parser::yaml::{load_yvalue_from_str, YValue};
 
@@ -23,47 +25,41 @@ pub fn parse_task_vars_internal(
     for task in tasks {
         for (key, value) in task {
             let key_name = key.as_str()?;
-            match key_name {
+
+            let sub_var_group = match key_name {
                 "set_fact" | "vars" => {
-                    let vt = parse_var_table(value, path, field_name).ok()?;
-                    let sub_var_info = collect_variables("", &vt, source)
+                    let var_value = value
+                        .as_hash()?
                         .into_iter()
-                        .filter(|(name, _)| name != "cachable")
-                        .collect::<HashMap<_, _>>();
-                    var_group = group_variables(var_group, sub_var_info);
-                    // var_info.extend(sub_var_info);
+                        .map_while(|(key, value)| {
+                            if let Some(key_name) = key.as_str() {
+                                if key_name != "cachable" {
+                                    return Some((key.clone(), value.clone()));
+                                }
+                            }
+                            None
+                        })
+                        .collect::<LinkedHashMap<_, _>>();
+                    parse_var_group_from_hash(&var_value, path, field_name, source).ok()
                 }
                 "block" | "rescue" | "always" => {
-                    let sub_var_group = parse_task_vars_internal(value, path, field_name, source)?;
-                    sub_var_group.into_iter().for_each(|(name, var_info)| {
-                        match var_group.get_mut(&name) {
-                            Some(info) => {
-                                info.extend(var_info);
-                            }
-                            None => {
-                                var_group.insert(name, var_info);
-                            }
-                        }
-                    });
+                    parse_task_vars_internal(value, path, field_name, source)
                 }
                 "register" => {
+                    let mut sub_var_group = VarGroup::new();
                     let var_name = value.as_str()?;
                     let var_info = VariableInfo {
                         name: StringLoc::from(value, path),
                         value: "".to_string(),
                         source: source.clone(),
                     };
-                    match var_group.get_mut(var_name) {
-                        Some(info) => {
-                            info.push(var_info);
-                        }
-                        _ => {
-                            var_group.insert(var_name.to_string(), vec![var_info]);
-                        }
-                    };
+                    sub_var_group.insert(var_name.to_string(), vec![var_info]);
+                    Some(sub_var_group)
                 }
-                _ => {}
+                _ => None,
             };
+
+            var_group = merge_var_group(var_group, sub_var_group.unwrap_or_default());
         }
     }
 

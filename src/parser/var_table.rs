@@ -12,7 +12,7 @@ use crate::parser::yaml::{YValue, YValueYaml};
 pub type VarTable = LinkedHashMap<StringLoc, VarValue>;
 pub type VarGroup = HashMap<String, Vec<VariableInfo>>;
 
-pub fn parse_var_table_from_hash(
+fn parse_var_table_from_hash(
     values: &LinkedHashMap<YValue, YValue>,
     path: &Path,
     field_name: &str,
@@ -183,20 +183,45 @@ pub fn collect_variables(
     vs
 }
 
-pub fn group_variables(group_vars: VarGroup, vars: HashMap<String, VariableInfo>) -> VarGroup {
-    let mut group_vars = group_vars;
+pub fn parse_var_group_from_hash(
+    values: &LinkedHashMap<YValue, YValue>,
+    path: &Path,
+    field_name: &str,
+    source: &VariableSource,
+) -> Result<VarGroup, ZuulParseError> {
+    let mut var_group: VarGroup = HashMap::new();
+
+    let vt = parse_var_table_from_hash(values, path, field_name)?;
+    let vars = collect_variables("", &vt, source);
 
     vars.into_iter()
-        .for_each(|(key, var_info)| match group_vars.get_mut(&key) {
+        .for_each(|(key, var_info)| match var_group.get_mut(&key) {
             Some(info) => {
                 info.push(var_info);
             }
             None => {
-                group_vars.insert(key, vec![var_info]);
+                var_group.insert(key, vec![var_info]);
             }
         });
 
-    group_vars
+    Ok(var_group)
+}
+
+pub fn parse_var_group(
+    values: &YValue,
+    path: &Path,
+    field_name: &str,
+    source: &VariableSource,
+) -> Result<VarGroup, ZuulParseError> {
+    let values = values.as_hash().ok_or(ZuulParseError::from(
+        format!("Failed to parse the value of {}", field_name)
+            .to_string()
+            .as_str(),
+        values,
+        path,
+    ))?;
+
+    parse_var_group_from_hash(values, path, field_name, source)
 }
 
 pub fn merge_var_group(xs: VarGroup, ys: VarGroup) -> VarGroup {
