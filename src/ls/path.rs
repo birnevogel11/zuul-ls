@@ -20,7 +20,7 @@ fn retrieve_repo_path(path: &Path) -> Option<PathBuf> {
         let mut base_path = PathBuf::from(x);
         base_path.push("zuul.d");
         if base_path.is_dir() {
-            Some(base_path)
+            Some(PathBuf::from(x))
         } else {
             None
         }

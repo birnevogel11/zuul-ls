@@ -1,7 +1,9 @@
 use ropey::Rope;
 use ropey::RopeSlice;
 use tower_lsp::lsp_types::Position;
+use tower_lsp::lsp_types::Url;
 
+use crate::ls::path::get_file_type;
 use crate::ls::path::LSFileType;
 
 #[derive(Clone, PartialEq, PartialOrd, Debug, Eq, Ord, Hash)]
@@ -123,6 +125,16 @@ pub fn parse_autocomplete_type(
         LSFileType::AnsibleRoleDefaults => get_current_word_type_ansible_var(content, position),
         LSFileType::AnsibleRoleTemplates => get_current_word_type_ansible_var(content, position),
     }
+}
+
+pub fn parse_current_word_type(
+    uri: &Url,
+    content: &Rope,
+    position: &Position,
+) -> Option<(String, Vec<SearchType>)> {
+    let path = uri.to_file_path().unwrap();
+    let file_type = get_file_type(&path)?;
+    parse_autocomplete_type(file_type, content, position)
 }
 
 #[cfg(test)]
