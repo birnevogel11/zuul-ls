@@ -75,7 +75,7 @@ pub fn parse_playbook_vars(content: &str, path: &Path, _: &str, _: &Path) -> Opt
             for (key, value) in playbook {
                 let key_name = key.as_str()?;
                 let sub_var_group: Option<VariableGroup> = match key_name {
-                    "vars" => Some(
+                    "vars" | "set_fact" => Some(
                         VariableTable::parse_yaml(value, path, "playbook", &source)
                             .ok()?
                             .into(),

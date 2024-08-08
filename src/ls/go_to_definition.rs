@@ -29,7 +29,7 @@ where
     })
 }
 
-fn parse_local_vars_ansible(
+pub fn parse_local_vars_ansible(
     path: &Path,
     content: &Rope,
     token: &AutoCompleteToken,
