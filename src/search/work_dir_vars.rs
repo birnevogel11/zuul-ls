@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
-use crate::parser::zuul::var_table::{VarTable, VarValue, VariableInfo, VariableSource};
+use crate::parser::var_table::{VarTable, VarValue, VariableInfo, VariableSource};
 use crate::search::jobs::list_jobs;
 use crate::search::report_print::print_var_info_list;
 

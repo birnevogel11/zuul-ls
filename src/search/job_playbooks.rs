@@ -69,10 +69,8 @@ pub fn list_job_playbooks(name: &str, zuul_jobs: &ZuulJobs) -> JobPlaybooks {
 
     for job in jobs {
         let job_name = Rc::new(job.name().value.to_string());
-
-        for (new_ps, ps) in [(job.post_run_playbooks(), &mut jp.post_run)] {
-            append_playbooks(new_ps, &job_name, ps);
-        }
+        let (new_ps, ps) = (job.post_run_playbooks(), &mut jp.post_run);
+        append_playbooks(new_ps, &job_name, ps);
     }
 
     jp

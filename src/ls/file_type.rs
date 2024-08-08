@@ -3,8 +3,10 @@ use std::path::{Path, PathBuf};
 use crate::path::retrieve_repo_path;
 use crate::path::to_path;
 
-#[derive(Clone, PartialEq, PartialOrd, Debug, Eq, Ord, Hash)]
+#[derive(Clone, PartialEq, PartialOrd, Debug, Eq, Ord, Hash, Default)]
 pub enum LSFileType {
+    #[default]
+    Unknown,
     ZuulConfig,
     Playbooks,
     AnsibleRoleTasks,

@@ -2,10 +2,10 @@ use std::collections::HashMap;
 use std::path::Path;
 
 use crate::parser::common::StringLoc;
-use crate::parser::yaml::{load_yvalue_from_str, YValue};
-use crate::parser::zuul::var_table::{
+use crate::parser::var_table::{
     collect_variables, group_variables, parse_var_table, VarGroup, VariableInfo, VariableSource,
 };
+use crate::parser::yaml::{load_yvalue_from_str, YValue};
 
 fn parse_task_vars_internal(
     value: &YValue,

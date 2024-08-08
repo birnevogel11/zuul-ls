@@ -6,11 +6,10 @@ use hashlink::LinkedHashMap;
 use crate::parser::common::{
     parse_optional_string_value, parse_string_value, StringLoc, ZuulParse, ZuulParseError,
 };
+use crate::parser::var_table::parse_var_table;
+use crate::parser::var_table::VarTable;
 use crate::parser::yaml::{YValue, YValueYaml};
-use crate::parser::zuul::var_table::VarTable;
 use crate::path::retrieve_repo_path;
-
-use super::var_table::parse_var_table;
 
 #[derive(Clone, PartialEq, PartialOrd, Debug, Eq, Ord, Hash)]
 pub struct Job {

@@ -22,7 +22,7 @@ pub struct ZuulJobs {
 }
 
 impl ZuulJobs {
-    pub fn from_paths(yaml_paths: &Vec<PathBuf>) -> ZuulJobs {
+    pub fn from_paths(yaml_paths: &[PathBuf]) -> ZuulJobs {
         let jobs = parse_zuul(yaml_paths)
             .into_jobs()
             .into_iter()

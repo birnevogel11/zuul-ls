@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use crate::parser::yaml::load_yvalue_from_str;
-use crate::parser::zuul::var_table::{
+use crate::parser::var_table::{
     collect_variables, group_variables, parse_var_table, VarGroup, VariableSource,
 };
 

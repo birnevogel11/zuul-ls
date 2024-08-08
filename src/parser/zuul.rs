@@ -4,7 +4,6 @@ pub mod pipeline;
 pub mod project_template;
 pub mod queue;
 pub mod secret;
-pub mod var_table;
 
 use std::path::Path;
 use std::path::PathBuf;

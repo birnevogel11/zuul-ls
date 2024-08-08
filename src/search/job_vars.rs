@@ -2,7 +2,7 @@ use std::path::{Path, PathBuf};
 
 use hashlink::LinkedHashMap;
 
-use crate::parser::zuul::var_table::{collect_variables, VariableInfo, VariableSource};
+use crate::parser::var_table::{collect_variables, VariableInfo, VariableSource};
 use crate::search::jobs::ZuulJobs;
 use crate::search::report_print::print_var_info_list;
 

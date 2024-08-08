@@ -5,11 +5,11 @@ edition = "2021"
 
 [[bin]]
 name = "zuul-search"
-path = "src/main_zs.rs"
+path = "src/cli/zs.rs"
 
 [[bin]]
 name = "zuul-ls"
-path = "src/main_zls.rs"
+path = "src/cli/zls.rs"
 
 [lib]
 name = "zuul_parser"

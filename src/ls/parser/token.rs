@@ -2,6 +2,8 @@ use ropey::Rope;
 use ropey::RopeSlice;
 use tower_lsp::lsp_types::Position;
 
+use crate::ls::file_type::LSFileType;
+
 #[derive(Copy, Clone, PartialEq, PartialOrd, Debug, Eq, Ord, Hash, Default)]
 pub enum TokenSide {
     #[default]
@@ -11,7 +13,7 @@ pub enum TokenSide {
 }
 
 #[derive(Clone, PartialEq, PartialOrd, Debug, Eq, Ord, Hash, Default)]
-pub enum Token {
+pub enum TokenType {
     #[default]
     Variable,
     Role,
@@ -23,14 +25,33 @@ pub enum Token {
 #[derive(Clone, PartialEq, PartialOrd, Debug, Eq, Ord, Hash, Default)]
 pub struct AutoCompleteToken {
     pub token: String,
-    pub token_type: Token,
+    pub token_type: TokenType,
+    pub file_type: LSFileType,
+    pub token_side: TokenSide,
+    pub key_stack: Vec<String>,
 }
 
 impl AutoCompleteToken {
-    pub fn new(word: String, word_type: Token) -> Self {
+    pub fn new_simple(word: String, word_type: TokenType) -> Self {
         Self {
             token: word,
             token_type: word_type,
+            ..Self::default()
+        }
+    }
+
+    pub fn new(
+        token: String,
+        token_type: TokenType,
+        token_side: TokenSide,
+        key_stack: Vec<String>,
+    ) -> Self {
+        Self {
+            token,
+            token_type,
+            token_side,
+            key_stack,
+            ..Self::default()
         }
     }
 }

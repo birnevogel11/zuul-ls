@@ -1,7 +1,7 @@
 use ropey::Rope;
 use tower_lsp::lsp_types::Position;
 
-use super::token::{find_name_word, find_path_word, AutoCompleteToken, Token, TokenSide};
+use super::token::{find_name_word, find_path_word, AutoCompleteToken, TokenSide, TokenType};
 use yaml_rust2::yaml::{Yaml, YamlLoader};
 
 const SEARCH_PATTERN: &str = "SeRpAt";
@@ -102,7 +102,11 @@ pub fn retrieve_key_stack(
 pub fn parse_word_zuul_config(content: &Rope, position: &Position) -> Option<AutoCompleteToken> {
     let (key_stack, token_side) =
         retrieve_key_stack(content, position.line as usize, position.character as usize)?;
-    log::info!("key_stack: {:#?}", key_stack);
+    log::info!(
+        "key_stack: {:#?}, token_side: {:#?}",
+        &key_stack,
+        &token_side
+    );
 
     if key_stack.len() <= 1 {
         return None;
@@ -111,19 +115,33 @@ pub fn parse_word_zuul_config(content: &Rope, position: &Position) -> Option<Aut
     if key_stack.len() >= 2 && key_stack[0] == "job" {
         if key_stack[1] == "name" || key_stack[1] == "parent" {
             let current_word = find_name_word(content, position)?;
-            return Some(AutoCompleteToken::new(current_word, Token::Job));
+            return Some(AutoCompleteToken::new(
+                current_word,
+                TokenType::Job,
+                token_side,
+                key_stack,
+            ));
         }
         if key_stack[1] == "vars" {
-            // TODO: fix it. how to jump lhs value correctly?
             let current_word = find_name_word(content, position)?;
-            return Some(AutoCompleteToken::new(current_word, Token::Variable));
+            return Some(AutoCompleteToken::new(
+                current_word,
+                TokenType::Variable,
+                token_side,
+                key_stack,
+            ));
         }
         if ["run", "pre-run", "post-run", "clean-run"]
             .into_iter()
             .any(|key| key == key_stack[1])
         {
             let current_word = find_path_word(content, position)?;
-            return Some(AutoCompleteToken::new(current_word, Token::Playbook));
+            return Some(AutoCompleteToken::new(
+                current_word,
+                TokenType::Playbook,
+                token_side,
+                key_stack,
+            ));
         }
     }
 

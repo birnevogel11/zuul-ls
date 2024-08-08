@@ -1,10 +1,7 @@
-pub mod task;
-pub mod template;
-
 use ropey::Rope;
 use tower_lsp::lsp_types::Position;
 
-use super::token::{find_role_word, find_var_word, AutoCompleteToken, Token};
+use super::token::{find_role_word, find_var_word, AutoCompleteToken, TokenType};
 
 pub fn parse_word_ansible(content: &Rope, position: &Position) -> Option<AutoCompleteToken> {
     let line_idx = position.line as usize;
@@ -12,33 +9,33 @@ pub fn parse_word_ansible(content: &Rope, position: &Position) -> Option<AutoCom
     let line_str = line.to_string();
 
     let word_type = if line_str.contains("role:") {
-        Token::Role
+        TokenType::Role
     } else if line_idx >= 1 {
         let prev_line = content.get_line(line_idx - 1).unwrap().to_string();
         if (prev_line.contains("include_role:") || prev_line.contains("import_role:"))
             && line_str.contains("name:")
         {
-            Token::Role
+            TokenType::Role
         } else {
-            Token::Variable
+            TokenType::Variable
         }
     } else {
-        Token::Variable
+        TokenType::Variable
     };
 
-    let current_word = if word_type == Token::Role {
+    let current_word = if word_type == TokenType::Role {
         find_role_word(content, position)?
     } else {
         find_var_word(content, position)?
     };
 
-    Some(AutoCompleteToken::new(current_word, word_type))
+    Some(AutoCompleteToken::new_simple(current_word, word_type))
 }
 
 pub fn parse_word_var(content: &Rope, position: &Position) -> Option<AutoCompleteToken> {
-    Some(AutoCompleteToken::new(
+    Some(AutoCompleteToken::new_simple(
         find_role_word(content, position)?,
-        Token::Variable,
+        TokenType::Variable,
     ))
 }
 
@@ -59,16 +56,16 @@ mod tests {
             line: u32,
             character: u32,
             current_word: &str,
-            search_type: Token,
+            search_type: TokenType,
         ) -> TestGetCurrentWordTypeAnsible {
             Self::new_result(
                 content,
                 line,
                 character,
-                Some(AutoCompleteToken {
-                    token: current_word.to_string(),
-                    token_type: search_type,
-                }),
+                Some(AutoCompleteToken::new_simple(
+                    current_word.to_string(),
+                    search_type,
+                )),
             )
         }
 
@@ -98,7 +95,7 @@ mod tests {
                 3,
                 15,
                 "subdir/nested-role-name",
-                Token::Role,
+                TokenType::Role,
             ),
             TestGetCurrentWordTypeAnsible::new(
                 r#"
@@ -109,7 +106,7 @@ mod tests {
                 3,
                 15,
                 "subdir/nested-role-name",
-                Token::Role,
+                TokenType::Role,
             ),
             TestGetCurrentWordTypeAnsible::new(
                 r#"
@@ -120,7 +117,7 @@ mod tests {
                 3,
                 15,
                 "subdir",
-                Token::Variable,
+                TokenType::Variable,
             ),
             TestGetCurrentWordTypeAnsible::new(
                 r#"
@@ -129,16 +126,22 @@ mod tests {
                 1,
                 8,
                 "subdir/nested-role-name",
-                Token::Role,
+                TokenType::Role,
             ),
             TestGetCurrentWordTypeAnsible::new(
                 "abc {{ abc.def }}",
                 0,
                 8,
                 "abc.def",
-                Token::Variable,
+                TokenType::Variable,
             ),
-            TestGetCurrentWordTypeAnsible::new("abc {{ abc.def }}", 0, 1, "abc", Token::Variable),
+            TestGetCurrentWordTypeAnsible::new(
+                "abc {{ abc.def }}",
+                0,
+                1,
+                "abc",
+                TokenType::Variable,
+            ),
             TestGetCurrentWordTypeAnsible::new_result("abc {{ abc.def }}", 0, 5, None),
         ];
 

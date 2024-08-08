@@ -1,7 +1,7 @@
 use crate::parser::common::StringLoc;
+use crate::parser::var_table::VariableInfo;
+use crate::parser::var_table::VariableSource;
 use crate::parser::zuul::project_template::ProjectTemplate;
-use crate::parser::zuul::var_table::VariableInfo;
-use crate::parser::zuul::var_table::VariableSource;
 use crate::path::shorten_path;
 
 #[macro_export]
