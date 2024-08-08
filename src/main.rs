@@ -12,18 +12,18 @@ use zuul_parser::search::work_dir_vars;
 #[command(name = "zuul-search")]
 #[command(bin_name = "zuul-search")]
 enum ZuulSearchCli {
-    Roles(ZuulSearchCliRolesArgs),
-    Jobs(ZuulSearchCliJobArgs),
-    ProjectTemplates(ZuulSearchCliProjectTemplateArgs),
-    JobHierarchy(ZuulSearchCliJobHierarchyArgs),
-    JobVars(ZuulSearchCliJobVariablesArgs),
-    JobPlaybooks(ZuulSearchCliJobPlaybooksArgs),
-    WorkdirVars(ZuulSearchCliWorkDirVarsArgs),
+    Roles(CliRolesArgs),
+    Jobs(CliJobArgs),
+    ProjectTemplates(CliProjectTemplateArgs),
+    JobHierarchy(CliJobHierarchyArgs),
+    JobVars(CliJobVariablesArgs),
+    JobPlaybooks(CliJobPlaybooksArgs),
+    WorkdirVars(CliWorkDirVarsArgs),
 }
 
 #[derive(clap::Args)]
 #[command(version, about, long_about = "Search roles")]
-struct ZuulSearchCliRolesArgs {
+struct CliRolesArgs {
     #[arg(long)]
     work_dir: Option<PathBuf>,
 
@@ -32,8 +32,8 @@ struct ZuulSearchCliRolesArgs {
 }
 
 #[derive(clap::Args)]
-#[command(version, about, long_about = "Search jobs")]
-struct ZuulSearchCliJobArgs {
+#[command(version, about, long_about = "List jobs")]
+struct CliJobArgs {
     #[arg(long)]
     work_dir: Option<PathBuf>,
 
@@ -43,7 +43,7 @@ struct ZuulSearchCliJobArgs {
 
 #[derive(clap::Args)]
 #[command(version, about, long_about = "List project templates")]
-struct ZuulSearchCliProjectTemplateArgs {
+struct CliProjectTemplateArgs {
     #[arg(long)]
     work_dir: Option<PathBuf>,
 
@@ -52,30 +52,8 @@ struct ZuulSearchCliProjectTemplateArgs {
 }
 
 #[derive(clap::Args)]
-#[command(version, about, long_about = "Search jobs")]
-struct ZuulSearchCliJobHierarchyArgs {
-    #[arg(long)]
-    work_dir: Option<PathBuf>,
-
-    #[arg(long)]
-    config_path: Option<PathBuf>,
-
-    name: String,
-}
-
-#[derive(clap::Args)]
-#[command(version, about, long_about = "Search roles")]
-struct ZuulSearchCliWorkDirVarsArgs {
-    #[arg(long)]
-    work_dir: Option<PathBuf>,
-
-    #[arg(long)]
-    config_path: Option<PathBuf>,
-}
-
-#[derive(clap::Args)]
-#[command(version, about, long_about = "list variables")]
-struct ZuulSearchCliJobVariablesArgs {
+#[command(version, about, long_about = "List job hierarchy of a job")]
+struct CliJobHierarchyArgs {
     #[arg(long)]
     work_dir: Option<PathBuf>,
 
@@ -86,8 +64,30 @@ struct ZuulSearchCliJobVariablesArgs {
 }
 
 #[derive(clap::Args)]
-#[command(version, about, long_about = "list playbooks")]
-struct ZuulSearchCliJobPlaybooksArgs {
+#[command(version, about, long_about = "List variables in cwd")]
+struct CliWorkDirVarsArgs {
+    #[arg(long)]
+    work_dir: Option<PathBuf>,
+
+    #[arg(long)]
+    config_path: Option<PathBuf>,
+}
+
+#[derive(clap::Args)]
+#[command(version, about, long_about = "List variables of a job")]
+struct CliJobVariablesArgs {
+    #[arg(long)]
+    work_dir: Option<PathBuf>,
+
+    #[arg(long)]
+    config_path: Option<PathBuf>,
+
+    name: String,
+}
+
+#[derive(clap::Args)]
+#[command(version, about, long_about = "List playbooks of a job")]
+struct CliJobPlaybooksArgs {
     #[arg(long)]
     work_dir: Option<PathBuf>,
 
