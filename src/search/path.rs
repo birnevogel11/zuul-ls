@@ -41,8 +41,10 @@ pub fn get_zuul_yaml_paths(repo_dirs: &[PathBuf]) -> Vec<Rc<PathBuf>> {
 
 pub fn get_repo_dirs(work_dir: &Path, config_path: Option<PathBuf>) -> Vec<PathBuf> {
     let config = get_config(&config_path);
-    let base_dirs =
-        find_tenant_base_dirs(config, work_dir).unwrap_or(vec![PathBuf::from(work_dir)]);
+    // Assume the parent dir of the work dir is the base dir when the config
+    // is undefined.
+    let base_dirs = find_tenant_base_dirs(config, work_dir)
+        .unwrap_or(vec![PathBuf::from(work_dir.parent().unwrap_or(work_dir))]);
 
     let repo_dirs = base_dirs
         .into_iter()
