@@ -29,11 +29,12 @@ struct ZuulSearchCliRolesArgs {
 }
 
 fn main() {
-    let args = ZuulSearchCli::parse();
-
-    match args {
-        ZuulSearchCli::Roles(args) => {
-            crate::search::roles::list_roles_cli(args.search_key, args.work_dir, args.config_path);
-        }
-    };
+    crate::parser::job::job_parser_study(PathBuf::from("./test.yaml").as_path());
+    // let args = ZuulSearchCli::parse();
+    //
+    // match args {
+    //     ZuulSearchCli::Roles(args) => {
+    //         crate::search::roles::list_roles_cli(args.search_key, args.work_dir, args.config_path);
+    //     }
+    // };
 }

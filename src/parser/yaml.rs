@@ -1,3 +1,4 @@
+use std::path::Path;
 use std::{collections::BTreeMap, convert::TryFrom, mem, ops::Index, ops::IndexMut};
 
 use yaml_rust2::parser::{Event, MarkedEventReceiver, Parser, Tag};
@@ -25,6 +26,14 @@ impl Loc {
             line: mark.line(),
             col: mark.col(),
         }
+    }
+
+    pub fn line(&self) -> usize {
+        self.line
+    }
+
+    pub fn col(&self) -> usize {
+        self.col
     }
 }
 
@@ -102,6 +111,39 @@ impl YValue {
                 }
             }
         }
+    }
+
+    pub fn get_loc(&self) -> (usize, usize) {
+        match self {
+            YValue::Real(_, loc) => (loc.line(), loc.col()),
+            YValue::Integer(_, loc) => (loc.line(), loc.col()),
+            YValue::String(_, loc) => (loc.line(), loc.col()),
+            YValue::Boolean(_, loc) => (loc.line(), loc.col()),
+            YValue::Array(_, loc) => (loc.line(), loc.col()),
+            YValue::Hash(_, loc) => (loc.line(), loc.col()),
+            YValue::Alias(_, loc) => (loc.line(), loc.col()),
+            YValue::Null(loc) => (loc.line(), loc.col()),
+            YValue::BadValue(loc) => (loc.line(), loc.col()),
+        }
+    }
+
+    pub fn get_line(&self) -> usize {
+        self.get_loc().0
+    }
+
+    pub fn get_col(&self) -> usize {
+        self.get_loc().1
+    }
+
+    pub fn as_str(&self) -> Option<&String> {
+        match self {
+            YValue::String(x, _) => Some(x),
+            _ => None,
+        }
+    }
+
+    pub fn is_str(&self) -> bool {
+        matches!(self, YValue::String(_, _))
     }
 }
 
@@ -290,5 +332,27 @@ impl YValueLoader {
     #[must_use]
     pub fn documents(&self) -> &[YValue] {
         &self.docs
+    }
+}
+
+/// An error that occurred while scanning.
+#[derive(Debug)]
+pub enum LoadYValueError {
+    FileError(std::io::Error),
+    ParseError(ScanError),
+}
+
+pub fn load_yvalue(path: &Path) -> Result<Vec<YValue>, LoadYValueError> {
+    let content = match std::fs::read_to_string(path) {
+        Ok(content) => Ok(content),
+        Err(err) => Err(LoadYValueError::FileError(err)),
+    };
+
+    match content {
+        Ok(content) => match YValueLoader::load_from_str(&content) {
+            Ok(docs) => Ok(docs),
+            Err(err) => Err(LoadYValueError::ParseError(err)),
+        },
+        Err(err) => Err(err),
     }
 }
