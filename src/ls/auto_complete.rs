@@ -7,6 +7,7 @@ use tower_lsp::lsp_types::{
     CompletionContext, CompletionItem, CompletionItemKind, CompletionResponse,
     CompletionTriggerKind, Documentation, Position,
 };
+use walkdir::WalkDir;
 
 use crate::path::retrieve_repo_path;
 use crate::path::to_path;
@@ -18,7 +19,7 @@ use super::parser::AutoCompleteToken;
 
 static ZUUL_PROPERTY: phf::Map<&'static str, &[&'static str]> = phf_map! {
     "job" => &["abstract", "description", "name", "nodeset", "parent",
-               "post-run", "pre-run", "required-projects", "roles", "run", "vars", "voting"],
+               "post-run", "pre-run", "required-projects", "roles", "run", "vars", "voting", "secrets"],
     "project-template" => &["name", "queue"],
 };
 
@@ -102,8 +103,13 @@ pub fn complete_items(
                 (
                     CompletionResponse::Array(
                         keys.iter()
+                            .map(|name| {
+                                let mut s = name.to_string();
+                                s.push(':');
+                                s
+                            })
                             .map(|name| CompletionItem {
-                                label: name.to_string(),
+                                label: name,
                                 kind: Some(CompletionItemKind::PROPERTY),
                                 ..CompletionItem::default()
                             })
@@ -115,8 +121,35 @@ pub fn complete_items(
         }
         TokenType::Playbook => {
             let path = to_path(path.to_str().unwrap());
-            if let Some(repo_path) = retrieve_repo_path(&path) {}
-            None
+            retrieve_repo_path(&path).map(|repo_path| {
+                let playbook_dir = repo_path.join("playbooks");
+                let playbooks = WalkDir::new(playbook_dir)
+                    .into_iter()
+                    .filter_map(|e| e.ok())
+                    .filter(|x| x.file_name().to_str().unwrap().ends_with(".yaml"))
+                    .map(|x| {
+                        x.into_path()
+                            .strip_prefix(&repo_path)
+                            .unwrap()
+                            .to_path_buf()
+                    })
+                    .filter(|x| x.to_str().unwrap().starts_with(&token.value))
+                    .collect::<Vec<_>>();
+
+                (
+                    CompletionResponse::Array(
+                        playbooks
+                            .into_iter()
+                            .map(|path| CompletionItem {
+                                label: path.to_str().unwrap().to_string(),
+                                kind: Some(CompletionItemKind::FILE),
+                                ..CompletionItem::default()
+                            })
+                            .collect::<Vec<_>>(),
+                    ),
+                    token,
+                )
+            })
         }
         // TODO: implement it
         // TokenType::Variable => {}
