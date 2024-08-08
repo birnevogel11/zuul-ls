@@ -1,5 +1,6 @@
 use yaml_rust2::yaml::Yaml;
 
+use path_absolutize::*;
 use std::collections::HashMap;
 use std::env;
 use std::fs;
@@ -8,18 +9,31 @@ use std::path::{Path, PathBuf};
 use dirs;
 use yaml_rust2::yaml::YamlLoader;
 
+extern crate shellexpand;
+
 #[derive(Default, Debug, PartialEq)]
 pub struct TenantConfig {
     name: String,
-    base_dirs: Vec<String>,
-    extra_base_dirs: Vec<String>,
-    extra_role_dirs: Vec<String>,
+    base_dirs: Vec<PathBuf>,
+    extra_base_dirs: Vec<PathBuf>,
+    extra_role_dirs: Vec<PathBuf>,
 }
 
 #[derive(Default, Debug, PartialEq)]
 pub struct Config {
     default_tenant: String,
     tenants: HashMap<String, TenantConfig>,
+}
+
+fn to_path(x: &str) -> PathBuf {
+    PathBuf::from(shellexpand::tilde(x).into_owned())
+        .absolutize()
+        .unwrap()
+        .into_owned()
+}
+
+fn expand_tilde_paths(xs: Vec<String>) -> Vec<PathBuf> {
+    xs.iter().map(|x| to_path(x.as_str())).collect()
 }
 
 impl Config {
@@ -50,9 +64,9 @@ impl Config {
                     name.clone(),
                     TenantConfig {
                         name,
-                        base_dirs,
-                        extra_base_dirs,
-                        extra_role_dirs,
+                        base_dirs: expand_tilde_paths(base_dirs),
+                        extra_base_dirs: expand_tilde_paths(extra_base_dirs),
+                        extra_role_dirs: expand_tilde_paths(extra_role_dirs),
                     },
                 );
             }
@@ -133,11 +147,11 @@ mod tests {
 
         let tenant = TenantConfig {
             name: "bar".into(),
-            base_dirs: vec!["~/foo/bar".into()],
-            extra_base_dirs: vec!["~/foo/another".into()],
+            base_dirs: vec![to_path("~/foo/bar")],
+            extra_base_dirs: vec![to_path("~/foo/another")],
             extra_role_dirs: vec![
-                "~/foo/another/extra_role".into(),
-                "~/foo/zar/extra-role2".into(),
+                to_path("~/foo/another/extra_role"),
+                to_path("~/foo/zar/extra-role2"),
             ],
             ..Default::default()
         };
