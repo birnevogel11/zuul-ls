@@ -304,6 +304,19 @@ pub fn list_job_hierarchy_names(name: &str, zuul_jobs: &ZuulJobs) -> Vec<StringL
         .collect()
 }
 
+pub fn list_jobs_playbooks_cli(
+    job_name: String,
+    work_dir: Option<PathBuf>,
+    config_path: Option<PathBuf>,
+) {
+    let repo_dirs = get_repo_dirs(work_dir, config_path);
+    let yaml_paths = get_zuul_yaml_paths(&repo_dirs);
+    let zuul_jobs = ZuulJobs::from_paths(&yaml_paths);
+    let jps = list_job_playbooks(&job_name, &zuul_jobs);
+
+    println!("{:#?}", &jps);
+}
+
 pub fn list_jobs_vars_cli(
     job_name: String,
     work_dir: Option<PathBuf>,

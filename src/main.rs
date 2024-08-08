@@ -13,6 +13,7 @@ enum ZuulSearchCli {
     Jobs(ZuulSearchCliJobArgs),
     ListJobHierarchy(ZuulSearchCliJobHierarchyArgs),
     ListJobVars(ZuulSearchCliJobVariablesArgs),
+    ListJobPlaybooks(ZuulSearchCliJobPlaybooksArgs),
 }
 
 #[derive(clap::Args)]
@@ -59,6 +60,18 @@ struct ZuulSearchCliJobVariablesArgs {
     name: String,
 }
 
+#[derive(clap::Args)]
+#[command(version, about, long_about = "list playbooks")]
+struct ZuulSearchCliJobPlaybooksArgs {
+    #[arg(long)]
+    work_dir: Option<PathBuf>,
+
+    #[arg(long)]
+    config_path: Option<PathBuf>,
+
+    name: String,
+}
+
 fn main() {
     let args = ZuulSearchCli::parse();
 
@@ -74,6 +87,9 @@ fn main() {
         }
         ZuulSearchCli::ListJobVars(args) => {
             jobs::list_jobs_vars_cli(args.name, args.work_dir, args.config_path);
+        }
+        ZuulSearchCli::ListJobPlaybooks(args) => {
+            jobs::list_jobs_playbooks_cli(args.name, args.work_dir, args.config_path);
         }
     };
 }
