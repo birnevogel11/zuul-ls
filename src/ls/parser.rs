@@ -1,10 +1,8 @@
 pub mod ansible;
-pub mod types;
 pub mod word;
 pub mod zuul;
 
 use ropey::Rope;
-use ropey::RopeSlice;
 use tower_lsp::lsp_types::Position;
 use tower_lsp::lsp_types::Url;
 

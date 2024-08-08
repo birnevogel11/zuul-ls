@@ -1,3 +1,4 @@
+use std::fs;
 use std::path::Path;
 use std::path::PathBuf;
 
@@ -117,7 +118,7 @@ fn find_tenant_dirs(
 ) -> Option<Vec<PathBuf>> {
     let config = config?;
     let tenant = config.find_tenant(work_dir)?;
-    let tenant_config = config.tenants.get(&tenant)?;
+    let tenant_config = config.get_tenant(&tenant)?;
 
     if is_base {
         let mut base_dirs = tenant_config.base_dirs.clone();
@@ -165,4 +166,8 @@ pub fn shorten_path(path: &Path) -> PathBuf {
     };
 
     PathBuf::from(path)
+}
+
+pub fn filter_valid_paths(xs: Vec<PathBuf>) -> Vec<PathBuf> {
+    xs.iter().filter_map(|x| fs::canonicalize(x).ok()).collect()
 }
