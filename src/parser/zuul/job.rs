@@ -98,6 +98,10 @@ impl Job {
         &self.name
     }
 
+    pub fn parent(&self) -> &Option<StringLoc> {
+        &self.parent
+    }
+
     fn parse_playbook_list_item(
         value: &YValue,
         path: &Rc<PathBuf>,
