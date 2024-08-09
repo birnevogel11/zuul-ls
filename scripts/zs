@@ -2,7 +2,7 @@
 
 set -Eeuo pipefail
 
-readonly ZS_PROGRAM="${HOME}/Trek/zuul-ls/target/debug/zuul-search"
+readonly ZS_PROGRAM="${ZUUL_SEARCH_BIN_PATH:-"zuul-search"}"
 
 zs-job() {
   local -r result=$(${ZS_PROGRAM} jobs | \
@@ -147,9 +147,32 @@ zs-roles() {
   fi
 }
 
+show_help() {
+  echo "zs - zuul search - Search zuul config with zuul-search, fzf and bat"
+  echo ""
+  echo "Command:"
+  echo "  zs <search> [job_name]"
+  echo "    j,jobs              - Search all jobs"
+  echo "    h,hierarchy         - Search the job hierarchy of a job"
+  echo "    v,vars              - Search job variables of a job"
+  echo "    wv,workdir-vars     - Search variables in cwd"
+  echo "    p,playbooks         - Search playbooks of a job"
+  echo "    t,project-templates - Search all project-templates"
+  echo "    help                - Show the help"
+  echo ""
+  echo "Example:"
+  echo "    zs j          - Search all jobs"
+  echo "    zs job        - Same as 'zs j'"
+  echo ""
+  echo "    zs h          - Search the job name first, search the job hierarchy of the job name"
+  echo "    zs hierarchy  - Same as 'zs h'"
+  echo ""
+  echo "    zs h zuul-job - Search the job hierarhcy of 'zuul-job'"
+}
+
 main() {
   if [[ "$#" == "0" ]]; then
-    echo "help"
+    show_help
     exit 0
   fi
 
@@ -199,8 +222,11 @@ main() {
     project-templates)
       zs-project-templates
       ;;
+    help)
+      show_help
+      ;;
     *)
-      echo "help"
+      show_help
       ;;
   esac
 }
