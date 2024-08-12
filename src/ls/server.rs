@@ -75,7 +75,19 @@ impl LanguageServer for Backend {
         .await
     }
 
+    async fn will_save(&self, _: WillSaveTextDocumentParams) {}
+
+    async fn will_save_wait_until(
+        &self,
+        _: WillSaveTextDocumentParams,
+    ) -> Result<Option<Vec<TextEdit>>> {
+        Ok(None)
+    }
+
+    async fn did_close(&self, _: DidCloseTextDocumentParams) {}
+
     async fn did_change(&self, mut params: DidChangeTextDocumentParams) {
+        log::info!("did change params: {:#?}", params);
         self.on_change(TextDocumentItem {
             uri: params.text_document.uri,
             text: std::mem::take(&mut params.content_changes[0].text),
@@ -83,8 +95,17 @@ impl LanguageServer for Backend {
         .await
     }
 
-    // TODO: implement it
-    async fn did_save(&self, _params: DidSaveTextDocumentParams) {}
+    async fn did_save(&self, params: DidSaveTextDocumentParams) {
+        log::info!("did save params: {:#?}", params);
+        let uri = &params.text_document.uri;
+        let path = uri.to_file_path().unwrap();
+
+        log::info!("Update symbols");
+        self.symbols.update(&path);
+
+        log::info!("Clean auto complete cache");
+        self.auto_complete_cache.clear();
+    }
 
     async fn goto_definition(
         &self,

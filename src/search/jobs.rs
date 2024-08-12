@@ -197,11 +197,7 @@ pub fn list_jobs_hierarchy_names_cli(
     print_string_locs(&job_names)
 }
 
-pub fn list_job_locs_by_name(
-    work_dir: &Path,
-    config_path: Option<PathBuf>,
-) -> HashMap<String, Vec<StringLoc>> {
-    let zuul_jobs = list_jobs(work_dir, config_path);
+pub fn list_job_locs_by_name(zuul_jobs: &ZuulJobs) -> HashMap<String, Vec<StringLoc>> {
     let mut job_groups: HashMap<String, Vec<StringLoc>> = HashMap::new();
 
     zuul_jobs.jobs().iter().for_each(|job| {
