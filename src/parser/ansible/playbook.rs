@@ -41,7 +41,10 @@ fn parse_playbook_role_vars_internal(
                     .iter()
                     .filter(|(key, _)| {
                         if let Some(key_name) = key.as_str() {
-                            !matches!(key_name, "role" | "vars" | "tags")
+                            !matches!(
+                                key_name,
+                                "role" | "vars" | "tags" | "name" | "when" | "register"
+                            )
                         } else {
                             true
                         }
