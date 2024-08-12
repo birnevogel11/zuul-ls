@@ -139,7 +139,7 @@ fn resolve_config_path(custom_path: Option<PathBuf>) -> PathBuf {
     match (custom_path, env::var("ZUUL_SEARCH_CONFIG_PATH")) {
         (Some(path), _) => path,
         (_, Ok(path)) => path.into(),
-        (_, _) => dirs::config_dir().unwrap().join("zuul-search/config.yaml"),
+        (_, _) => dirs::config_dir().unwrap().join("zuul-ls/config.yaml"),
     }
 }
 
