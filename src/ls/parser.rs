@@ -15,10 +15,6 @@ use self::utils::find_var_token;
 use self::zuul::parse_token_zuul_config;
 use crate::path::{retrieve_repo_path, to_path};
 
-fn get_exist_path(path: PathBuf) -> Option<PathBuf> {
-    path.is_file().then_some(path)
-}
-
 #[derive(Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct AnsibleRolePath {
     pub tasks_path: Option<PathBuf>,
