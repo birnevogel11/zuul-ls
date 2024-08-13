@@ -159,8 +159,6 @@ impl Backend {
     }
 
     async fn on_completion(&self, params: CompletionParams) -> Result<Option<CompletionResponse>> {
-        log::debug!("params: {:#?}", params);
-
         let uri = &params.text_document_position.text_document.uri;
         let uri_path = &uri.to_string();
 
@@ -174,7 +172,7 @@ impl Backend {
                 .get_cached_items(uri_path, position, &params.context)
             {
                 Some((cached_response, value)) => {
-                    log::info!("cached token");
+                    log::info!("Cached auto-complete cache: {:#?}", value);
                     self.auto_complete_cache.add_entry(
                         uri.to_string(),
                         position,

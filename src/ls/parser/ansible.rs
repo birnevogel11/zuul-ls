@@ -303,11 +303,14 @@ mod tests {
         }
 
         fn set_var_token_type(mut self) -> Self {
-            self.token_type = TokenType::Variable(if self.var_stack.is_empty() {
-                None
-            } else {
-                Some(self.var_stack.clone())
-            });
+            self.token_type = TokenType::Variable {
+                var_stack: if self.var_stack.is_empty() {
+                    None
+                } else {
+                    Some(self.var_stack.clone())
+                },
+                role_name: None,
+            };
 
             self
         }
@@ -418,7 +421,10 @@ mod tests {
             .set_location(3, 7)
             .set_value("name")
             .set_file_type(&TOKEN_FILE_TYPE_ANSIBLE_ROLE_TASKS)
-            .set_token_type(TokenType::Variable(None))
+            .set_token_type(TokenType::Variable {
+                var_stack: None,
+                role_name: None,
+            })
             .set_token_side(TokenSide::Left)
             .append_key_stack("set_fact")
             .create_token()
@@ -597,7 +603,10 @@ var_name_3: value3
             .set_location(2, 8)
             .set_value("var_name_2")
             .set_file_type(&TOKEN_FILE_TYPE_ANSIBLE_ROLE_DEFAULTS)
-            .set_token_type(TokenType::Variable(None))
+            .set_token_type(TokenType::Variable {
+                var_stack: None,
+                role_name: None,
+            })
             .set_token_side(TokenSide::Left)
             .create_token()
             .build()

@@ -262,7 +262,10 @@ mod tests {
             Some(AutoCompleteToken {
                 value: "nest_var2_1".to_string(),
                 file_type: TokenFileType::ZuulConfig,
-                token_type: TokenType::Variable(Some(to_vec_str(&["test_var2"]))),
+                token_type: TokenType::Variable {
+                    var_stack: Some(to_vec_str(&["test_var2"])),
+                    role_name: None
+                },
                 token_side: TokenSide::Left,
                 key_stack: to_vec_str(&[
                     "project",
@@ -305,7 +308,10 @@ mod tests {
             Some(AutoCompleteToken {
                 value: "test_var1".to_string(),
                 file_type: TokenFileType::ZuulConfig,
-                token_type: TokenType::Variable(None),
+                token_type: TokenType::Variable {
+                    var_stack: None,
+                    role_name: None
+                },
                 token_side: TokenSide::Left,
                 key_stack: to_vec_str(&[
                     "project",

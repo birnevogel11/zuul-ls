@@ -13,7 +13,6 @@ use super::symbols::ZuulSymbol;
 
 use crate::ls::go_to_definition::parse_ansible_role_vars;
 use crate::ls::variable_group::process_var_group;
-use crate::parser::ansible;
 use crate::parser::variable::{VariableGroup, VariableGroupInfo};
 use crate::path::{retrieve_repo_path, shorten_path, to_path};
 
@@ -42,7 +41,11 @@ fn fill_guess_content(content: &Rope, position: &Position) -> Rope {
     try_content
 }
 
-fn get_token(path: &Path, content: &Rope, position: &Position) -> Option<AutoCompleteToken> {
+fn parse_token_retry(
+    path: &Path,
+    content: &Rope,
+    position: &Position,
+) -> Option<AutoCompleteToken> {
     parse_token(path, content, position).or_else(|| {
         let line_idx = position.line as usize;
         let line = content.get_line(line_idx)?;
@@ -102,12 +105,19 @@ fn complete_variable_items(
         role_name,
     } = &token.token_type
     {
+        // Parse local variables
         let mut local_vars: VariableGroup = parse_local_vars_ansible(path, content, token);
         if local_vars.is_empty() {
             let try_content = fill_guess_content(content, position);
             local_vars = parse_local_vars_ansible(path, &try_content, token);
         }
 
+        // If the variable is under a role, parse the variables of the role
+        // e.g.
+        // - include_role:
+        //     name: some_role
+        //   vars:
+        //     <cursor_here>
         if let Some(role_name) = role_name {
             if let Some(ansible_path) = symbols.get_role_path(role_name) {
                 local_vars.merge(parse_ansible_role_vars(&ansible_path));
@@ -136,7 +146,7 @@ pub fn complete_items(
     content: &Rope,
     position: &Position,
 ) -> Option<(CompletionResponse, AutoCompleteToken)> {
-    let token = get_token(path, content, position)?;
+    let token = parse_token_retry(path, content, position)?;
     log::info!("AutoCompleteToken: {:#?}", &token);
 
     match &token.token_type {
