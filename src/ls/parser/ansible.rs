@@ -248,18 +248,22 @@ pub fn parse_token_ansible(
 
 #[cfg(test)]
 mod tests {
+    use crate::ls::parser::AnsibleRolePath;
+
     use super::*;
 
     const TOKEN_FILE_TYPE_PLAYBOOKS: TokenFileType = TokenFileType::Playbooks;
-    const TOKEN_FILE_TYPE_ANSIBLE_ROLE_TASKS: TokenFileType = TokenFileType::AnsibleRoleTasks {
-        defaults_path: None,
-    };
-    const TOKEN_FILE_TYPE_ANSIBLE_ROLE_DEFAULTS: TokenFileType = TokenFileType::AnsibleRoleDefaults;
-    const TOKEN_FILE_TYPE_ANSIBLE_ROLE_TEMPLATES: TokenFileType =
-        TokenFileType::AnsibleRoleTemplates {
+    const TOKEN_FILE_TYPE_ANSIBLE_ROLE_TASKS: TokenFileType =
+        TokenFileType::AnsibleRoleTasks(AnsibleRolePath {
             tasks_path: None,
             defaults_path: None,
-        };
+        });
+    const TOKEN_FILE_TYPE_ANSIBLE_ROLE_DEFAULTS: TokenFileType = TokenFileType::AnsibleRoleDefaults;
+    const TOKEN_FILE_TYPE_ANSIBLE_ROLE_TEMPLATES: TokenFileType =
+        TokenFileType::AnsibleRoleTemplates(AnsibleRolePath {
+            tasks_path: None,
+            defaults_path: None,
+        });
 
     #[derive(Clone, PartialEq, PartialOrd, Debug, Eq, Ord, Default)]
     struct TestParseTokenAnsible {
