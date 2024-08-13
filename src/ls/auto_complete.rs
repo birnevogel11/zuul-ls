@@ -156,7 +156,6 @@ pub fn complete_items(
             )),
             token,
         )),
-        // TODO: implement it
         TokenType::Role => {
             let role_docs = symbols
                 .role_docs()

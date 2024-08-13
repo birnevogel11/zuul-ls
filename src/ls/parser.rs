@@ -19,6 +19,45 @@ fn get_exist_path(path: PathBuf) -> Option<PathBuf> {
     path.is_file().then_some(path)
 }
 
+#[derive(Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub struct AnsibleRolePath {
+    pub tasks_path: Option<PathBuf>,
+    pub defaults_path: Option<PathBuf>,
+}
+
+impl AnsibleRolePath {
+    pub fn new(role_dir: &Path) -> Self {
+        Self::_new(role_dir, true, true)
+    }
+
+    pub fn new_tasks_path(role_dir: &Path) -> Self {
+        Self::_new(role_dir, true, false)
+    }
+
+    pub fn new_defaults_path(role_dir: &Path) -> Self {
+        Self::_new(role_dir, false, true)
+    }
+
+    pub fn _new(role_dir: &Path, is_tasks_path: bool, is_defaults_path: bool) -> Self {
+        let role_dir = role_dir.to_path_buf();
+        let task_path = role_dir.join("tasks").join("main.yaml");
+        let default_path = role_dir.join("defaults").join("main.yaml");
+
+        Self {
+            tasks_path: if is_tasks_path {
+                task_path.is_file().then_some(task_path)
+            } else {
+                None
+            },
+            defaults_path: if is_defaults_path {
+                default_path.is_file().then_some(default_path)
+            } else {
+                None
+            },
+        }
+    }
+}
+
 #[derive(Clone, PartialEq, PartialOrd, Debug, Eq, Ord, Hash, Default)]
 pub enum TokenFileType {
     #[default]
@@ -26,13 +65,8 @@ pub enum TokenFileType {
     ZuulConfig,
     Playbooks,
     AnsibleRoleDefaults,
-    AnsibleRoleTasks {
-        defaults_path: Option<PathBuf>,
-    },
-    AnsibleRoleTemplates {
-        tasks_path: Option<PathBuf>,
-        defaults_path: Option<PathBuf>,
-    },
+    AnsibleRoleTasks(AnsibleRolePath),
+    AnsibleRoleTemplates(AnsibleRolePath),
 }
 
 impl TokenFileType {
@@ -48,11 +82,7 @@ impl TokenFileType {
         .find_map(|(name, ls_path_type)| {
             let mut base_path = PathBuf::from(&repo_path);
             base_path.push(name);
-            if path.starts_with(&base_path) {
-                Some(ls_path_type)
-            } else {
-                None
-            }
+            path.starts_with(&base_path).then_some(ls_path_type)
         });
         if ls_file_type.is_some() {
             return ls_file_type;
@@ -66,23 +96,12 @@ impl TokenFileType {
                 .find_map(|ancestor| match ancestor.file_name() {
                     Some(name) => match name.to_str().unwrap() {
                         "defaults" => Some(TokenFileType::AnsibleRoleDefaults),
-                        "tasks" => {
-                            let role_dir = ancestor.parent()?;
-                            let defaults_path =
-                                get_exist_path(role_dir.join("defaults").join("main.yaml"));
-                            Some(TokenFileType::AnsibleRoleTasks { defaults_path })
-                        }
-                        "templates" => {
-                            let role_dir = ancestor.parent()?;
-                            let defaults_path =
-                                get_exist_path(role_dir.join("defaults").join("main.yaml"));
-                            let tasks_path =
-                                get_exist_path(role_dir.join("tasks").join("main.yaml"));
-                            Some(TokenFileType::AnsibleRoleTemplates {
-                                tasks_path,
-                                defaults_path,
-                            })
-                        }
+                        "tasks" => Some(TokenFileType::AnsibleRoleTasks(
+                            AnsibleRolePath::new_defaults_path(ancestor.parent()?),
+                        )),
+                        "templates" => Some(TokenFileType::AnsibleRoleTemplates(
+                            AnsibleRolePath::new(ancestor.parent()?),
+                        )),
                         _ => None,
                     },
                     None => None,

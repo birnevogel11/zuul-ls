@@ -4,6 +4,7 @@ use std::path::PathBuf;
 use dashmap::DashMap;
 
 use crate::config::get_work_dir;
+use crate::ls::parser::AnsibleRolePath;
 use crate::parser::common::StringLoc;
 use crate::parser::variable::VariableGroup;
 use crate::path::get_role_repo_dirs;
@@ -13,12 +14,6 @@ use crate::search::roles::list_roles;
 use crate::search::work_dir_vars::list_work_dir_vars_with_zuul_jobs;
 
 use super::parser::TokenFileType;
-
-#[derive(Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd)]
-pub struct AnsibleRolePath {
-    pub tasks_path: Option<PathBuf>,
-    pub defaults_path: Option<PathBuf>,
-}
 
 #[derive(Clone, Debug, Default)]
 pub struct ZuulSymbol {
@@ -108,12 +103,6 @@ impl ZuulSymbol {
             }
         })?;
 
-        let task_path = role_dir.join("tasks").join("main.yaml");
-        let default_path = role_dir.join("defaults").join("main.yaml");
-
-        Some(AnsibleRolePath {
-            tasks_path: task_path.is_file().then_some(task_path),
-            defaults_path: default_path.is_file().then_some(default_path),
-        })
+        Some(AnsibleRolePath::new(role_dir))
     }
 }

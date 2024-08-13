@@ -5,8 +5,7 @@ use std::path::PathBuf;
 use ropey::Rope;
 use tower_lsp::lsp_types::{GotoDefinitionResponse, Location, Position, Range, Url};
 
-use crate::ls::parser::{AutoCompleteToken, TokenFileType, TokenType};
-use crate::ls::symbols::AnsibleRolePath;
+use crate::ls::parser::{AnsibleRolePath, AutoCompleteToken, TokenFileType, TokenType};
 use crate::ls::symbols::ZuulSymbol;
 use crate::ls::variable_group::process_var_group;
 use crate::parser::ansible::defaults::parse_defaults_vars;
@@ -17,7 +16,7 @@ use crate::path::{retrieve_repo_path, to_path};
 
 use super::parser::parse_token;
 
-fn parse_ansible_vars<T>(
+fn _parse_ansible_vars<T>(
     path: &Option<PathBuf>,
     content: Option<String>,
     parse_fun: T,
@@ -31,56 +30,47 @@ where
     })
 }
 
-pub fn parse_local_vars_ansible(
-    path: &Path,
-    content: &Rope,
-    token: &AutoCompleteToken,
-) -> VariableGroup {
-    match &token.file_type {
-        TokenFileType::Playbooks => parse_ansible_vars(
-            &Some(path.to_path_buf()),
-            Some(content.to_string()),
-            parse_playbook_vars,
-        ),
-        TokenFileType::AnsibleRoleDefaults => parse_ansible_vars(
-            &Some(path.to_path_buf()),
-            Some(content.to_string()),
-            parse_defaults_vars,
-        ),
-        TokenFileType::AnsibleRoleTasks { defaults_path } => {
-            let mut xs = parse_ansible_vars(
-                &Some(path.to_path_buf()),
-                Some(content.to_string()),
-                parse_task_vars,
-            );
-            let ys = parse_ansible_vars(defaults_path, None, parse_defaults_vars);
-
-            xs.merge(ys);
-            xs
-        }
-        TokenFileType::AnsibleRoleTemplates {
-            tasks_path,
-            defaults_path,
-        } => {
-            let mut xs = parse_ansible_vars(defaults_path, None, parse_defaults_vars);
-            let ys = parse_ansible_vars(tasks_path, None, parse_task_vars);
-
-            xs.merge(ys);
-            xs
-        }
-        _ => VariableGroup::default(),
-    }
-}
-
 pub fn parse_ansible_role_vars(ansible_path: &AnsibleRolePath) -> VariableGroup {
-    let mut xs = parse_ansible_vars(&ansible_path.tasks_path, None, parse_task_vars);
-    xs.merge(parse_ansible_vars(
+    let mut xs = _parse_ansible_vars(&ansible_path.tasks_path, None, parse_task_vars);
+    xs.merge(_parse_ansible_vars(
         &ansible_path.defaults_path,
         None,
         parse_defaults_vars,
     ));
 
     xs
+}
+
+pub fn parse_local_vars_ansible(
+    path: &Path,
+    content: &Rope,
+    token: &AutoCompleteToken,
+) -> VariableGroup {
+    match &token.file_type {
+        TokenFileType::Playbooks => _parse_ansible_vars(
+            &Some(path.to_path_buf()),
+            Some(content.to_string()),
+            parse_playbook_vars,
+        ),
+        TokenFileType::AnsibleRoleDefaults => _parse_ansible_vars(
+            &Some(path.to_path_buf()),
+            Some(content.to_string()),
+            parse_defaults_vars,
+        ),
+        TokenFileType::AnsibleRoleTasks(ansible_path) => {
+            let mut xs = _parse_ansible_vars(
+                &Some(path.to_path_buf()),
+                Some(content.to_string()),
+                parse_task_vars,
+            );
+            let ys = _parse_ansible_vars(&ansible_path.defaults_path, None, parse_defaults_vars);
+
+            xs.merge(ys);
+            xs
+        }
+        TokenFileType::AnsibleRoleTemplates(ansible_path) => parse_ansible_role_vars(ansible_path),
+        _ => VariableGroup::default(),
+    }
 }
 
 fn find_var_definitions_internal(
