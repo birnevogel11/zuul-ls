@@ -102,7 +102,10 @@ pub enum TokenSide {
 
 #[derive(Clone, PartialEq, PartialOrd, Debug, Eq, Ord, Hash)]
 pub enum TokenType {
-    Variable(Option<Vec<String>>),
+    Variable {
+        var_stack: Option<Vec<String>>,
+        role_name: Option<String>,
+    },
     Role,
     Job,
     ZuulProperty(String),
@@ -111,7 +114,10 @@ pub enum TokenType {
 
 impl Default for TokenType {
     fn default() -> Self {
-        TokenType::Variable(None)
+        TokenType::Variable {
+            var_stack: None,
+            role_name: None,
+        }
     }
 }
 
@@ -175,6 +181,31 @@ impl VariableTokenBuilder {
         content: &Rope,
         position: &Position,
     ) -> Option<Self> {
+        Self::_new_impl(var_stack, token_side, content, position, None)
+    }
+
+    pub fn new_with_role(
+        var_stack: Option<Vec<String>>,
+        token_side: TokenSide,
+        content: &Rope,
+        position: &Position,
+        role_name: &Option<String>,
+    ) -> Option<Self> {
+        Self::_new_impl(var_stack, token_side, content, position, role_name.clone())
+    }
+
+    pub fn new_yaml(value: &Yaml, content: &Rope, position: &Position) -> Option<Self> {
+        let (var_stack, token_side) = parse_value(value, None)?;
+        Self::new(Some(var_stack), token_side, content, position)
+    }
+
+    fn _new_impl(
+        var_stack: Option<Vec<String>>,
+        token_side: TokenSide,
+        content: &Rope,
+        position: &Position,
+        role_name: Option<String>,
+    ) -> Option<Self> {
         let mut var_tokens = find_var_token(content, position)?;
         let token = var_tokens.pop()?;
 
@@ -189,15 +220,13 @@ impl VariableTokenBuilder {
 
         Some(VariableTokenBuilder(AutoCompleteToken {
             value: token,
-            token_type: TokenType::Variable((!var_stack.is_empty()).then_some(var_stack)),
+            token_type: TokenType::Variable {
+                var_stack: (!var_stack.is_empty()).then_some(var_stack),
+                role_name,
+            },
             token_side,
             ..AutoCompleteToken::default()
         }))
-    }
-
-    pub fn new_yaml(value: &Yaml, content: &Rope, position: &Position) -> Option<Self> {
-        let (var_stack, token_side) = parse_value(value, None)?;
-        Self::new(Some(var_stack), token_side, content, position)
     }
 
     pub fn set_file_type(mut self, file_type: &TokenFileType) -> Self {

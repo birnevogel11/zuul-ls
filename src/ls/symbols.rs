@@ -14,13 +14,19 @@ use crate::search::work_dir_vars::list_work_dir_vars_with_zuul_jobs;
 
 use super::parser::TokenFileType;
 
+#[derive(Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd)]
+pub struct AnsibleRolePath {
+    pub tasks_path: Option<PathBuf>,
+    pub defaults_path: Option<PathBuf>,
+}
+
 #[derive(Clone, Debug, Default)]
 pub struct ZuulSymbol {
     role_dirs: DashMap<String, PathBuf>,
-    jobs: DashMap<String, Vec<StringLoc>>,
-
-    vars: VariableGroup,
     role_docs: DashMap<String, Option<String>>,
+
+    jobs: DashMap<String, Vec<StringLoc>>,
+    vars: VariableGroup,
 }
 
 impl ZuulSymbol {
@@ -89,5 +95,25 @@ impl ZuulSymbol {
         vars.iter().for_each(|entry| {
             self.vars.insert(entry.key().clone(), entry.value().clone());
         });
+    }
+
+    pub fn get_role_path(&self, role_name: &str) -> Option<AnsibleRolePath> {
+        let entry = self.role_dirs.get(role_name)?;
+        let path = entry.value();
+        let role_dir = path.ancestors().find(|path| {
+            if let Some(path_str) = path.to_str() {
+                path_str.ends_with(role_name)
+            } else {
+                false
+            }
+        })?;
+
+        let task_path = role_dir.join("tasks").join("main.yaml");
+        let default_path = role_dir.join("defaults").join("main.yaml");
+
+        Some(AnsibleRolePath {
+            tasks_path: task_path.is_file().then_some(task_path),
+            defaults_path: default_path.is_file().then_some(default_path),
+        })
     }
 }

@@ -6,6 +6,7 @@ use ropey::Rope;
 use tower_lsp::lsp_types::{GotoDefinitionResponse, Location, Position, Range, Url};
 
 use crate::ls::parser::{AutoCompleteToken, TokenFileType, TokenType};
+use crate::ls::symbols::AnsibleRolePath;
 use crate::ls::symbols::ZuulSymbol;
 use crate::ls::variable_group::process_var_group;
 use crate::parser::ansible::defaults::parse_defaults_vars;
@@ -71,6 +72,17 @@ pub fn parse_local_vars_ansible(
     }
 }
 
+pub fn parse_ansible_role_vars(ansible_path: &AnsibleRolePath) -> VariableGroup {
+    let mut xs = parse_ansible_vars(&ansible_path.tasks_path, None, parse_task_vars);
+    xs.merge(parse_ansible_vars(
+        &ansible_path.defaults_path,
+        None,
+        parse_defaults_vars,
+    ));
+
+    xs
+}
+
 fn find_var_definitions_internal(
     value: &str,
     var_stack: &[String],
@@ -127,7 +139,7 @@ fn get_definition_list_internal(
     let value = &token.value;
 
     match &token.token_type {
-        TokenType::Variable(var_stack) => {
+        TokenType::Variable { var_stack, .. } => {
             return find_var_definitions(value, var_stack, path, content, symbols, token);
         }
         TokenType::Job => {

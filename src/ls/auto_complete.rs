@@ -11,7 +11,9 @@ use super::go_to_definition::parse_local_vars_ansible;
 use super::parser::{parse_token, AutoCompleteToken, TokenType};
 use super::symbols::ZuulSymbol;
 
+use crate::ls::go_to_definition::parse_ansible_role_vars;
 use crate::ls::variable_group::process_var_group;
+use crate::parser::ansible;
 use crate::parser::variable::{VariableGroup, VariableGroupInfo};
 use crate::path::{retrieve_repo_path, shorten_path, to_path};
 
@@ -95,11 +97,21 @@ fn complete_variable_items(
     content: &Rope,
     position: &Position,
 ) -> Vec<CompletionItem> {
-    if let TokenType::Variable(var_stack) = &token.token_type {
+    if let TokenType::Variable {
+        var_stack,
+        role_name,
+    } = &token.token_type
+    {
         let mut local_vars: VariableGroup = parse_local_vars_ansible(path, content, token);
         if local_vars.is_empty() {
             let try_content = fill_guess_content(content, position);
             local_vars = parse_local_vars_ansible(path, &try_content, token);
+        }
+
+        if let Some(role_name) = role_name {
+            if let Some(ansible_path) = symbols.get_role_path(role_name) {
+                local_vars.merge(parse_ansible_role_vars(&ansible_path));
+            }
         }
 
         let var_stack = match var_stack {
@@ -134,6 +146,7 @@ pub fn complete_items(
             )),
             token,
         )),
+        // TODO: implement it
         TokenType::Role => {
             let role_docs = symbols
                 .role_docs()

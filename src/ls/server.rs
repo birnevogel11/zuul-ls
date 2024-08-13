@@ -46,6 +46,7 @@ impl LanguageServer for Backend {
                     completion_item: None,
                 }),
                 definition_provider: Some(OneOf::Left(true)),
+                workspace_symbol_provider: Some(OneOf::Left(true)),
 
                 ..ServerCapabilities::default()
             },
@@ -117,6 +118,19 @@ impl LanguageServer for Backend {
     async fn completion(&self, params: CompletionParams) -> Result<Option<CompletionResponse>> {
         self.on_completion(params).await
     }
+
+    async fn symbol(
+        &self,
+        _params: WorkspaceSymbolParams,
+    ) -> Result<Option<Vec<SymbolInformation>>> {
+        // TODO: implement it
+        Ok(None)
+    }
+
+    async fn symbol_resolve(&self, params: WorkspaceSymbol) -> Result<WorkspaceSymbol> {
+        // TODO: implement it
+        Ok(params)
+    }
 }
 
 impl Backend {
@@ -160,6 +174,7 @@ impl Backend {
                 .get_cached_items(uri_path, position, &params.context)
             {
                 Some((cached_response, value)) => {
+                    log::info!("cached token");
                     self.auto_complete_cache.add_entry(
                         uri.to_string(),
                         position,

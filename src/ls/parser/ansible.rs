@@ -23,6 +23,20 @@ fn parse_var(
     )
 }
 
+fn parse_role_name(value: &Yaml) -> Option<String> {
+    let role_value = value.as_hash()?;
+    for (key, value) in role_value {
+        let key = key.as_str()?;
+        let value = value.as_str()?;
+
+        if key == "name" {
+            return Some(value.to_string());
+        }
+    }
+
+    None
+}
+
 fn parse_ansible_tasks(
     doc: &Yaml,
     file_type: &TokenFileType,
@@ -33,11 +47,24 @@ fn parse_ansible_tasks(
     for raw_task in tasks {
         let mut key_stack: Vec<String> = Vec::new();
         let task = raw_task.as_hash()?;
+        let mut role_name: Option<String> = None;
+
         for (key, value) in task {
             // Check key
             let key_name = key.as_str()?;
             if key_name.contains(SEARCH_PATTERN) {
                 return None;
+            }
+
+            // TODO: cache the role name if exists
+            match key_name {
+                "include_role"
+                | "import_role"
+                | "ansible.builtin.include_role"
+                | "ansible.builtin.import_role" => {
+                    role_name = parse_role_name(value);
+                }
+                _ => {}
             }
 
             match key_name {
@@ -76,12 +103,24 @@ fn parse_ansible_tasks(
                                     None
                                 }
                             }
-                            "set_fact" | "ansible.builtin.set_fact" | "vars" => Some(
+                            "set_fact" | "ansible.builtin.set_fact" => Some(
                                 VariableTokenBuilder::new(
                                     Some(value_stack),
                                     token_side,
                                     content,
                                     position,
+                                )?
+                                .set_file_type(file_type)
+                                .set_key_stack(Some(key_stack.clone()))
+                                .build(),
+                            ),
+                            "vars" => Some(
+                                VariableTokenBuilder::new_with_role(
+                                    Some(value_stack),
+                                    token_side,
+                                    content,
+                                    position,
+                                    &role_name,
                                 )?
                                 .set_file_type(file_type)
                                 .set_key_stack(Some(key_stack.clone()))
