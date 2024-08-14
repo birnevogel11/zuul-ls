@@ -47,19 +47,20 @@ impl ZuulSymbol {
     }
 
     pub fn update(&self, path: &Path) {
-        self.role_dirs.clear();
-        self.vars.clear();
-        self.jobs.clear();
-
         let file_type = TokenFileType::parse_path(path);
         if let Some(file_type) = file_type {
             match file_type {
                 TokenFileType::ZuulConfig => {
+                    self.vars.clear();
+                    self.jobs.clear();
+
                     self.initialize_jobs();
                 }
                 TokenFileType::AnsibleRoleDefaults
                 | TokenFileType::AnsibleRoleTasks { .. }
                 | TokenFileType::AnsibleRoleTemplates { .. } => {
+                    self.role_dirs.clear();
+
                     self.initialize_roles();
                 }
                 TokenFileType::Unknown | TokenFileType::Playbooks => {}

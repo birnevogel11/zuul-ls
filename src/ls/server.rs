@@ -8,6 +8,7 @@ use super::auto_complete::complete_items;
 use super::cache::AutoCompleteCache;
 use super::go_to_definition::get_definition_list;
 use super::symbols::ZuulSymbol;
+use super::workspace_symbol::query_workspace_symbols;
 
 struct TextDocumentItem {
     uri: Url,
@@ -121,10 +122,10 @@ impl LanguageServer for Backend {
 
     async fn symbol(
         &self,
-        _params: WorkspaceSymbolParams,
+        params: WorkspaceSymbolParams,
     ) -> Result<Option<Vec<SymbolInformation>>> {
-        // TODO: implement it
-        Ok(None)
+        log::info!("params: {:#?}", params);
+        Ok(Some(query_workspace_symbols(&self.symbols, &params.query)))
     }
 
     async fn symbol_resolve(&self, params: WorkspaceSymbol) -> Result<WorkspaceSymbol> {

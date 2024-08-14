@@ -1,7 +1,8 @@
-pub mod auto_complete;
+mod auto_complete;
 mod cache;
-pub mod go_to_definition;
-pub mod parser;
+mod go_to_definition;
+mod parser;
 pub mod server;
-pub mod symbols;
+mod symbols;
 mod variable_group;
+mod workspace_symbol;
