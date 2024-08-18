@@ -55,6 +55,15 @@ impl StringLoc {
         }
     }
 
+    pub fn from_simple(value: &str, path: &Path) -> StringLoc {
+        StringLoc {
+            value: STRING_POOL.get(value),
+            path: PATH_POOL.get(path),
+            line: 0,
+            col: 0,
+        }
+    }
+
     pub fn clone_loc(&self, new_value: &str) -> StringLoc {
         StringLoc {
             value: STRING_POOL.get(new_value),

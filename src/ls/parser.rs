@@ -26,10 +26,6 @@ impl AnsibleRolePath {
         Self::_new(role_dir, true, true)
     }
 
-    pub fn new_tasks_path(role_dir: &Path) -> Self {
-        Self::_new(role_dir, true, false)
-    }
-
     pub fn new_defaults_path(role_dir: &Path) -> Self {
         Self::_new(role_dir, false, true)
     }
@@ -146,15 +142,6 @@ pub struct AutoCompleteToken {
 }
 
 impl AutoCompleteToken {
-    pub fn new_simple(value: String, file_type: TokenFileType, token_type: TokenType) -> Self {
-        Self {
-            value,
-            file_type,
-            token_type,
-            ..Self::default()
-        }
-    }
-
     pub fn new(
         value: String,
         file_type: TokenFileType,

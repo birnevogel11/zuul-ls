@@ -41,7 +41,7 @@ pub fn parse_ansible_role_vars(ansible_path: &AnsibleRolePath) -> VariableGroup 
     xs
 }
 
-pub fn parse_local_vars_ansible(
+fn _parse_ansible_vars_filetype(
     path: &Path,
     content: &Rope,
     token: &AutoCompleteToken,
@@ -73,6 +73,30 @@ pub fn parse_local_vars_ansible(
     }
 }
 
+pub fn parse_local_vars(
+    path: &Path,
+    content: &Rope,
+    token: &AutoCompleteToken,
+    symbols: &ZuulSymbol,
+    role_name: &Option<String>,
+) -> VariableGroup {
+    let mut vg = _parse_ansible_vars_filetype(path, content, token);
+
+    // If the variable is under a role, parse the variables of the role
+    // e.g.
+    // - include_role:
+    //     name: some_role
+    //   vars:
+    //     <cursor_here>
+    if let Some(role_name) = role_name {
+        if let Some(ansible_path) = symbols.get_role_path(role_name) {
+            vg.merge(parse_ansible_role_vars(&ansible_path));
+        }
+    }
+
+    vg
+}
+
 fn find_var_definitions_internal(
     value: &str,
     var_stack: &[String],
@@ -94,12 +118,13 @@ fn find_var_definitions_internal(
 fn find_var_definitions(
     value: &str,
     var_stack: &Option<Vec<String>>,
+    role_name: &Option<String>,
     path: &Path,
     content: &Rope,
     symbols: &ZuulSymbol,
     token: &AutoCompleteToken,
 ) -> Option<GotoDefinitionResponse> {
-    let local_vars: VariableGroup = parse_local_vars_ansible(path, content, token);
+    let local_vars = parse_local_vars(path, content, token, symbols, role_name);
 
     let var_stack = match var_stack {
         Some(var_stack) => var_stack,
@@ -129,8 +154,13 @@ fn get_definition_list_internal(
     let value = &token.value;
 
     match &token.token_type {
-        TokenType::Variable { var_stack, .. } => {
-            return find_var_definitions(value, var_stack, path, content, symbols, token);
+        TokenType::Variable {
+            var_stack,
+            role_name,
+        } => {
+            return find_var_definitions(
+                value, var_stack, role_name, path, content, symbols, token,
+            );
         }
         TokenType::Job => {
             if let Some(job_locs) = symbols.jobs().get(value) {
