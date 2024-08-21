@@ -172,6 +172,11 @@ fn get_definition_list_internal(
                 ));
             }
         }
+        TokenType::ProjectTemplate => {
+            if let Some(loc) = symbols.project_templates().get(value) {
+                return Some(GotoDefinitionResponse::Scalar(loc.clone().into()));
+            }
+        }
         TokenType::Role => {
             if let Some(role) = symbols.role_dirs().get(value) {
                 return Some(GotoDefinitionResponse::Scalar(Location::new(

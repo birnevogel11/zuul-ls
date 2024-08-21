@@ -175,6 +175,26 @@ pub fn complete_items(
                 token,
             ))
         }
+        TokenType::ProjectTemplate => {
+            let project_templates = symbols
+                .project_templates()
+                .iter()
+                .filter(|entry| entry.key().starts_with(&token.value))
+                .map(|entry| entry.key().clone());
+
+            Some((
+                CompletionResponse::Array(
+                    project_templates
+                        .map(|name| CompletionItem {
+                            label: name,
+                            kind: Some(CompletionItemKind::MODULE),
+                            ..CompletionItem::default()
+                        })
+                        .collect(),
+                ),
+                token,
+            ))
+        }
         TokenType::ZuulProperty(zuul_config_name) => {
             ZUUL_PROPERTY.get(zuul_config_name).map(|keys| {
                 (

@@ -121,6 +121,7 @@ pub enum TokenType {
     Job,
     ZuulProperty(String),
     Playbook,
+    ProjectTemplate,
 }
 
 impl Default for TokenType {

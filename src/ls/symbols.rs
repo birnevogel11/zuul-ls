@@ -10,6 +10,7 @@ use crate::parser::variable::VariableGroup;
 use crate::path::get_role_repo_dirs;
 use crate::search::jobs::list_job_locs_by_name;
 use crate::search::jobs::list_jobs;
+use crate::search::project_templates::list_project_templates;
 use crate::search::roles::list_roles;
 use crate::search::work_dir_vars::list_work_dir_vars_with_zuul_jobs;
 
@@ -22,6 +23,7 @@ pub struct ZuulSymbol {
 
     jobs: DashMap<String, Vec<StringLoc>>,
     vars: VariableGroup,
+    project_templates: DashMap<String, StringLoc>,
 }
 
 impl ZuulSymbol {
@@ -39,6 +41,10 @@ impl ZuulSymbol {
 
     pub fn role_docs(&self) -> &DashMap<String, Option<String>> {
         &self.role_docs
+    }
+
+    pub fn project_templates(&self) -> &DashMap<String, StringLoc> {
+        &self.project_templates
     }
 
     pub fn initialize(&self) {
@@ -91,6 +97,13 @@ impl ZuulSymbol {
         vars.iter().for_each(|entry| {
             self.vars.insert(entry.key().clone(), entry.value().clone());
         });
+
+        let project_templates = list_project_templates(&work_dir, None);
+        project_templates.into_iter().for_each(|pt| {
+            let name = pt.name();
+            self.project_templates
+                .insert(name.value.to_string(), name.clone());
+        })
     }
 
     pub fn get_role_path(&self, role_name: &str) -> Option<AnsibleRolePath> {

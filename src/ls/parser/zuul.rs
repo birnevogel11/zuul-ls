@@ -75,6 +75,16 @@ fn parse_project_token(
                     .build(),
             );
         }
+    } else if key_stack[1] == "templates"
+        && (key_stack.len() >= 3 && key_stack[2] == ARRAY_INDEX_KEY)
+    {
+        return Some(AutoCompleteToken::new(
+            find_name_token(content, position)?,
+            file_type,
+            TokenType::ProjectTemplate,
+            token_side,
+            key_stack,
+        ));
     }
 
     None
