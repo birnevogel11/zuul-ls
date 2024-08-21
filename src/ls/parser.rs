@@ -1,6 +1,6 @@
 mod ansible;
 mod key_stack;
-mod utils;
+mod token_base;
 mod zuul;
 
 use std::path::{Path, PathBuf};
@@ -11,7 +11,7 @@ use yaml_rust2::Yaml;
 
 use self::ansible::parse_token_ansible;
 use self::key_stack::parse_value;
-use self::utils::find_var_token;
+use self::token_base::find_var_token;
 use self::zuul::parse_token_zuul_config;
 use crate::path::{retrieve_repo_path, to_path};
 
