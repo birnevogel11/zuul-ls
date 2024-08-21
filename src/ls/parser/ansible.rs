@@ -1,6 +1,6 @@
 use ropey::Rope;
 use tower_lsp::lsp_types::Position;
-use yaml_rust2::{ScanError, Yaml};
+use yaml_rust2::Yaml;
 
 use super::key_stack::{insert_search_word, parse_value, SEARCH_PATTERN};
 use super::utils::find_role_token;

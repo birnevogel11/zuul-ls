@@ -8,6 +8,8 @@ use super::table::Value;
 use super::table::VariableTable;
 use super::VariableSource;
 
+pub const ARRAY_INDEX_KEY: &str = "ArRaY_InDeX";
+
 #[derive(Clone, Debug, Default)]
 pub struct VariableGroup(DashMap<String, VariableGroupInfo>);
 
@@ -52,8 +54,21 @@ fn from_var_table(var_group: &mut VariableGroup, var_table: &VariableTable) {
             source: value.source.clone(),
         });
 
-        if let Value::Hash(sub_var_table) = &value.value {
-            from_var_table(&mut vgi.members, sub_var_table);
+        match &value.value {
+            Value::Hash(sub_var_table) => {
+                from_var_table(&mut vgi.members, sub_var_table);
+            }
+            Value::Array(xs) => {
+                if !xs.is_empty() {
+                    let value = &xs[0];
+                    if let Value::Hash(sub_var_table) = value {
+                        let mut sub_vgi = VariableGroupInfo::default();
+                        from_var_table(&mut sub_vgi.members, sub_var_table);
+                        vgi.members.insert(ARRAY_INDEX_KEY.to_string(), sub_vgi);
+                    }
+                }
+            }
+            _ => {}
         }
     });
 }

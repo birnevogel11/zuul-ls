@@ -7,7 +7,9 @@ use interner::global::{GlobalPath, GlobalString};
 
 use crate::parser::common::{StringLoc, PATH_POOL, STRING_POOL};
 
-pub use group::{VariableGroup, VariableGroupInfo, VariableInfo, VariablePrintInfo};
+pub use group::{
+    VariableGroup, VariableGroupInfo, VariableInfo, VariablePrintInfo, ARRAY_INDEX_KEY,
+};
 pub use table::{Variable, VariableTable};
 
 #[derive(Clone, PartialEq, PartialOrd, Debug, Eq, Ord, Hash, Default)]

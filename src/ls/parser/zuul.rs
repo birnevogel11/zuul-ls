@@ -3,9 +3,10 @@ use tower_lsp::lsp_types::Position;
 
 use yaml_rust2::yaml::YamlLoader;
 
-use super::key_stack::{insert_search_word, parse_value, ARRAY_INDEX_KEY, SEARCH_PATTERN};
+use super::key_stack::{insert_search_word, parse_value, SEARCH_PATTERN};
 use super::utils::{find_name_token, find_path_token};
 use super::{AutoCompleteToken, TokenFileType, TokenSide, TokenType, VariableTokenBuilder};
+use crate::parser::variable::ARRAY_INDEX_KEY;
 
 fn retrieve_key_stack(content: &Rope, line: usize, col: usize) -> Option<(Vec<String>, TokenSide)> {
     let search_rope = insert_search_word(content, line, col);

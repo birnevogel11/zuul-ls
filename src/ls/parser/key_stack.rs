@@ -1,10 +1,10 @@
 use ropey::Rope;
-
-use crate::ls::parser::TokenSide;
 use yaml_rust2::yaml::Yaml;
 
+use crate::ls::parser::TokenSide;
+use crate::parser::variable::ARRAY_INDEX_KEY;
+
 pub const SEARCH_PATTERN: &str = "SeRpAt";
-pub const ARRAY_INDEX_KEY: &str = "ArRaY_InDeX";
 
 fn parse_value_internal(value: &Yaml, key_stack: &mut Vec<String>) -> Option<TokenSide> {
     match value {
