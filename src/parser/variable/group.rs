@@ -38,7 +38,7 @@ pub struct VariableGroupInfo {
     pub members: VariableGroup,
 }
 
-fn to_var_table(var_group: &mut VariableGroup, var_table: &VariableTable) {
+fn from_var_table(var_group: &mut VariableGroup, var_table: &VariableTable) {
     var_table.0.iter().for_each(|(key, value)| {
         let key = key.to_string();
         if var_group.get(&key).is_none() {
@@ -53,7 +53,7 @@ fn to_var_table(var_group: &mut VariableGroup, var_table: &VariableTable) {
         });
 
         if let Value::Hash(sub_var_table) = &value.value {
-            to_var_table(&mut vgi.members, sub_var_table);
+            from_var_table(&mut vgi.members, sub_var_table);
         }
     });
 }
@@ -82,7 +82,7 @@ fn merge_var_group(
 impl From<VariableTable> for VariableGroup {
     fn from(var_table: VariableTable) -> Self {
         let mut var_group = Self::default();
-        to_var_table(&mut var_group, &var_table);
+        from_var_table(&mut var_group, &var_table);
         var_group
     }
 }
