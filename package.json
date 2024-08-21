@@ -3,6 +3,7 @@
   "description": "zuul language server",
   "license": "MIT",
   "version": "1.5.0",
+  "publisher": "birnevogel11",
   "categories": [],
   "keywords": [
     "language-server",
