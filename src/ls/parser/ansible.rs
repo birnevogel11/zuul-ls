@@ -1,6 +1,6 @@
 use ropey::Rope;
 use tower_lsp::lsp_types::Position;
-use yaml_rust2::Yaml;
+use yaml_rust2::{ScanError, Yaml};
 
 use super::key_stack::{insert_search_word, parse_value, SEARCH_PATTERN};
 use super::utils::find_role_token;
@@ -230,7 +230,13 @@ pub fn parse_token_ansible(
 ) -> Option<AutoCompleteToken> {
     let search_rope =
         insert_search_word(content, position.line as usize, position.character as usize);
-    let docs = YamlLoader::load_from_str(&search_rope.to_string()).ok()?;
+
+    let docs = YamlLoader::load_from_str(&search_rope.to_string());
+    if docs.is_err() {
+        log::info!("docs: {:#?}", docs);
+    }
+    let docs = docs.ok()?;
+
     docs.iter().find_map(|doc| match &file_type {
         TokenFileType::AnsibleRoleDefaults => parse_var(doc, &file_type, content, position, None),
         TokenFileType::AnsibleRoleTemplates { .. } => Some(
