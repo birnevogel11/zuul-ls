@@ -4,6 +4,16 @@ set -Eeuo pipefail
 
 readonly ZS_PROGRAM="${ZUUL_SEARCH_BIN_PATH:-"zuul-search"}"
 
+_open_nvim() {
+  local -r path="$1"
+  local -r raw_line="$2"
+  local -r raw_column="$3"
+  local -r line="$(( raw_line + 1 ))"
+  local -r column="$(( raw_column + 1 ))"
+
+  nvim "+${line}" "${path/\~/${HOME}}" "+normal${column}|"
+}
+
 zs-job() {
   local -r result=$(${ZS_PROGRAM} jobs | \
     fzf \
@@ -14,11 +24,7 @@ zs-job() {
 
   local -ra tokens=($result)
   if [[ "${#tokens[@]}" != "0" ]]; then
-    local -r path="${tokens[1]}"
-    local -r line="${tokens[2]}"
-    local -r column="${tokens[3]}"
-
-    nvim "+${line}" "${path/\~/${HOME}}" "+normal${column}|"
+    _open_nvim "${tokens[1]}" "${tokens[2]}" "${tokens[3]}"
   fi
 }
 
@@ -32,11 +38,7 @@ zs-project-templates() {
 
   local -ra tokens=($result)
   if [[ "${#tokens[@]}" != "0" ]]; then
-    local -r path="${tokens[1]}"
-    local -r line="${tokens[2]}"
-    local -r column="${tokens[3]}"
-
-    nvim "+${line}" "${path/\~/${HOME}}" "+normal${column}|"
+    _open_nvim "${tokens[1]}" "${tokens[2]}" "${tokens[3]}"
   fi
 }
 
@@ -67,11 +69,7 @@ zs-job-hierarchy() {
 
   local -ra tokens=($result)
   if [[ "${#tokens[@]}" != "0" ]]; then
-    local -r path="${tokens[1]}"
-    local -r line="${tokens[2]}"
-    local -r column="${tokens[3]}"
-
-    nvim "+${line}" "${path/\~/${HOME}}" "+normal${column}|"
+    _open_nvim "${tokens[1]}" "${tokens[2]}" "${tokens[3]}"
   fi
 }
 
@@ -88,11 +86,7 @@ zs-job-vars() {
 
   local -ra tokens=($result)
   if [[ "${#tokens[@]}" != "0" ]]; then
-    local -r path="${tokens[3]}"
-    local -r line="${tokens[4]}"
-    local -r column="${tokens[5]}"
-
-    nvim "+${line}" "${path/\~/${HOME}}" "+normal${column}|"
+    _open_nvim "${tokens[3]}" "${tokens[4]}" "${tokens[5]}"
   fi
 }
 
@@ -106,11 +100,7 @@ zs-workdir-vars() {
 
   local -ra tokens=($result)
   if [[ "${#tokens[@]}" != "0" ]]; then
-    local -r path="${tokens[3]}"
-    local -r line="${tokens[4]}"
-    local -r column="${tokens[5]}"
-
-    nvim "+${line}" "${path/\~/${HOME}}" "+normal${column}|"
+    _open_nvim "${tokens[3]}" "${tokens[4]}" "${tokens[5]}"
   fi
 }
 
