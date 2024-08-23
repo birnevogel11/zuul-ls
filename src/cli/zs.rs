@@ -3,6 +3,7 @@ use std::path::PathBuf;
 use clap::Parser;
 
 use zuul_parser::config::get_work_dir;
+use zuul_parser::search::job_graph;
 use zuul_parser::search::job_playbooks;
 use zuul_parser::search::job_vars;
 use zuul_parser::search::jobs;
@@ -21,6 +22,7 @@ enum ZuulSearchCli {
     JobVars(CliJobVariablesArgs),
     JobPlaybooks(CliJobPlaybooksArgs),
     WorkdirVars(CliWorkDirVarsArgs),
+    JobGraph(CliJobGraphArgs),
 }
 
 #[derive(clap::Args, Debug)]
@@ -108,6 +110,16 @@ struct CliJobPlaybooksArgs {
     name: String,
 }
 
+#[derive(clap::Args, Debug)]
+#[command(version, about, long_about = "Output job graph")]
+struct CliJobGraphArgs {
+    #[arg(long)]
+    work_dir: Option<PathBuf>,
+
+    #[arg(long)]
+    config_path: Option<PathBuf>,
+}
+
 fn main() {
     env_logger::init();
     let args = ZuulSearchCli::parse();
@@ -146,6 +158,9 @@ fn main() {
         }
         ZuulSearchCli::WorkdirVars(args) => {
             work_dir_vars::list_work_dir_vars_cli(&get_work_dir(args.work_dir), args.config_path);
+        }
+        ZuulSearchCli::JobGraph(args) => {
+            job_graph::make_job_graph_cli(&get_work_dir(args.work_dir), args.config_path);
         }
     };
 }

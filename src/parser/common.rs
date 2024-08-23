@@ -9,6 +9,14 @@ use crate::parser::yaml::{YValue, YValueYaml};
 pub static STRING_POOL: StringPool = StringPool::new();
 pub static PATH_POOL: PathPool = PathPool::new();
 
+pub fn from_string_pool(raw_str: &str) -> GlobalString {
+    STRING_POOL.get(raw_str)
+}
+
+pub fn from_path_pool(raw_path: &Path) -> GlobalPath {
+    PATH_POOL.get(raw_path)
+}
+
 pub trait ZuulParse<T> {
     fn parse(xs: &LinkedHashMap<YValue, YValue>, path: &Path) -> Result<T, ZuulParseError>;
 }
@@ -24,8 +32,8 @@ pub struct StringLoc {
 impl Default for StringLoc {
     fn default() -> Self {
         StringLoc {
-            value: STRING_POOL.get(""),
-            path: PATH_POOL.get(Path::new("")),
+            value: from_string_pool(""),
+            path: from_path_pool(Path::new("")),
             line: 0,
             col: 0,
         }
@@ -48,8 +56,8 @@ impl From<StringLoc> for Location {
 impl StringLoc {
     pub fn from(value: &YValue, path: &Path) -> StringLoc {
         StringLoc {
-            value: STRING_POOL.get(value.as_str().unwrap()),
-            path: PATH_POOL.get(path),
+            value: from_string_pool(value.as_str().unwrap()),
+            path: from_path_pool(path),
             line: value.line(),
             col: value.col(),
         }
@@ -57,8 +65,8 @@ impl StringLoc {
 
     pub fn from_simple(value: &str, path: &Path) -> StringLoc {
         StringLoc {
-            value: STRING_POOL.get(value),
-            path: PATH_POOL.get(path),
+            value: from_string_pool(value),
+            path: from_path_pool(path),
             line: 0,
             col: 0,
         }
@@ -66,7 +74,7 @@ impl StringLoc {
 
     pub fn clone_loc(&self, new_value: &str) -> StringLoc {
         StringLoc {
-            value: STRING_POOL.get(new_value),
+            value: from_string_pool(new_value),
             ..self.clone()
         }
     }

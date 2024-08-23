@@ -8,7 +8,7 @@ use crate::search::report_print::print_var_info_list;
 
 use super::jobs::ZuulJobs;
 
-fn collect_ordered_jobs(jobs: &ZuulJobs, work_dir: &Path) -> Vec<Rc<Job>> {
+pub fn collect_ordered_workdir_jobs(jobs: &ZuulJobs, work_dir: &Path) -> Vec<Rc<Job>> {
     let work_dir_str = work_dir.to_str().unwrap();
 
     let work_dir_job_names: Vec<String> = jobs
@@ -22,7 +22,7 @@ fn collect_ordered_jobs(jobs: &ZuulJobs, work_dir: &Path) -> Vec<Rc<Job>> {
 }
 
 pub fn list_work_dir_vars_with_zuul_jobs(zuul_jobs: &ZuulJobs, work_dir: &Path) -> VariableGroup {
-    let jobs = collect_ordered_jobs(zuul_jobs, work_dir);
+    let jobs = collect_ordered_workdir_jobs(zuul_jobs, work_dir);
     let mut vg = VariableGroup::default();
 
     jobs.iter()

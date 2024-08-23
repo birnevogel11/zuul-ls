@@ -5,7 +5,7 @@ use std::path::Path;
 
 use interner::global::{GlobalPath, GlobalString};
 
-use crate::parser::common::{StringLoc, PATH_POOL, STRING_POOL};
+use crate::parser::common::{from_path_pool, from_string_pool, StringLoc};
 
 pub use group::{
     VariableGroup, VariableGroupInfo, VariableInfo, VariablePrintInfo, ARRAY_INDEX_KEY,
@@ -27,12 +27,12 @@ pub enum VariableSource {
 impl VariableSource {
     pub fn from_role(name: &str, path: &Path) -> Self {
         Self::Role {
-            name: STRING_POOL.get(name),
-            path: PATH_POOL.get(path),
+            name: from_string_pool(name),
+            path: from_path_pool(path),
         }
     }
 
     pub fn from_playbook(path: &Path) -> Self {
-        Self::Playbook(PATH_POOL.get(path))
+        Self::Playbook(from_path_pool(path))
     }
 }
