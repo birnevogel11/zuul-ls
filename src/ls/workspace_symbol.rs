@@ -46,21 +46,24 @@ pub fn query_workspace_symbols(symbols: &ZuulSymbol, query: &str) -> Vec<SymbolI
             }),
     );
 
-    si.extend(
-        symbols
-            .role_dirs()
-            .iter()
-            .map(|entry| -> SymbolInformation {
-                let name = entry.key();
-                let path = entry.value();
+    si.extend(symbols.role_dirs().iter().map(|entry| {
+        let name = entry.key();
+        let path = entry.value();
 
-                new_symbol_information(
-                    name.to_string(),
-                    StringLoc::from_simple(name, path).into(),
-                    SymbolKind::FUNCTION,
-                )
-            }),
-    );
+        new_symbol_information(
+            name.to_string(),
+            StringLoc::from_simple(name, path).into(),
+            SymbolKind::FUNCTION,
+        )
+    }));
+
+    si.extend(symbols.project_templates().iter().map(|entry| {
+        new_symbol_information(
+            entry.key().to_string(),
+            entry.value().clone().into(),
+            SymbolKind::MODULE,
+        )
+    }));
 
     if query.is_empty() {
         si
