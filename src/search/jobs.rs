@@ -62,6 +62,7 @@ impl ZuulJobs {
 
         // Create a di-graph and node mapping
         let (g, node_map) = ZuulJobs::create_job_graph(&job_names, &self.name_jobs);
+        log::debug!("job graph: {:#?}", g);
 
         // Get the job hierarchy from the topological order of jobs.
         ZuulJobs::visit_job_graph(g, node_map, &self.name_jobs)
@@ -108,14 +109,24 @@ impl ZuulJobs {
         (g, node_map)
     }
 
+    fn toposort_retry(mut g: Graph<&String, ()>) -> Vec<NodeIndex> {
+        let mut space = DfsSpace::default();
+        toposort(&g, Some(&mut space)).unwrap_or_else(|cycle_node| {
+            log::warn!(
+                "Cycle node are detected: {:#?}. Delete the node to parse it again.",
+                cycle_node
+            );
+            g.remove_node(cycle_node.node_id());
+            Self::toposort_retry(g)
+        })
+    }
+
     fn visit_job_graph(
         g: Graph<&String, ()>,
         node_map: BiMap<&String, NodeIndex>,
         jobs: &LinkedHashMap<String, Vec<Rc<Job>>>,
     ) -> Vec<Rc<Job>> {
-        let mut space = DfsSpace::default();
-        let hs = toposort(&g, Some(&mut space)).unwrap();
-        let hs = hs
+        let hs = Self::toposort_retry(g)
             .into_iter()
             .map(|node_idx| *node_map.get_by_right(&node_idx).unwrap())
             .collect::<Vec<_>>();

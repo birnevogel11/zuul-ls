@@ -15,12 +15,13 @@ pub struct ZuulJobGraph {
     edges: HashSet<(GlobalString, GlobalString)>,
 }
 
-fn make_job_graph(jobs: &Vec<Rc<Job>>) -> ZuulJobGraph {
+fn make_job_graph(jobs: &[Rc<Job>]) -> ZuulJobGraph {
     let mut g = ZuulJobGraph::default();
     jobs.iter().for_each(|job| {
         if let Some(parent) = job.parent() {
             let name = job.name();
             g.jobs.insert(name.value.clone());
+            g.jobs.insert(parent.value.clone());
             g.edges.insert((name.value.clone(), parent.value.clone()));
         }
     });
@@ -45,12 +46,6 @@ fn render_job_graph_plantuml(job_graph: &ZuulJobGraph) {
     }
     println!("@enduml");
 }
-
-// pub fn make_job_graph_cli(work_dir: &Path, config_path: Option<PathBuf>) {
-//     let zuul_jobs = ZuulJobs::from_raw_input(work_dir, config_path);
-//     let job_graph = make_job_graph(&zuul_jobs.jobs());
-//     render_job_graph_plantuml(&job_graph);
-// }
 
 pub fn make_job_graph_cli(work_dir: &Path, config_path: Option<PathBuf>) {
     let zuul_jobs = ZuulJobs::from_raw_input(work_dir, config_path);
