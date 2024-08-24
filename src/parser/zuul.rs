@@ -204,7 +204,10 @@ pub fn parse_zuul(paths: &[PathBuf]) -> ZuulConfigElements {
                         .iter()
                         .flat_map(|y| parse_doc(y, path))
                         .collect::<Vec<_>>(),
-                    _ => Vec::new(),
+                    Err(err) => {
+                        log::warn!("Failed to load path. path: {:#?}. err: {:#?}", path, err);
+                        Vec::new()
+                    }
                 }
             })
             .collect::<Vec<_>>()
