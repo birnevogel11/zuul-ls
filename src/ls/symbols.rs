@@ -7,9 +7,13 @@ use crate::config::get_work_dir;
 use crate::ls::parser::AnsibleRolePath;
 use crate::parser::common::StringLoc;
 use crate::parser::variable::VariableGroup;
+use crate::parser::zuul::ZuulConfigElements;
 use crate::path::get_role_repo_dirs;
+use crate::path::get_zuul_yaml_paths;
+use crate::path::get_zuul_yaml_paths_cwd;
 use crate::search::jobs::list_job_locs_by_name;
 use crate::search::jobs::list_jobs;
+use crate::search::jobs::ZuulJobs;
 use crate::search::project_templates::list_project_templates;
 use crate::search::roles::list_roles;
 use crate::search::work_dir_vars::list_work_dir_vars_with_zuul_jobs;
@@ -86,8 +90,10 @@ impl ZuulSymbol {
 
     fn initialize_jobs(&self) {
         let work_dir = get_work_dir(None);
-        let zuul_jobs = list_jobs(&work_dir, None);
+        let yaml_paths = get_zuul_yaml_paths_cwd(&work_dir, None);
+        let zuul_config_elements = ZuulConfigElements::parse_files(&yaml_paths);
 
+        let zuul_jobs = ZuulJobs::from_parsed_jobs(zuul_config_elements.jobs().clone());
         let jobs = list_job_locs_by_name(&zuul_jobs);
         jobs.into_iter().for_each(|(name, job_locs)| {
             self.jobs.insert(name, job_locs);
@@ -98,8 +104,8 @@ impl ZuulSymbol {
             self.vars.insert(entry.key().clone(), entry.value().clone());
         });
 
-        let project_templates = list_project_templates(&work_dir, None);
-        project_templates.into_iter().for_each(|pt| {
+        let project_templates = zuul_config_elements.project_templates();
+        project_templates.iter().for_each(|pt| {
             let name = pt.name();
             self.project_templates
                 .insert(name.value.to_string(), name.clone());

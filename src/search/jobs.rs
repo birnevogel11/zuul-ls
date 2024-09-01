@@ -22,8 +22,12 @@ pub struct ZuulJobs {
 }
 
 impl ZuulJobs {
+    pub fn from_zuul_config_elements(zs: ZuulConfigElements) -> Self {
+        Self::from_parsed_jobs(zs.into_jobs())
+    }
+
     pub fn from_files(yaml_paths: &[PathBuf]) -> ZuulJobs {
-        Self::from_parsed_jobs(ZuulConfigElements::parse_files(yaml_paths).into_jobs())
+        Self::from_zuul_config_elements(ZuulConfigElements::parse_files(yaml_paths))
     }
 
     pub fn from_raw_input(work_dir: &Path, config_path: Option<PathBuf>) -> ZuulJobs {
