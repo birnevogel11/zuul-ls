@@ -24,6 +24,7 @@ use crate::parser::zuul::secret::Secret;
 pub enum ZuulParseType {
     Job,
     ProjectTemplate,
+    Project,
     Nodeset,
     Queue,
     Pipeline,
@@ -33,6 +34,7 @@ pub enum ZuulParseType {
 static ZUUL_PARSE_KEYWORDS: phf::Map<&'static str, ZuulParseType> = phf_map! {
     "job" => ZuulParseType::Job,
     "project-template" => ZuulParseType::ProjectTemplate,
+    "project" => ZuulParseType::Project,
     "nodeset" => ZuulParseType::Nodeset,
     "queue" => ZuulParseType::Queue,
     "pipeline" => ZuulParseType::Pipeline,
@@ -59,6 +61,7 @@ impl ZuulParseType {
 pub enum ZuulConfigParsedElement {
     Job(Job),
     ProjectTemplate(ProjectTemplate),
+    Project(ProjectTemplate),
     Nodeset(Nodeset),
     Queue(Queue),
     Pipeline(Pipeline),
@@ -93,6 +96,9 @@ impl ZuulConfigParsedElement {
                     ZuulParseType::ProjectTemplate => ZuulConfigParsedElement::ProjectTemplate(
                         ProjectTemplate::parse(values, path).ok()?,
                     ),
+                    ZuulParseType::Project => {
+                        ZuulConfigParsedElement::Project(ProjectTemplate::parse(values, path).ok()?)
+                    }
                     ZuulParseType::Nodeset => {
                         ZuulConfigParsedElement::Nodeset(Nodeset::parse(values, path).ok()?)
                     }
@@ -144,6 +150,7 @@ pub fn $name(self) -> Vec<$t> {
 pub struct ZuulConfigElements {
     jobs: Vec<Job>,
     project_templates: Vec<ProjectTemplate>,
+    projects: Vec<ProjectTemplate>,
     nodesets: Vec<Nodeset>,
     queues: Vec<Queue>,
     pipelines: Vec<Pipeline>,
@@ -158,6 +165,7 @@ impl ZuulConfigElements {
             match p {
                 ZuulConfigParsedElement::Job(p) => zuul.jobs.push(p),
                 ZuulConfigParsedElement::ProjectTemplate(p) => zuul.project_templates.push(p),
+                ZuulConfigParsedElement::Project(p) => zuul.projects.push(p),
                 ZuulConfigParsedElement::Nodeset(p) => zuul.nodesets.push(p),
                 ZuulConfigParsedElement::Queue(p) => zuul.queues.push(p),
                 ZuulConfigParsedElement::Pipeline(p) => zuul.pipelines.push(p),

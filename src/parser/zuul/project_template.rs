@@ -21,16 +21,18 @@ impl ZuulParse<ProjectTemplate> for ProjectTemplate {
         xs: &LinkedHashMap<YValue, YValue>,
         path: &Path,
     ) -> Result<ProjectTemplate, ZuulParseError> {
-        let mut name = StringLoc::default();
+        let mut name: Option<StringLoc> = None;
 
         for (key, value) in xs {
             if let Some(key) = key.as_str() {
                 if key == "name" {
-                    name = parse_string_value(value, path, "name")?;
+                    name = Some(parse_string_value(value, path, "name")?);
                 }
             }
         }
 
-        Ok(ProjectTemplate { name })
+        Ok(ProjectTemplate {
+            name: name.unwrap_or_default(),
+        })
     }
 }

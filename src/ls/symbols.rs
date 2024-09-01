@@ -9,12 +9,9 @@ use crate::parser::common::StringLoc;
 use crate::parser::variable::VariableGroup;
 use crate::parser::zuul::ZuulConfigElements;
 use crate::path::get_role_repo_dirs;
-use crate::path::get_zuul_yaml_paths;
 use crate::path::get_zuul_yaml_paths_cwd;
 use crate::search::jobs::list_job_locs_by_name;
-use crate::search::jobs::list_jobs;
 use crate::search::jobs::ZuulJobs;
-use crate::search::project_templates::list_project_templates;
 use crate::search::roles::list_roles;
 use crate::search::work_dir_vars::list_work_dir_vars_with_zuul_jobs;
 
