@@ -168,6 +168,37 @@ impl ZuulConfigElements {
         zuul
     }
 
+    fn parse_doc(doc: &YValue, path: &Path) -> Vec<ZuulConfigParsedElement> {
+        if let YValueYaml::Array(xs) = doc.value() {
+            xs.iter()
+                .filter_map(|x| ZuulConfigParsedElement::parse(x, path))
+                .collect()
+        } else {
+            vec![]
+        }
+    }
+
+    pub fn parse_files(paths: &[PathBuf]) -> ZuulConfigElements {
+        ZuulConfigElements::new(
+            paths
+                .iter()
+                .flat_map(|path| {
+                    let doc = load_yvalue(path);
+                    match doc {
+                        Ok(ys) => ys
+                            .iter()
+                            .flat_map(|y| Self::parse_doc(y, path))
+                            .collect::<Vec<_>>(),
+                        Err(err) => {
+                            log::warn!("Failed to load path. path: {:#?}. err: {:#?}", path, err);
+                            Vec::new()
+                        }
+                    }
+                })
+                .collect::<Vec<_>>(),
+        )
+    }
+
     define_as_ref!(jobs, Job);
     define_as_ref!(project_templates, ProjectTemplate);
     define_as_ref!(nodesets, Nodeset);
@@ -183,38 +214,6 @@ impl ZuulConfigElements {
     define_into!(into_secrets, secrets, Secret);
 }
 
-fn parse_doc(doc: &YValue, path: &Path) -> Vec<ZuulConfigParsedElement> {
-    if let YValueYaml::Array(xs) = doc.value() {
-        xs.iter()
-            .filter_map(|x| ZuulConfigParsedElement::parse(x, path))
-            .collect()
-    } else {
-        vec![]
-    }
-}
-
-pub fn parse_zuul(paths: &[PathBuf]) -> ZuulConfigElements {
-    ZuulConfigElements::new(
-        paths
-            .iter()
-            .map(|path| {
-                let doc = load_yvalue(path);
-                match doc {
-                    Ok(ys) => ys
-                        .iter()
-                        .flat_map(|y| parse_doc(y, path))
-                        .collect::<Vec<_>>(),
-                    Err(err) => {
-                        log::warn!("Failed to load path. path: {:#?}. err: {:#?}", path, err);
-                        Vec::new()
-                    }
-                }
-            })
-            .collect::<Vec<_>>()
-            .concat(),
-    )
-}
-
 #[cfg(test)]
 mod tests {
     use std::path::Path;
@@ -227,7 +226,7 @@ mod tests {
         let input_path = input_path.to_path_buf();
 
         docs.iter()
-            .flat_map(|doc| parse_doc(doc, &input_path))
+            .flat_map(|doc| ZuulConfigElements::parse_doc(doc, &input_path))
             .collect::<Vec<_>>()
     }
 

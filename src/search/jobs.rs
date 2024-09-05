@@ -10,7 +10,7 @@ use petgraph::graph::{DiGraph, Graph, NodeIndex};
 
 use crate::parser::common::StringLoc;
 use crate::parser::zuul::job::Job;
-use crate::parser::zuul::parse_zuul;
+use crate::parser::zuul::ZuulConfigElements;
 use crate::path::get_zuul_yaml_paths_cwd;
 use crate::path::to_path;
 use crate::search::report_print::print_string_locs;
@@ -22,20 +22,13 @@ pub struct ZuulJobs {
 }
 
 impl ZuulJobs {
-    pub fn from_paths(yaml_paths: &[PathBuf]) -> ZuulJobs {
-        let jobs = parse_zuul(yaml_paths)
-            .into_jobs()
-            .into_iter()
-            .map(Rc::new)
-            .collect();
-        let name_jobs = ZuulJobs::gather_jobs_by_name(&jobs);
-
-        ZuulJobs { jobs, name_jobs }
+    pub fn from_files(yaml_paths: &[PathBuf]) -> ZuulJobs {
+        Self::from_parsed_jobs(ZuulConfigElements::parse_files(yaml_paths).into_jobs())
     }
 
     pub fn from_raw_input(work_dir: &Path, config_path: Option<PathBuf>) -> ZuulJobs {
         let yaml_paths = get_zuul_yaml_paths_cwd(work_dir, config_path);
-        let jobs = ZuulJobs::from_paths(&yaml_paths);
+        let jobs = Self::from_files(&yaml_paths);
 
         debug!("jobs: {:#?}", jobs);
 
@@ -44,7 +37,7 @@ impl ZuulJobs {
 
     pub fn from_parsed_jobs(parsed_jobs: Vec<Job>) -> ZuulJobs {
         let jobs = parsed_jobs.into_iter().map(Rc::new).collect();
-        let name_jobs = ZuulJobs::gather_jobs_by_name(&jobs);
+        let name_jobs = Self::gather_jobs_by_name(&jobs);
 
         ZuulJobs { jobs, name_jobs }
     }
@@ -52,20 +45,20 @@ impl ZuulJobs {
     pub fn get_job_hierarchy(&self, name: &str) -> Vec<Rc<Job>> {
         // Try to support multiple inheritances ...
         let input_names = vec![name.to_string()];
-        let names = ZuulJobs::collect_job_names(&input_names, &self.name_jobs);
+        let names = Self::collect_job_names(&input_names, &self.name_jobs);
 
         self.gen_job_topo_order(&names)
     }
 
     pub fn gen_job_topo_order(&self, input_job_names: &Vec<String>) -> Vec<Rc<Job>> {
-        let job_names = ZuulJobs::collect_job_names(input_job_names, &self.name_jobs);
+        let job_names = Self::collect_job_names(input_job_names, &self.name_jobs);
 
         // Create a di-graph and node mapping
-        let (g, node_map) = ZuulJobs::create_job_graph(&job_names, &self.name_jobs);
+        let (g, node_map) = Self::create_job_graph(&job_names, &self.name_jobs);
         log::debug!("job graph: {:#?}", g);
 
         // Get the job hierarchy from the topological order of jobs.
-        ZuulJobs::visit_job_graph(g, node_map, &self.name_jobs)
+        Self::visit_job_graph(g, node_map, &self.name_jobs)
     }
 
     pub fn jobs(&self) -> &Vec<Rc<Job>> {
@@ -258,7 +251,7 @@ mod tests {
     fn test_list_jobs() {
         let ts = TestFiles::new("list_job_0.yaml");
         let paths = vec![ts.input_path.clone()];
-        let zuul_jobs = ZuulJobs::from_paths(&paths);
+        let zuul_jobs = ZuulJobs::from_files(&paths);
         let jobs = zuul_jobs.jobs();
 
         ts.assert_output(&jobs);
