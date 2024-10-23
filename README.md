@@ -67,12 +67,48 @@ tenant:
 
 ### Neovim
 
-1. Replace `neovim/nvim-lspconfig` with `birnevogel11/nvim-lspconfig`
+1. Assume `neovim/nvim-lspconfig` is installed with lazy.nvim. Add the if code
+   block in config function
+
+   ```lua
+   return {
+     {
+       "neovim/nvim-lspconfig",
+       dependencies = {
+         { "nvim-lua/plenary.nvim" },
+       },
+       config = function()
+         local configs = require("lspconfig.configs")
+         local lspconfig = require("lspconfig")
+         if not configs.zuul_ls then
+           local util = require("lspconfig.util")
+           configs.zuul_ls = {
+             default_config = {
+               cmd = { "zuul-ls" },
+               filetypes = { "yaml", "yaml.ansible" },
+               root_dir = util.find_git_ancestor,
+               single_file_support = true,
+               settings = {},
+             },
+             docs = {
+               description = [[ zuul language server ]],
+               default_config = {
+                 root_dir = [[ util.find_git_ancestor ]],
+               },
+             },
+           }
+         end
+
+       end,
+     },
+   }
+   ```
+
 2. Add lsp config
 
-```lua
-require("lspconfig").zuul_ls.setup(...)
-```
+    ```lua
+    require("lspconfig").zuul_ls.setup(...)
+    ```
 
 3. Install [telescope-zuul-search.nvim][telescope-zuul-search.nvim]
 
