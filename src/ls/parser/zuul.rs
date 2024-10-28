@@ -209,7 +209,14 @@ mod tests {
     parent: parent-job
     "#;
         let xs = retrieve_key_stack(&Rope::from_str(content), 3, 12);
-        assert_eq!(xs, Some((to_vec_str(&["job", "parent"]), TokenSide::Right)));
+        assert_eq!(
+            xs,
+            Some((
+                to_vec_str(&["job", "parent"]),
+                TokenSide::Right,
+                "parent-job".to_string()
+            ))
+        );
     }
 
     #[test]
@@ -225,7 +232,11 @@ mod tests {
         let xs = retrieve_key_stack(&Rope::from_str(content), 6, 14);
         assert_eq!(
             xs,
-            Some((to_vec_str(&["job", "vars", "test_var"]), TokenSide::Left))
+            Some((
+                to_vec_str(&["job", "vars", "test_var"]),
+                TokenSide::Left,
+                "nested_var".to_string()
+            ))
         );
     }
 
@@ -254,7 +265,8 @@ mod tests {
                     "dependencies",
                     "ArRaY_InDeX",
                 ]),
-                TokenSide::Right
+                TokenSide::Right,
+                "dependencies_job_1".to_string()
             ))
         )
     }
@@ -275,8 +287,9 @@ mod tests {
         let xs = retrieve_key_stack(&Rope::from_str(content), 9, 22);
         assert!(xs.is_some());
 
-        let (key_stack, token_side) = xs.unwrap();
+        let (key_stack, token_side, parsed_value) = xs.unwrap();
         let token = parse_project_token(
+            parsed_value,
             &Rope::from_str(content),
             &Position::new(9, 22),
             TokenFileType::ZuulConfig,
@@ -321,8 +334,9 @@ mod tests {
         let xs = retrieve_key_stack(&Rope::from_str(content), 7, 22);
         assert!(xs.is_some());
 
-        let (key_stack, token_side) = xs.unwrap();
+        let (key_stack, token_side, parsed_value) = xs.unwrap();
         let token = parse_project_token(
+            parsed_value,
             &Rope::from_str(content),
             &Position::new(7, 22),
             TokenFileType::ZuulConfig,
