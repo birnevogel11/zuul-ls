@@ -36,6 +36,35 @@ cp zuul-ls/scripts/zs <bin>/  # e.g. `cp zuul-ls/scripts/zs /usr/local/bin`
 ln -sf zuul-s/scripts/zs <bin>/zs
 ```
 
+## Config file format
+
+The program can search zuul configs cross multiple projects with config file in
+`~/.config/zuul-ls/config.yaml`. The file format is:
+
+```yaml
+# The search scope is tenant. It supports multiple tenants
+tenant:
+  # The name of the tenant. Only for debug
+  example_tenant_name:
+    # The base directory of the tenant. Zuul-ls searches all jobs,
+    # project-templates in the directory
+    # It searches ansible roles in `<base_dir>/zuul-shared` and
+    # `<base_dir>/zuul-trusted`
+    base_dir: ~/code/ci/tenant
+    # The extra base directory of the tenant. It searches all jobs,
+    # project-templates in the directory
+    # It searches ansible roles in `<extra_base_dir>/zuul-shared` and
+    # `<extra_base_dir>/zuul-trusted`
+    extra_base_dir:
+      - ~/ci/common-repo
+      - ~/ci/common-repo2
+    # The extra role directory of the tenant. It searches ansible roles in
+    # `<extra_role_dir>/roles` directory.
+    extra_role_dir:
+      - ~/ci/common-rule-repo
+      - ~/ci/common-rule-repo2
+```
+
 ### Neovim
 
 1. Replace `neovim/nvim-lspconfig` with `birnevogel11/nvim-lspconfig`
