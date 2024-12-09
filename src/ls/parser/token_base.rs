@@ -2,20 +2,8 @@ use ropey::Rope;
 use ropey::RopeSlice;
 use tower_lsp::lsp_types::Position;
 
-fn is_char_role(ch: char) -> bool {
-    matches!(ch, 'a'..='z' | 'A'..='Z' | '0'..='9' | '_' | '.' | '/' | '-')
-}
-
 fn is_char_var(ch: char) -> bool {
     matches!(ch, 'a'..='z' | 'A'..='Z' | '0'..='9' | '_' | '.')
-}
-
-fn is_char_name(ch: char) -> bool {
-    matches!(ch, 'a'..='z' | 'A'..='Z' | '0'..='9' | '_' | '-')
-}
-
-fn is_char_path(ch: char) -> bool {
-    !matches!(ch, ' ' | '\t' | '\r' | '\n')
 }
 
 fn find_token_in_line<T>(
@@ -50,30 +38,6 @@ where
         }
     }
     None
-}
-
-fn find_token<T>(content: &Rope, position: &Position, is_char: T) -> Option<String>
-where
-    T: Fn(char) -> bool,
-{
-    find_token_in_line(
-        &content.get_line(position.line as usize)?,
-        position.character as usize,
-        is_char,
-    )
-    .map(|(token, _)| token)
-}
-
-pub fn find_role_token(content: &Rope, position: &Position) -> Option<String> {
-    find_token(content, position, is_char_role)
-}
-
-pub fn find_name_token(content: &Rope, position: &Position) -> Option<String> {
-    find_token(content, position, is_char_name)
-}
-
-pub fn find_path_token(content: &Rope, position: &Position) -> Option<String> {
-    find_token(content, position, is_char_path)
 }
 
 pub fn find_var_token(content: &Rope, position: &Position) -> Option<Vec<String>> {
@@ -132,14 +96,5 @@ mod tests {
         let result = find_var_token(&content, &position);
 
         assert_eq!(result, Some(to_vec_str(&["abc", "def"])));
-    }
-
-    #[test]
-    fn test_get_role_token() {
-        let content = Rope::from_str("name: subdir/nested-role-name");
-        let position = Position::new(0, 8);
-        let result = find_role_token(&content, &position);
-
-        assert_eq!(result, Some("subdir/nested-role-name".to_string()));
     }
 }

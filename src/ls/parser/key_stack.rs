@@ -6,18 +6,22 @@ use crate::parser::variable::ARRAY_INDEX_KEY;
 
 pub const SEARCH_PATTERN: &str = "SeRpAt";
 
-fn parse_value_internal(value: &Yaml, key_stack: &mut Vec<String>) -> Option<TokenSide> {
+fn replace_search_pattern(s: &str) -> String {
+    s.replace(SEARCH_PATTERN, "")
+}
+
+fn parse_value_internal(value: &Yaml, key_stack: &mut Vec<String>) -> Option<(TokenSide, String)> {
     match value {
         Yaml::String(s) => {
             if s.contains(SEARCH_PATTERN) {
-                return Some(TokenSide::Right);
+                return Some((TokenSide::Right, replace_search_pattern(s)));
             }
         }
         Yaml::Hash(xs) => {
             for (key, value) in xs {
                 let key_name = key.as_str()?;
                 if key_name.contains(SEARCH_PATTERN) {
-                    return Some(TokenSide::Left);
+                    return Some((TokenSide::Left, replace_search_pattern(key_name)));
                 }
 
                 key_stack.push(key_name.to_string());
@@ -49,10 +53,10 @@ fn parse_value_internal(value: &Yaml, key_stack: &mut Vec<String>) -> Option<Tok
 pub fn parse_value(
     value: &Yaml,
     key_stack: Option<Vec<String>>,
-) -> Option<(Vec<String>, TokenSide)> {
+) -> Option<(Vec<String>, TokenSide, String)> {
     let mut key_stack = key_stack.unwrap_or_default();
-    let token_side = parse_value_internal(value, &mut key_stack)?;
-    Some((key_stack, token_side))
+    let (token_side, parsed_value) = parse_value_internal(value, &mut key_stack)?;
+    Some((key_stack, token_side, parsed_value))
 }
 
 pub fn insert_search_word(content: &Rope, line: usize, col: usize) -> Rope {

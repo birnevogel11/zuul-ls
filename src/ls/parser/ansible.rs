@@ -3,7 +3,6 @@ use tower_lsp::lsp_types::Position;
 use yaml_rust2::Yaml;
 
 use super::key_stack::{insert_search_word, parse_value, SEARCH_PATTERN};
-use super::token_base::find_role_token;
 use super::TokenSide;
 use super::{AutoCompleteToken, TokenFileType, TokenType, VariableTokenBuilder};
 use yaml_rust2::yaml::YamlLoader;
@@ -78,7 +77,8 @@ fn parse_ansible_tasks(
                 }
                 // Check value
                 _ => {
-                    if let Some((value_stack, token_side)) = parse_value(value, None) {
+                    if let Some((value_stack, token_side, parsed_value)) = parse_value(value, None)
+                    {
                         key_stack.push(key_name.to_string());
 
                         let token = match key_name {
@@ -93,7 +93,7 @@ fn parse_ansible_tasks(
                                     key_stack.extend(value_stack);
 
                                     Some(AutoCompleteToken::new(
-                                        find_role_token(content, position)?,
+                                        parsed_value,
                                         file_type.clone(),
                                         TokenType::Role,
                                         token_side,
@@ -165,10 +165,10 @@ fn parse_roles(
                 );
             }
 
-            if let Some((var_stack, token_side)) = parse_value(value, None) {
+            if let Some((var_stack, token_side, parsed_value)) = parse_value(value, None) {
                 if key_name == "role" && token_side == TokenSide::Right {
                     return Some(AutoCompleteToken::new(
-                        find_role_token(content, position)?,
+                        parsed_value,
                         file_type.clone(),
                         TokenType::Role,
                         TokenSide::Right,

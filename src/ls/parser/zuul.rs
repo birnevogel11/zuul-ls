@@ -4,11 +4,14 @@ use tower_lsp::lsp_types::Position;
 use yaml_rust2::yaml::YamlLoader;
 
 use super::key_stack::{insert_search_word, parse_value, SEARCH_PATTERN};
-use super::token_base::{find_name_token, find_path_token};
 use super::{AutoCompleteToken, TokenFileType, TokenSide, TokenType, VariableTokenBuilder};
 use crate::parser::variable::ARRAY_INDEX_KEY;
 
-fn retrieve_key_stack(content: &Rope, line: usize, col: usize) -> Option<(Vec<String>, TokenSide)> {
+fn retrieve_key_stack(
+    content: &Rope,
+    line: usize,
+    col: usize,
+) -> Option<(Vec<String>, TokenSide, String)> {
     let search_rope = insert_search_word(content, line, col);
     let content = search_rope.to_string();
     let docs = YamlLoader::load_from_str(&content).ok()?;
@@ -25,7 +28,11 @@ fn retrieve_key_stack(content: &Rope, line: usize, col: usize) -> Option<(Vec<St
             let zuul = *raw_zuul_name.keys().collect::<Vec<_>>().first()?;
             let zuul_name = zuul.as_str()?;
             if zuul_name.contains(SEARCH_PATTERN) {
-                return Some((Vec::new(), TokenSide::Left));
+                return Some((
+                    Vec::new(),
+                    TokenSide::Left,
+                    zuul_name.replace(SEARCH_PATTERN, ""),
+                ));
             }
 
             // Get the token
@@ -41,6 +48,7 @@ fn retrieve_key_stack(content: &Rope, line: usize, col: usize) -> Option<(Vec<St
 }
 
 fn parse_project_token(
+    parsed_value: String,
     content: &Rope,
     position: &Position,
     file_type: TokenFileType,
@@ -56,7 +64,7 @@ fn parse_project_token(
             || (key_stack.len() >= 6 && key_stack[5] == "dependencies")
         {
             return Some(AutoCompleteToken::new(
-                find_name_token(content, position)?,
+                parsed_value,
                 file_type,
                 TokenType::Job,
                 token_side,
@@ -80,7 +88,7 @@ fn parse_project_token(
         && (key_stack.len() >= 3 && key_stack[2] == ARRAY_INDEX_KEY)
     {
         return Some(AutoCompleteToken::new(
-            find_name_token(content, position)?,
+            parsed_value,
             file_type,
             TokenType::ProjectTemplate,
             token_side,
@@ -92,6 +100,7 @@ fn parse_project_token(
 }
 
 fn parse_job_token(
+    parsed_value: String,
     content: &Rope,
     position: &Position,
     file_type: TokenFileType,
@@ -103,16 +112,13 @@ fn parse_job_token(
     }
 
     match key_stack[1].as_str() {
-        "name" | "parent" => {
-            let token = find_name_token(content, position)?;
-            Some(AutoCompleteToken::new(
-                token,
-                file_type,
-                TokenType::Job,
-                token_side,
-                key_stack,
-            ))
-        }
+        "name" | "parent" => Some(AutoCompleteToken::new(
+            parsed_value,
+            file_type,
+            TokenType::Job,
+            token_side,
+            key_stack,
+        )),
         "vars" => {
             let mut var_stack = None;
             if key_stack.len() >= 3 {
@@ -127,16 +133,13 @@ fn parse_job_token(
                     .build(),
             )
         }
-        "run" | "pre-run" | "post-run" => {
-            let token = find_path_token(content, position)?;
-            Some(AutoCompleteToken::new(
-                token,
-                file_type,
-                TokenType::Playbook,
-                token_side,
-                key_stack,
-            ))
-        }
+        "run" | "pre-run" | "post-run" => Some(AutoCompleteToken::new(
+            parsed_value,
+            file_type,
+            TokenType::Playbook,
+            token_side,
+            key_stack,
+        )),
         _ => None,
     }
 }
@@ -146,12 +149,13 @@ pub fn parse_token_zuul_config(
     content: &Rope,
     position: &Position,
 ) -> Option<AutoCompleteToken> {
-    let (key_stack, token_side) =
+    let (key_stack, token_side, parsed_value) =
         retrieve_key_stack(content, position.line as usize, position.character as usize)?;
     log::info!(
-        "key_stack: {:#?}, token_side: {:#?}",
+        "key_stack: {:#?}, token_side: {:#?}, parsed_value: {:#?}",
         &key_stack,
-        &token_side
+        &token_side,
+        &parsed_value
     );
 
     if key_stack.is_empty() {
@@ -159,9 +163,8 @@ pub fn parse_token_zuul_config(
     }
 
     if key_stack.len() == 1 && token_side == TokenSide::Left {
-        let token = find_name_token(content, position)?;
         return Some(AutoCompleteToken::new(
-            token,
+            parsed_value,
             file_type,
             TokenType::ZuulProperty(key_stack[0].clone()),
             token_side,
@@ -170,10 +173,22 @@ pub fn parse_token_zuul_config(
     }
 
     match key_stack[0].as_str() {
-        "job" => parse_job_token(content, position, file_type, token_side, key_stack),
-        "project" | "project-template" => {
-            parse_project_token(content, position, file_type, token_side, key_stack)
-        }
+        "job" => parse_job_token(
+            parsed_value,
+            content,
+            position,
+            file_type,
+            token_side,
+            key_stack,
+        ),
+        "project" | "project-template" => parse_project_token(
+            parsed_value,
+            content,
+            position,
+            file_type,
+            token_side,
+            key_stack,
+        ),
         _ => None,
     }
 }

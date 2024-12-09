@@ -198,7 +198,7 @@ impl VariableTokenBuilder {
     }
 
     pub fn new_yaml(value: &Yaml, content: &Rope, position: &Position) -> Option<Self> {
-        let (var_stack, token_side) = parse_value(value, None)?;
+        let (var_stack, token_side, _) = parse_value(value, None)?;
         Self::new(Some(var_stack), token_side, content, position)
     }
 
