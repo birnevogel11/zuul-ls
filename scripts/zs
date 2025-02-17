@@ -11,7 +11,7 @@ _open_nvim() {
   local -r line="$(( raw_line + 1 ))"
   local -r column="$(( raw_column + 1 ))"
 
-  nvim "+${line}" "${path/\~/${HOME}}" "+normal${column}|"
+  nvim "+${line}" "${path/\~/$\{HOME\}}" "+normal${column}|"
 }
 
 zs-job() {
