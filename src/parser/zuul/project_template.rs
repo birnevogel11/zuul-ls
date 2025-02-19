@@ -95,10 +95,10 @@ impl ZuulParse<ProjectTemplate> for ProjectTemplate {
                 if key == "name" {
                     name = Some(parse_string_value(value, path, "name")?);
                 } else {
-                    let pipeline_name = key;
-                    let job_names = ProjectTemplate::parse_pipeline(value, path, pipeline_name)?;
-
-                    pipeline_jobs.insert(pipeline_name.to_string(), job_names);
+                    // let pipeline_name = key;
+                    // let job_names = ProjectTemplate::parse_pipeline(value, path, pipeline_name)?;
+                    //
+                    // pipeline_jobs.insert(pipeline_name.to_string(), job_names);
                 }
             }
         }
