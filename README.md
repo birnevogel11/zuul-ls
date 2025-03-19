@@ -112,27 +112,6 @@ tenant:
 
 3. Install [telescope-zuul-search.nvim][telescope-zuul-search.nvim]
 
-
-### Development using VSCode
-
-The document is copied from [IWANABETHATGUY/tower-lsp-boilerplate][tower-lsp-boilerplate].
-
-**Known limitations**
-1. The plugin can not work with ansible-ls together in VSCode.
-2. It requires run with yaml plugin.
-
-Steps:
-
-1. `pnpm i`
-2. `cargo build`
-3. Open the project in VSCode: `code .`
-4. In VSCode, press <kbd>F5</kbd> or change to the Debug panel and click
-   <kbd>Launch Client</kbd>.
-5. In the newly launched VSCode instance, open the file `examples/test.nrs`
-   from this project.
-6. If the LSP is working correctly you should see syntax highlighting and the
-   features described below should work.
-
 ## Personal Note
 
 The reason to create the project is that I would like to learn Rust and it's
