@@ -8,7 +8,9 @@ use crate::parser::yaml::{YValue, YValueYaml};
 #[derive(Clone, PartialEq, PartialOrd, Debug, Eq, Ord, Hash, Default)]
 pub struct ProjectTemplate {
     name: StringLoc,
+    description: StringLoc,
     pipeline_jobs: LinkedHashMap<String, Vec<StringLoc>>,
+    templates: Vec<StringLoc>,
 }
 
 impl ProjectTemplate {
@@ -66,7 +68,7 @@ impl ProjectTemplate {
         if let YValueYaml::Hash(vs) = value.value() {
             for (key, value) in vs {
                 if let Some(key) = key.as_str() {
-                    if key == "job" {
+                    if key == "jobs" {
                         return Self::parse_pipeline_jobs(value, path, key);
                     }
                 }
@@ -88,24 +90,43 @@ impl ZuulParse<ProjectTemplate> for ProjectTemplate {
         path: &Path,
     ) -> Result<ProjectTemplate, ZuulParseError> {
         let mut name: Option<StringLoc> = None;
+        let mut description: Option<StringLoc> = None;
         let mut pipeline_jobs: LinkedHashMap<String, Vec<StringLoc>> = LinkedHashMap::new();
+        let mut templates: Vec<StringLoc> = Vec::new();
 
         for (key, value) in xs {
             if let Some(key) = key.as_str() {
-                if key == "name" {
-                    name = Some(parse_string_value(value, path, "name")?);
-                } else {
-                    // let pipeline_name = key;
-                    // let job_names = ProjectTemplate::parse_pipeline(value, path, pipeline_name)?;
-                    //
-                    // pipeline_jobs.insert(pipeline_name.to_string(), job_names);
+                match key {
+                    "name" => {
+                        name = Some(parse_string_value(value, path, "name")?);
+                    }
+                    "description" => {
+                        description = Some(parse_string_value(value, path, "description")?);
+                    }
+                    "templates" => {
+                        // TODO: Implement parse_templates
+                    }
+                    "queue" | "vars" | "merge-mode" => {}
+                    _ => {
+                        let pipeline_name = key;
+                        match ProjectTemplate::parse_pipeline(value, path, pipeline_name) {
+                            Ok(job_names) => {
+                                pipeline_jobs.insert(pipeline_name.to_string(), job_names);
+                            }
+                            Err(e) => {
+                                log::warn!("Failed to  parse pipeline. Skip to parse it. path: {:?}: error: {:#?}. Skip to parse it", path, e);
+                            }
+                        }
+                    }
                 }
             }
         }
 
         Ok(ProjectTemplate {
             name: name.unwrap_or_default(),
+            description: description.unwrap_or_default(),
             pipeline_jobs,
+            templates,
         })
     }
 }
