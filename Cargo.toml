@@ -1,6 +1,6 @@
 [package]
 name = "zuul-ls"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 
 [[bin]]
@@ -18,24 +18,24 @@ path = "src/lib.rs"
 [dependencies]
 bimap = "0.6.3"
 calm_io = "0.1.1"
-chrono = "0.4.38"
-clap = { version = "4.5.4", features = ["derive"] }
-dashmap = "6.0.1"
-dirs = "5.0.1"
-env_logger = "0.11.3"
-hashlink = "0.8"
+chrono = "0.4.40"
+clap = { version = "4.5.32", features = ["derive"] }
+dashmap = "6.1.0"
+dirs = "6.0.0"
+env_logger = "0.11.7"
+hashlink = "0.10"
 interner = "0.2.1"
-log = "0.4.21"
+log = "0.4.26"
 path-absolutize = "3.1.1"
-pathdiff = "0.2.1"
-petgraph = "0.6.5"
-phf = { version = "0.11.2", features = ["macros"] }
-regex = "1.10.6"
+pathdiff = "0.2.3"
+petgraph = "0.7.1"
+phf = { version = "0.11.3", features = ["macros"] }
+regex = "1.11.1"
 ropey = "1.6.1"
-serde = "1.0.203"
-serde_json = "1.0.118"
+serde = "1.0.219"
+serde_json = "1.0.140"
 shellexpand = "3.1.0"
-tokio = { version = "1.38.0", features = ["full", "io-std", "io-util"] }
+tokio = { version = "1.44.1", features = ["full", "io-std", "io-util"] }
 tower-lsp = "0.20.0"
 walkdir = "2.5.0"
-yaml-rust2 = "0.8.0"
+yaml-rust2 = "0.10.0"
