@@ -3,7 +3,8 @@ use std::path::Path;
 use phf::phf_map;
 use ropey::Rope;
 use tower_lsp::lsp_types::{
-    CompletionItem, CompletionItemKind, CompletionResponse, Documentation, Position,
+    CompletionItem, CompletionItemKind, CompletionResponse, Documentation, MarkupContent,
+    MarkupKind, Position,
 };
 use walkdir::WalkDir;
 
@@ -20,6 +21,17 @@ static ZUUL_PROPERTY: phf::Map<&'static str, &[&'static str]> = phf_map! {
                "post-run", "pre-run", "required-projects", "roles", "run", "vars", "voting", "secrets"],
     "project-template" => &["name", "queue"],
 };
+
+fn to_complete_doc(doc: String) -> Option<Documentation> {
+    if doc.is_empty() {
+        None
+    } else {
+        Some(Documentation::MarkupContent(MarkupContent {
+            kind: MarkupKind::PlainText,
+            value: doc,
+        }))
+    }
+}
 
 fn fill_guess_content(content: &Rope, position: &Position) -> Rope {
     let mut try_content = content.clone();
@@ -83,7 +95,7 @@ fn complete_variable_item_internal(
             .filter(|entry| entry.key().starts_with(value) && entry.key() != value)
             .map(|entry| CompletionItem {
                 label: entry.key().to_string(),
-                documentation: Some(Documentation::String(render_variable_doc(entry.value()))),
+                documentation: to_complete_doc(render_variable_doc(entry.value())),
                 kind: Some(CompletionItemKind::VARIABLE),
                 ..CompletionItem::default()
             })
@@ -147,7 +159,7 @@ pub fn complete_items(
                     role_docs
                         .map(|(name, doc)| CompletionItem {
                             label: name,
-                            documentation: doc.map(Documentation::String),
+                            documentation: to_complete_doc(doc.unwrap_or_default()),
                             kind: Some(CompletionItemKind::FUNCTION),
                             ..CompletionItem::default()
                         })
@@ -188,7 +200,7 @@ pub fn complete_items(
                         .map(|(name, doc)| CompletionItem {
                             label: name,
                             kind: Some(CompletionItemKind::MODULE),
-                            documentation: Some(Documentation::String(doc)),
+                            documentation: to_complete_doc(doc),
                             ..CompletionItem::default()
                         })
                         .collect(),
