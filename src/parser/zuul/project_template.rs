@@ -2,15 +2,17 @@ use std::path::Path;
 
 use hashlink::LinkedHashMap;
 
-use crate::parser::common::{parse_string_value, StringLoc, ZuulParse, ZuulParseError};
+use crate::parser::common::{
+    parse_list_string_value, parse_string_value, StringLoc, ZuulParse, ZuulParseError,
+};
 use crate::parser::yaml::{YValue, YValueYaml};
 
 #[derive(Clone, PartialEq, PartialOrd, Debug, Eq, Ord, Hash, Default)]
 pub struct ProjectTemplate {
     name: StringLoc,
     description: StringLoc,
-    pipeline_jobs: LinkedHashMap<String, Vec<StringLoc>>,
     templates: Vec<StringLoc>,
+    pipeline_jobs: LinkedHashMap<String, Vec<StringLoc>>,
 }
 
 impl ProjectTemplate {
@@ -68,6 +70,9 @@ impl ProjectTemplate {
         if let YValueYaml::Hash(vs) = value.value() {
             for (key, value) in vs {
                 if let Some(key) = key.as_str() {
+                    if key == "<<" {
+                        return Self::parse_pipeline(value, path, field_name);
+                    }
                     if key == "jobs" {
                         return Self::parse_pipeline_jobs(value, path, key);
                     }
@@ -103,9 +108,14 @@ impl ZuulParse<ProjectTemplate> for ProjectTemplate {
                     "description" => {
                         description = Some(parse_string_value(value, path, "description")?);
                     }
-                    "templates" => {
-                        // TODO: Implement parse_templates
-                    }
+                    "templates" => match parse_list_string_value(value, path, "templates") {
+                        Ok(names) => {
+                            templates = names;
+                        }
+                        Err(e) => {
+                            log::warn!("Failed to parse import-templates. Skip to parse it. path: {:?}: error: {:#?}. Skip to parse it", path, e);
+                        }
+                    },
                     "queue" | "vars" | "merge-mode" => {}
                     _ => {
                         let pipeline_name = key;
@@ -114,7 +124,7 @@ impl ZuulParse<ProjectTemplate> for ProjectTemplate {
                                 pipeline_jobs.insert(pipeline_name.to_string(), job_names);
                             }
                             Err(e) => {
-                                log::warn!("Failed to  parse pipeline. Skip to parse it. path: {:?}: error: {:#?}. Skip to parse it", path, e);
+                                log::warn!("Failed to parse pipeline. Skip to parse it. path: {:?}: error: {:#?}. Skip to parse it", path, e);
                             }
                         }
                     }
@@ -125,8 +135,8 @@ impl ZuulParse<ProjectTemplate> for ProjectTemplate {
         Ok(ProjectTemplate {
             name: name.unwrap_or_default(),
             description: description.unwrap_or_default(),
-            pipeline_jobs,
             templates,
+            pipeline_jobs,
         })
     }
 }
