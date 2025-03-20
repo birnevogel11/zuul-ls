@@ -1,6 +1,7 @@
-# The project is still on heavily development. It does not guarantee any compatibility.
-
 # zuul-ls (Zuul Language Server) + zuul-search
+
+> [!WARNING]
+> The project is in ALPHA PHASE. It does not guarantee any compatibility.
 
 zuul-ls and zuul-search aim to provide a more efficient way to search and edit
 [Zuul][zuul] CI config.
@@ -12,10 +13,6 @@ roles.
 zuul-search can search jobs, project-templates or a job's variables or job
 hierarchy.
 
-## Need help
-
-- Package the project into a VSCode plugin and release it
-
 ## Required dependencies
 
 zuul-ls does not have any dependencies. zuul-search is wrapped by a `zs` script.
@@ -23,7 +20,7 @@ It requires [fzf][fzf] and [bat][bat].
 
 ## Installation
 
-The project is tested with neovim and VSCode(partial). Need clone the repo and
+The project is tested with neovim and VSCode. Need clone the repo and
 copy/link the `zs` script
 
 ```bash
@@ -110,7 +107,91 @@ tenant:
     require("lspconfig").zuul_ls.setup(...)
     ```
 
-3. Install [telescope-zuul-search.nvim][telescope-zuul-search.nvim]
+### VSCode
+
+It's conflict to existing yaml language server(e.g. Ansible VSCode extension). Please disable them to avoid any conflicts.
+
+You can build the VSCode extension manually with
+
+```bash
+# Install the vscode package tool
+npm install -g @vscode/vsce
+
+cd editors/vscode/zuul-ls/
+# Install required packages
+npm install
+# Build the extension
+npm run compile
+vsce package
+
+# Install the extension
+code --install-extension ./zuul-ls-*.vsix
+```
+
+## zuul-search
+
+zuul-search can search jobs, variables, project-templates, job hierarchy, playbooks
+from command line. `zuul-search` binary does not provide any search function.
+It's wrapped with fzf and bat to search and preview the result.
+
+There is also a way to integrate it into Neovim with telescope or Snacks.picker.
+
+Please run the command in the repo folders:
+
+```
+$ zs --help
+zs - zuul search - Search zuul config with zuul-search, fzf and bat
+
+Command:
+  zs <search> [job_name]
+    j,jobs              - Search all jobs
+    h,hierarchy         - Search the job hierarchy of a job
+    v,vars              - Search job variables of a job
+    wv,workdir-vars     - Search variables in cwd
+    p,playbooks         - Search playbooks of a job
+    t,project-templates - Search all project-templates
+    help                - Show the help
+
+Example:
+    zs j          - Search all jobs
+    zs job        - Same as 'zs j'
+
+    zs h          - Search the job name first, search the job hierarchy of the job name
+    zs hierarchy  - Same as 'zs h'
+
+    zs h zuul-job - Search the job hierarhcy of 'zuul-job'
+```
+
+### Integrate with Snacks.Picker
+
+- Copy the file `./editors/neovim/zuul.lua` into your config and add the code
+
+```lua
+-- Fill the real module path
+local Zuul = require("<module>.zuul")
+
+-- In your snacks config
+return
+  {
+    "folke/snacks.nvim",
+    opts = {
+      picker = {},  -- Enable the picker
+    }
+    -- ...
+    keys = {
+      { "<leader>zj", function() Zuul.job() end, desc = "Zuul jobs", },
+      { "<leader>zr", function() Zuul.role() end, desc = "Zuul Roles", },
+      { "<leader>zt", function() Zuul.project_template() end, desc = "Zuul Project Templates", },
+      { "<leader>zv", function() Zuul.workspace_var() end, desc = "Zuul workspace vars", },
+      { "<leader>zh", function() Zuul.job_hierarchy() end, desc = "Zuul Job Hierarchy", mode = { "v", "x"  } },
+      { "<leader>zp", function() Zuul.job_playbooks() end, desc = "Zuul Job Playbooks", mode = { "v", "x"  } },
+    }
+  }
+```
+
+### Integrate with telescope.nvim
+
+- Install [telescope-zuul-search.nvim][telescope-zuul-search.nvim]
 
 ## Personal Note
 
@@ -121,13 +202,17 @@ I know tower-lsp is a async program but the code has a lot of blocking IO call.
 The most important reason is that I am unfamiliar with async in Rust. Maybe we
 can change/rewrite these parts in the future.
 
-Thanks to [IWANABETHATGUY/tower-lsp-boilerplate][tower-lsp-boilerplate]. It
-saves me a lot of time to learn how to write a LS from scratch.
 
 ## Related projects
 
 - [alexander-scott/zuul_job_browser](https://github.com/alexander-scott/zuul_job_browser)
 
+## Acknowledgements
+
+- [IWANABETHATGUY/tower-lsp-boilerplate][tower-lsp-boilerplate].
+   - Save me a lot of time to learn how to write a LS from scratch.
+- [LaBatata101/sith-language-server][sith-language-server]
+    - Learn how to package the vscode extension from it
 
 
 [zuul]: https://zuul-ci.org/
@@ -135,3 +220,4 @@ saves me a lot of time to learn how to write a LS from scratch.
 [fzf]: https://github.com/junegunn/fzf
 [bat]: https://github.com/sharkdp/bat
 [telescope-zuul-search.nvim]: https://github.com/birnevogel11/telescope-zuul-search.nvim
+[sith-language-server]: https://github.com/LaBatata101/sith-language-server
