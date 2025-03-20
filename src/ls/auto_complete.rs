@@ -177,17 +177,18 @@ pub fn complete_items(
         }
         TokenType::ProjectTemplate => {
             let project_templates = symbols
-                .project_templates()
+                .project_template_docs()
                 .iter()
                 .filter(|entry| entry.key().starts_with(&token.value))
-                .map(|entry| entry.key().clone());
+                .map(|entry| (entry.key().clone(), entry.value().clone()));
 
             Some((
                 CompletionResponse::Array(
                     project_templates
-                        .map(|name| CompletionItem {
+                        .map(|(name, doc)| CompletionItem {
                             label: name,
                             kind: Some(CompletionItemKind::MODULE),
+                            documentation: Some(Documentation::String(doc)),
                             ..CompletionItem::default()
                         })
                         .collect(),

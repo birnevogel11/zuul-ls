@@ -20,6 +20,10 @@ impl ProjectTemplate {
         &self.name
     }
 
+    pub fn description(&self) -> &StringLoc {
+        &self.description
+    }
+
     pub fn pipeline_jobs(&self) -> &LinkedHashMap<String, Vec<StringLoc>> {
         &self.pipeline_jobs
     }

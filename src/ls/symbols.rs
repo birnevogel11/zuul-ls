@@ -25,6 +25,7 @@ pub struct ZuulSymbol {
     jobs: DashMap<String, Vec<StringLoc>>,
     vars: VariableGroup,
     project_templates: DashMap<String, StringLoc>,
+    project_template_docs: DashMap<String, String>,
 }
 
 impl ZuulSymbol {
@@ -46,6 +47,10 @@ impl ZuulSymbol {
 
     pub fn project_templates(&self) -> &DashMap<String, StringLoc> {
         &self.project_templates
+    }
+
+    pub fn project_template_docs(&self) -> &DashMap<String, String> {
+        &self.project_template_docs
     }
 
     pub fn initialize(&self) {
@@ -104,9 +109,13 @@ impl ZuulSymbol {
         let project_templates = zuul_config_elements.project_templates();
         project_templates.iter().for_each(|pt| {
             let name = pt.name();
+            let description = pt.description();
+
             self.project_templates
                 .insert(name.value.to_string(), name.clone());
-        })
+            self.project_template_docs
+                .insert(name.value.to_string(), description.value.to_string());
+        });
     }
 
     pub fn get_role_path(&self, role_name: &str) -> Option<AnsibleRolePath> {
