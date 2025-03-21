@@ -16,9 +16,43 @@ import {
 
 let client: LanguageClient;
 
+function getServerExecutablePath(context: ExtensionContext): string {
+    let platformBinary: string;
+    const arch = process.arch;  // Use process.arch to check architecture
+
+    switch (process.platform) {
+        case 'win32':
+            platformBinary = 'zuul-ls.exe';  // Windows binary
+            break;
+        case 'darwin':
+            if (arch === 'x64') {
+                platformBinary = 'zuul-ls.x86_64-apple-darwin';  // macOS x86_64 binary
+            } else if (arch === 'arm64') {
+                platformBinary = 'zuul-ls.aarch64-apple-darwin';  // macOS ARM64 binary
+            } else {
+                throw new Error(`Unsupported architecture for macOS: ${arch}`);
+            }
+            break;
+        case 'linux':
+            if (arch === 'x64') {
+                platformBinary = 'zuul-ls.x86_64-unknown-linux-gnu';  // Linux x86_64 binary
+            } else if (arch === 'arm64') {
+                platformBinary = 'zuul-ls.aarch64-unknown-linux-gnu';  // Linux ARM64 binary
+            } else {
+                throw new Error(`Unsupported architecture for Linux: ${arch}`);
+            }
+            break;
+        default:
+            throw new Error(`Unsupported platform: ${process.platform}`);
+    }
+
+    // Resolve the binary path within the extension's folder
+    return context.asAbsolutePath(path.join('server', platformBinary));
+}
+
 export function activate(context: ExtensionContext) {
     const traceOutputChannel = window.createOutputChannel("Zuul Language Server trace");
-    const command = process.env.ZUUL_LS_PATH || context.asAbsolutePath(path.join("server", "zuul-ls"));
+    const command = process.env.ZUUL_LS_PATH || getServerExecutablePath(context);
     const run: Executable = {
       command,
       options: {
