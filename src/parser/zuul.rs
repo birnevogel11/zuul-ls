@@ -58,7 +58,7 @@ impl ZuulParseType {
 }
 
 #[derive(Clone, PartialEq, PartialOrd, Debug, Eq, Ord)]
-pub enum ZuulConfigParsedElement {
+pub enum ZuulConfigUnit {
     Job(Job),
     ProjectTemplate(ProjectTemplate),
     Project(ProjectTemplate),
@@ -68,7 +68,7 @@ pub enum ZuulConfigParsedElement {
     Secret(Secret),
 }
 
-impl ZuulConfigParsedElement {
+impl ZuulConfigUnit {
     fn retrieve_key_and_value(
         config: &YValue,
     ) -> Option<(ZuulParseType, &LinkedHashMap<YValue, YValue>)> {
@@ -85,31 +85,27 @@ impl ZuulConfigParsedElement {
         }
     }
 
-    pub fn parse(raw_config: &YValue, path: &Path) -> Option<ZuulConfigParsedElement> {
-        match ZuulConfigParsedElement::retrieve_key_and_value(raw_config) {
+    pub fn parse(raw_config: &YValue, path: &Path) -> Option<ZuulConfigUnit> {
+        match ZuulConfigUnit::retrieve_key_and_value(raw_config) {
             None => None,
             Some((parse_type, values)) => {
                 let e = match parse_type {
-                    ZuulParseType::Job => {
-                        ZuulConfigParsedElement::Job(Job::parse(values, path).ok()?)
+                    ZuulParseType::Job => ZuulConfigUnit::Job(Job::parse(values, path).ok()?),
+                    ZuulParseType::ProjectTemplate => {
+                        ZuulConfigUnit::ProjectTemplate(ProjectTemplate::parse(values, path).ok()?)
                     }
-                    ZuulParseType::ProjectTemplate => ZuulConfigParsedElement::ProjectTemplate(
-                        ProjectTemplate::parse(values, path).ok()?,
-                    ),
                     ZuulParseType::Project => {
-                        ZuulConfigParsedElement::Project(ProjectTemplate::parse(values, path).ok()?)
+                        ZuulConfigUnit::Project(ProjectTemplate::parse(values, path).ok()?)
                     }
                     ZuulParseType::Nodeset => {
-                        ZuulConfigParsedElement::Nodeset(Nodeset::parse(values, path).ok()?)
+                        ZuulConfigUnit::Nodeset(Nodeset::parse(values, path).ok()?)
                     }
-                    ZuulParseType::Queue => {
-                        ZuulConfigParsedElement::Queue(Queue::parse(values, path).ok()?)
-                    }
+                    ZuulParseType::Queue => ZuulConfigUnit::Queue(Queue::parse(values, path).ok()?),
                     ZuulParseType::Pipeline => {
-                        ZuulConfigParsedElement::Pipeline(Pipeline::parse(values, path).ok()?)
+                        ZuulConfigUnit::Pipeline(Pipeline::parse(values, path).ok()?)
                     }
                     ZuulParseType::Secret => {
-                        ZuulConfigParsedElement::Secret(Secret::parse(values, path).ok()?)
+                        ZuulConfigUnit::Secret(Secret::parse(values, path).ok()?)
                     }
                 };
                 Some(e)
@@ -147,7 +143,7 @@ pub fn $name(self) -> Vec<$t> {
 );
 
 #[derive(Clone, PartialEq, PartialOrd, Debug, Eq, Ord, Default)]
-pub struct ZuulConfigElements {
+pub struct ZuulConfig {
     jobs: Vec<Job>,
     project_templates: Vec<ProjectTemplate>,
     projects: Vec<ProjectTemplate>,
@@ -157,37 +153,37 @@ pub struct ZuulConfigElements {
     secrets: Vec<Secret>,
 }
 
-impl ZuulConfigElements {
-    pub fn new(ps: Vec<ZuulConfigParsedElement>) -> ZuulConfigElements {
-        let mut zuul = ZuulConfigElements::default();
+impl ZuulConfig {
+    pub fn new(ps: Vec<ZuulConfigUnit>) -> ZuulConfig {
+        let mut zuul = ZuulConfig::default();
 
         for p in ps {
             match p {
-                ZuulConfigParsedElement::Job(p) => zuul.jobs.push(p),
-                ZuulConfigParsedElement::ProjectTemplate(p) => zuul.project_templates.push(p),
-                ZuulConfigParsedElement::Project(p) => zuul.projects.push(p),
-                ZuulConfigParsedElement::Nodeset(p) => zuul.nodesets.push(p),
-                ZuulConfigParsedElement::Queue(p) => zuul.queues.push(p),
-                ZuulConfigParsedElement::Pipeline(p) => zuul.pipelines.push(p),
-                ZuulConfigParsedElement::Secret(p) => zuul.secrets.push(p),
+                ZuulConfigUnit::Job(p) => zuul.jobs.push(p),
+                ZuulConfigUnit::ProjectTemplate(p) => zuul.project_templates.push(p),
+                ZuulConfigUnit::Project(p) => zuul.projects.push(p),
+                ZuulConfigUnit::Nodeset(p) => zuul.nodesets.push(p),
+                ZuulConfigUnit::Queue(p) => zuul.queues.push(p),
+                ZuulConfigUnit::Pipeline(p) => zuul.pipelines.push(p),
+                ZuulConfigUnit::Secret(p) => zuul.secrets.push(p),
             }
         }
 
         zuul
     }
 
-    fn parse_doc(doc: &YValue, path: &Path) -> Vec<ZuulConfigParsedElement> {
+    fn parse_doc(doc: &YValue, path: &Path) -> Vec<ZuulConfigUnit> {
         if let YValueYaml::Array(xs) = doc.value() {
             xs.iter()
-                .filter_map(|x| ZuulConfigParsedElement::parse(x, path))
+                .filter_map(|x| ZuulConfigUnit::parse(x, path))
                 .collect()
         } else {
             vec![]
         }
     }
 
-    pub fn parse_files(paths: &[PathBuf]) -> ZuulConfigElements {
-        ZuulConfigElements::new(
+    pub fn parse_files(paths: &[PathBuf]) -> ZuulConfig {
+        ZuulConfig::new(
             paths
                 .iter()
                 .flat_map(|path| {
@@ -229,12 +225,12 @@ mod tests {
     use super::*;
     use crate::golden_key_test::TestFiles;
 
-    fn load_test_doc(input_path: &Path) -> Vec<ZuulConfigParsedElement> {
+    fn load_test_doc(input_path: &Path) -> Vec<ZuulConfigUnit> {
         let docs = load_yvalue(input_path).unwrap();
         let input_path = input_path.to_path_buf();
 
         docs.iter()
-            .flat_map(|doc| ZuulConfigElements::parse_doc(doc, &input_path))
+            .flat_map(|doc| ZuulConfig::parse_doc(doc, &input_path))
             .collect::<Vec<_>>()
     }
 

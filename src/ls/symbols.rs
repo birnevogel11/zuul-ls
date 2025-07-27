@@ -7,7 +7,7 @@ use crate::config::get_work_dir;
 use crate::ls::parser::AnsibleRolePath;
 use crate::parser::common::StringLoc;
 use crate::parser::variable::VariableGroup;
-use crate::parser::zuul::ZuulConfigElements;
+use crate::parser::zuul::ZuulConfig;
 use crate::path::get_role_repo_dirs;
 use crate::path::get_zuul_yaml_paths_cwd;
 use crate::search::jobs::list_job_locs_by_name;
@@ -93,7 +93,7 @@ impl ZuulSymbol {
     fn initialize_jobs(&self) {
         let work_dir = get_work_dir(None);
         let yaml_paths = get_zuul_yaml_paths_cwd(&work_dir, None);
-        let zuul_config_elements = ZuulConfigElements::parse_files(&yaml_paths);
+        let zuul_config_elements = ZuulConfig::parse_files(&yaml_paths);
 
         let zuul_jobs = ZuulJobs::from_parsed_jobs(zuul_config_elements.jobs().clone());
         let jobs = list_job_locs_by_name(&zuul_jobs);
