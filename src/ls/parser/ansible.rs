@@ -82,6 +82,20 @@ fn parse_ansible_tasks(
                         key_stack.push(key_name.to_string());
 
                         let token = match key_name {
+                            "include_tasks" | "ansible.builtin.include_tasks" | 
+                            "import_tasks" | "ansible.builtin.import_tasks" => {
+                                if token_side == TokenSide::Right {
+                                    Some(AutoCompleteToken::new(
+                                        parsed_value,
+                                        file_type.clone(),
+                                        TokenType::Playbook,
+                                        token_side,
+                                        key_stack.clone(),
+                                    ))
+                                } else {
+                                    None
+                                }
+                            },
                             "include_role"
                             | "import_role"
                             | "ansible.builtin.include_role"
@@ -657,6 +671,48 @@ abc def {{ ghi }}
             .set_value("def")
             .set_file_type(&TOKEN_FILE_TYPE_ANSIBLE_ROLE_TEMPLATES)
             .set_var_token_type()
+            .create_token()
+            .build()
+            .test();
+    }
+
+    #[test]
+    fn test_include_tasks() {
+        TestParseTokenAnsible::default()
+            .set_content(
+                r#"
+- name: Set junit_verdict_report variable
+  block:
+    - name: Set junit_verdict_report for normal or split jobs
+      when: job_size | default(1) | int == 1 or job_split_size | default(1) > 1
+      include_tasks: normal.yaml
+             "#,
+            )
+            .set_location(5, 22)
+            .set_value("normal.yaml")
+            .set_file_type(&TOKEN_FILE_TYPE_ANSIBLE_ROLE_TASKS)
+            .set_token_type(TokenType::Playbook)
+            .append_key_stack("block")
+            .append_key_stack("include_tasks")
+            .create_token()
+            .build()
+            .test();
+    }
+
+    #[test]
+    fn test_import_tasks() {
+        TestParseTokenAnsible::default()
+            .set_content(
+                r#"
+- name: Import a task file
+  import_tasks: common.yaml
+             "#,
+            )
+            .set_location(2, 20)
+            .set_value("common.yaml")
+            .set_file_type(&TOKEN_FILE_TYPE_ANSIBLE_ROLE_TASKS)
+            .set_token_type(TokenType::Playbook)
+            .append_key_stack("import_tasks")
             .create_token()
             .build()
             .test();
