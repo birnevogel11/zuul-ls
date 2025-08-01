@@ -3,12 +3,12 @@ use std::path::PathBuf;
 
 use dashmap::DashMap;
 
-use crate::config::get_work_dir;
 use crate::ls::parser::AnsibleRolePath;
 use crate::parser::common::StringLoc;
 use crate::parser::variable::VariableGroup;
 use crate::parser::zuul::ZuulConfig;
 use crate::path::get_role_repo_dirs;
+use crate::path::get_work_dir;
 use crate::path::get_zuul_yaml_paths_cwd;
 use crate::search::jobs::list_job_locs_by_name;
 use crate::search::jobs::ZuulJobs;

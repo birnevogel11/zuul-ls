@@ -419,11 +419,25 @@ pub enum LoadYValueError {
     ParseError(ScanError),
 }
 
+impl From<std::io::Error> for LoadYValueError {
+    fn from(e: std::io::Error) -> Self {
+        Self::FileError(e)
+    }
+}
+
+impl From<ScanError> for LoadYValueError {
+    fn from(e: ScanError) -> Self {
+        Self::ParseError(e)
+    }
+}
+
 pub fn load_yvalue(path: &Path) -> Result<Vec<YValue>, LoadYValueError> {
-    let file_content = std::fs::read_to_string(path).map_err(LoadYValueError::FileError)?;
-    YValueLoader::load_from_str(&file_content).map_err(LoadYValueError::ParseError)
+    let file_content = std::fs::read_to_string(path)?;
+    let value = YValueLoader::load_from_str(&file_content)?;
+    Ok(value)
 }
 
 pub fn load_yvalue_from_str(content: &str) -> Result<Vec<YValue>, LoadYValueError> {
-    YValueLoader::load_from_str(content).map_err(LoadYValueError::ParseError)
+    let value = YValueLoader::load_from_str(content)?;
+    Ok(value)
 }

@@ -9,7 +9,7 @@ use walkdir::WalkDir;
 
 extern crate dirs;
 
-use crate::config::{get_config, Config};
+use crate::config::{get_config_simple, Config};
 
 pub fn to_path(x: &str) -> PathBuf {
     PathBuf::from(shellexpand::tilde(x).into_owned())
@@ -41,7 +41,7 @@ pub fn get_zuul_yaml_paths_cwd(work_dir: &Path, config_path: Option<PathBuf>) ->
 }
 
 pub fn get_repo_dirs(work_dir: &Path, config_path: Option<PathBuf>) -> Vec<PathBuf> {
-    let config = get_config(&config_path);
+    let config = get_config_simple(&config_path);
     // Assume the parent dir of the work dir is the base dir when the config
     // is undefined.
     let base_dirs = find_tenant_base_dirs(config, work_dir)
@@ -57,7 +57,7 @@ pub fn get_repo_dirs(work_dir: &Path, config_path: Option<PathBuf>) -> Vec<PathB
 }
 
 pub fn get_role_repo_dirs(work_dir: &PathBuf, config_path: Option<PathBuf>) -> Vec<PathBuf> {
-    let config = get_config(&config_path);
+    let config = get_config_simple(&config_path);
     let mut repo_dirs: Vec<PathBuf> = vec![PathBuf::from(work_dir)];
     repo_dirs.append(&mut find_tenant_role_dirs(config, work_dir).unwrap_or_default());
     repo_dirs
@@ -166,4 +166,8 @@ pub fn filter_valid_paths(xs: Vec<PathBuf>) -> Vec<PathBuf> {
     xs.iter()
         .filter_map(|x| fs::canonicalize(to_path(x.to_str().unwrap())).ok())
         .collect()
+}
+
+pub fn get_work_dir(work_dir: Option<PathBuf>) -> PathBuf {
+    to_path(work_dir.as_ref().map_or(".", |p| p.to_str().unwrap()))
 }
