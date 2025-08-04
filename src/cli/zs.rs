@@ -1,14 +1,9 @@
-use chrono::Local;
-use std::env;
-use std::fs::File;
-use std::io::Write;
 use std::path::PathBuf;
 
 use clap::Parser;
 
 use zuul_parser::log::init_logging;
 use zuul_parser::path::get_work_dir;
-use zuul_parser::path::to_path;
 use zuul_parser::search::job_graph;
 use zuul_parser::search::job_playbooks;
 use zuul_parser::search::job_vars;

@@ -45,16 +45,6 @@ impl ZuulParseType {
     pub fn determine(key: &str) -> Option<ZuulParseType> {
         ZUUL_PARSE_KEYWORDS.get(key).cloned()
     }
-
-    pub fn determine_old(xs: &LinkedHashMap<YValue, YValue>) -> Option<ZuulParseType> {
-        for (key, _) in xs {
-            if let Some(key) = key.as_str() {
-                return ZUUL_PARSE_KEYWORDS.get(key).cloned();
-            }
-        }
-
-        None
-    }
 }
 
 #[derive(Clone, PartialEq, PartialOrd, Debug, Eq, Ord)]

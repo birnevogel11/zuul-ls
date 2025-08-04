@@ -166,7 +166,7 @@ pub fn parse_token(path: &Path, content: &Rope, position: &Position) -> Option<A
     match file_type {
         TokenFileType::Playbooks
         | TokenFileType::AnsibleRoleTasks { .. }
-        | TokenFileType::AnsibleRoleDefaults { .. }
+        | TokenFileType::AnsibleRoleDefaults
         | TokenFileType::AnsibleRoleTemplates { .. } => {
             parse_token_ansible(file_type, content, position)
         }
