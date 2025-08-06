@@ -2,6 +2,7 @@ use std::path::Path;
 use std::path::PathBuf;
 
 use dashmap::DashMap;
+use interner::global::GlobalString;
 
 use crate::ls::parser::AnsibleRolePath;
 use crate::parser::common::StringLoc;
@@ -65,6 +66,8 @@ impl ZuulSymbol {
                 TokenFileType::ZuulConfig => {
                     self.vars.clear();
                     self.jobs.clear();
+                    self.project_templates.clear();
+                    self.project_template_docs.clear();
 
                     self.initialize_jobs();
                 }
