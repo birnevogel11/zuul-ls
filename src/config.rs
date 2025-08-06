@@ -61,13 +61,9 @@ pub struct TenantConfig {
 }
 
 impl TenantConfig {
-    pub fn is_in_base_dirs(&self, path: &str) -> bool {
-        let abs_path = to_path(path);
-        self.base_dirs
-            .iter()
-            .map(|x| abs_path.starts_with(x))
-            .reduce(|x, y| x | y)
-            .unwrap()
+    pub fn is_tenant(&self, path: &Path) -> bool {
+        let path = to_path(path.to_str().unwrap());
+        self.base_dirs.iter().any(|x| path.starts_with(x))
     }
 }
 
@@ -170,9 +166,7 @@ impl Config {
 
     pub fn find_tenant(&self, work_dir: &Path) -> Option<String> {
         self.tenants.iter().find_map(|(name, tenant_config)| {
-            tenant_config
-                .is_in_base_dirs(work_dir.to_str().unwrap())
-                .then_some(name.clone())
+            tenant_config.is_tenant(work_dir).then_some(name.clone())
         })
     }
 

@@ -7,9 +7,9 @@ use crate::ls::parser::AnsibleRolePath;
 use crate::parser::common::StringLoc;
 use crate::parser::variable::VariableGroup;
 use crate::parser::zuul::ZuulConfig;
-use crate::path::get_role_repo_dirs;
-use crate::path::get_work_dir;
-use crate::path::get_zuul_yaml_paths_cwd;
+use crate::path::list_role_repo_dirs;
+use crate::path::list_zuul_yaml_paths;
+use crate::path::resolve_work_dir;
 use crate::search::jobs::list_job_locs_by_name;
 use crate::search::jobs::ZuulJobs;
 use crate::search::roles::list_roles;
@@ -81,8 +81,8 @@ impl ZuulSymbol {
     }
 
     fn initialize_roles(&self) {
-        let work_dir = get_work_dir(None);
-        let repo_dirs = get_role_repo_dirs(&work_dir, None);
+        let work_dir = resolve_work_dir(None);
+        let repo_dirs = list_role_repo_dirs(&work_dir, None);
         let role_dirs = list_roles(&repo_dirs);
         role_dirs.into_iter().for_each(|(name, path, doc)| {
             self.role_dirs.insert(name.clone(), path);
@@ -91,8 +91,8 @@ impl ZuulSymbol {
     }
 
     fn initialize_jobs(&self) {
-        let work_dir = get_work_dir(None);
-        let yaml_paths = get_zuul_yaml_paths_cwd(&work_dir, None);
+        let work_dir = resolve_work_dir(None);
+        let yaml_paths = list_zuul_yaml_paths(&work_dir, None);
         let zuul_config_elements = ZuulConfig::parse_files(&yaml_paths);
 
         let zuul_jobs = ZuulJobs::from_parsed_jobs(zuul_config_elements.jobs().clone());

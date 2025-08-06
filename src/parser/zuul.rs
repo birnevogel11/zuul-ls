@@ -132,6 +132,7 @@ pub fn $name(self) -> Vec<$t> {
     );
 );
 
+/// Present all parsed configs for all found files in the tenant
 #[derive(Clone, PartialEq, PartialOrd, Debug, Eq, Ord, Default)]
 pub struct ZuulConfig {
     jobs: Vec<Job>,

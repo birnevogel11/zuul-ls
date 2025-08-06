@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use clap::Parser;
 
 use zuul_parser::log::init_logging;
-use zuul_parser::path::get_work_dir;
+use zuul_parser::path::resolve_work_dir;
 use zuul_parser::search::job_graph;
 use zuul_parser::search::job_playbooks;
 use zuul_parser::search::job_vars;
@@ -129,14 +129,22 @@ fn main() {
 
     match args {
         ZuulSearchCli::Roles(args) => {
-            roles::list_roles_cli(&get_work_dir(args.work_dir), args.config_path, args.local);
+            roles::list_roles_cli(
+                &resolve_work_dir(args.work_dir),
+                args.config_path,
+                args.local,
+            );
         }
         ZuulSearchCli::Jobs(args) => {
-            jobs::list_jobs_cli(&get_work_dir(args.work_dir), args.config_path, args.local);
+            jobs::list_jobs_cli(
+                &resolve_work_dir(args.work_dir),
+                args.config_path,
+                args.local,
+            );
         }
         ZuulSearchCli::ProjectTemplates(args) => {
             project_templates::list_project_templates_cli(
-                &get_work_dir(args.work_dir),
+                &resolve_work_dir(args.work_dir),
                 args.config_path,
                 args.local,
             );
@@ -144,25 +152,32 @@ fn main() {
         ZuulSearchCli::JobHierarchy(args) => {
             jobs::list_jobs_hierarchy_names_cli(
                 args.name,
-                &get_work_dir(args.work_dir),
+                &resolve_work_dir(args.work_dir),
                 args.config_path,
             );
         }
         ZuulSearchCli::JobVars(args) => {
-            job_vars::list_jobs_vars_cli(args.name, &get_work_dir(args.work_dir), args.config_path);
+            job_vars::list_jobs_vars_cli(
+                args.name,
+                &resolve_work_dir(args.work_dir),
+                args.config_path,
+            );
         }
         ZuulSearchCli::JobPlaybooks(args) => {
             job_playbooks::list_jobs_playbooks_cli(
                 args.name,
-                &get_work_dir(args.work_dir),
+                &resolve_work_dir(args.work_dir),
                 args.config_path,
             );
         }
         ZuulSearchCli::WorkdirVars(args) => {
-            work_dir_vars::list_work_dir_vars_cli(&get_work_dir(args.work_dir), args.config_path);
+            work_dir_vars::list_work_dir_vars_cli(
+                &resolve_work_dir(args.work_dir),
+                args.config_path,
+            );
         }
         ZuulSearchCli::JobGraph(args) => {
-            job_graph::make_job_graph_cli(&get_work_dir(args.work_dir), args.config_path);
+            job_graph::make_job_graph_cli(&resolve_work_dir(args.work_dir), args.config_path);
         }
     };
 }

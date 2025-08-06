@@ -11,7 +11,7 @@ use petgraph::graph::{DiGraph, Graph, NodeIndex};
 use crate::parser::common::StringLoc;
 use crate::parser::zuul::job::Job;
 use crate::parser::zuul::ZuulConfig;
-use crate::path::get_zuul_yaml_paths_cwd;
+use crate::path::list_zuul_yaml_paths;
 use crate::path::to_path;
 use crate::search::report_print::print_string_locs;
 
@@ -31,7 +31,7 @@ impl ZuulJobs {
     }
 
     pub fn from_raw_input(work_dir: &Path, config_path: Option<PathBuf>) -> ZuulJobs {
-        let yaml_paths = get_zuul_yaml_paths_cwd(work_dir, config_path);
+        let yaml_paths = list_zuul_yaml_paths(work_dir, config_path);
         let jobs = Self::from_files(&yaml_paths);
 
         debug!("jobs: {:#?}", jobs);

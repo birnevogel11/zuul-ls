@@ -3,7 +3,7 @@ use std::path::PathBuf;
 
 use log;
 
-use crate::path::{get_role_repo_dirs, shorten_path, to_path};
+use crate::path::{list_role_repo_dirs, shorten_path, to_path};
 use crate::safe_println;
 
 fn get_role_doc(base_dir: &str, role_name: &str) -> Option<String> {
@@ -101,7 +101,7 @@ pub fn list_roles(repo_dirs: &[PathBuf]) -> Vec<(String, PathBuf, Option<String>
 }
 
 pub fn list_roles_cli(work_dir: &PathBuf, config_path: Option<PathBuf>, is_local: bool) {
-    let repo_dirs = get_role_repo_dirs(work_dir, config_path);
+    let repo_dirs = list_role_repo_dirs(work_dir, config_path);
 
     let mut role_dirs: Vec<(String, PathBuf, Option<String>)> = list_roles(&repo_dirs);
     if is_local {
