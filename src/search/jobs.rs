@@ -4,15 +4,17 @@ use std::rc::Rc;
 
 use bimap::BiMap;
 use hashlink::LinkedHashMap;
-use log::debug;
+use log;
 use petgraph::algo::{toposort, DfsSpace};
 use petgraph::graph::{DiGraph, Graph, NodeIndex};
 
+use crate::config::ParseConfigError;
 use crate::parser::common::StringLoc;
 use crate::parser::zuul::job::Job;
 use crate::parser::zuul::ZuulConfig;
-use crate::path::list_zuul_yaml_paths;
 use crate::path::to_path;
+use crate::path::{list_zuul_yaml_paths, list_zuul_yaml_paths_simple};
+use crate::safe_println;
 use crate::search::report_print::print_string_locs;
 
 #[derive(Clone, PartialEq, PartialOrd, Debug, Eq, Ord)]
@@ -22,21 +24,9 @@ pub struct ZuulJobs {
 }
 
 impl ZuulJobs {
-    pub fn from_zuul_config_elements(zs: ZuulConfig) -> Self {
-        Self::from_parsed_jobs(zs.into_jobs())
-    }
-
     pub fn from_files(yaml_paths: &[PathBuf]) -> ZuulJobs {
-        Self::from_zuul_config_elements(ZuulConfig::parse_files(yaml_paths))
-    }
-
-    pub fn from_raw_input(work_dir: &Path, config_path: Option<PathBuf>) -> ZuulJobs {
-        let yaml_paths = list_zuul_yaml_paths(work_dir, config_path);
-        let jobs = Self::from_files(&yaml_paths);
-
-        debug!("jobs: {:#?}", jobs);
-
-        jobs
+        let zs = ZuulConfig::parse_files(yaml_paths);
+        Self::from_parsed_jobs(zs.into_jobs())
     }
 
     pub fn from_parsed_jobs(parsed_jobs: Vec<Job>) -> ZuulJobs {
@@ -67,6 +57,10 @@ impl ZuulJobs {
 
     pub fn jobs(&self) -> &Vec<Rc<Job>> {
         &self.jobs
+    }
+
+    pub fn into_jobs(self) -> Vec<Rc<Job>> {
+        self.jobs
     }
 
     pub fn name_jobs(&self) -> &LinkedHashMap<String, Vec<Rc<Job>>> {
@@ -196,13 +190,15 @@ pub fn list_jobs_hierarchy_names_cli(
     work_dir: &Path,
     config_path: Option<PathBuf>,
 ) {
-    let job_names = ZuulJobs::from_raw_input(work_dir, config_path)
-        .get_job_hierarchy(&job_name)
-        .iter()
-        .map(|x| x.name().clone())
-        .collect::<Vec<_>>();
+    list_jobs_action_cli(work_dir, config_path, |zuul_jobs| {
+        let job_names = zuul_jobs
+            .get_job_hierarchy(&job_name)
+            .iter()
+            .map(|x| x.name().clone())
+            .collect::<Vec<_>>();
 
-    print_string_locs(&job_names)
+        print_string_locs(&job_names);
+    })
 }
 
 pub fn list_job_locs_by_name(zuul_jobs: &ZuulJobs) -> HashMap<String, Vec<StringLoc>> {
@@ -224,26 +220,54 @@ pub fn list_job_locs_by_name(zuul_jobs: &ZuulJobs) -> HashMap<String, Vec<String
     job_groups
 }
 
-pub fn list_jobs(work_dir: &Path, config_path: Option<PathBuf>) -> ZuulJobs {
-    ZuulJobs::from_raw_input(work_dir, config_path)
+// TODO: remove it
+pub fn list_jobs(
+    work_dir: &Path,
+    config_path: Option<PathBuf>,
+) -> Result<ZuulJobs, ParseConfigError> {
+    let yaml_paths = list_zuul_yaml_paths(work_dir, config_path)?;
+    Ok(ZuulJobs::from_files(&yaml_paths))
+}
+
+pub fn list_jobs_action_cli<T>(work_dir: &Path, config_path: Option<PathBuf>, handler: T)
+where
+    T: Fn(ZuulJobs),
+{
+    match list_zuul_yaml_paths(work_dir, config_path) {
+        Ok(paths) => {
+            let jobs = ZuulJobs::from_files(&paths);
+            handler(jobs);
+        }
+        Err(err) => {
+            safe_println!("Failed to parse. error: {:#?}", err);
+        }
+    }
 }
 
 pub fn list_jobs_cli(work_dir: &Path, config_path: Option<PathBuf>, is_local: bool) {
-    let zuul_jobs = list_jobs(work_dir, config_path);
+    list_jobs_action_cli(work_dir, config_path, |zuul_jobs| {
+        // let mut locs: Vec<StringLoc> = zuul_jobs.jobs().iter().map(|x| x.name().clone()).collect();
+        let mut locs: Vec<StringLoc> = zuul_jobs
+            .into_jobs()
+            .iter()
+            .map(|job| job.name().clone())
+            .collect();
 
-    let mut locs: Vec<StringLoc> = zuul_jobs.jobs().iter().map(|x| x.name().clone()).collect();
-    if is_local {
-        let sw = to_path(work_dir.to_str().unwrap());
-        let sw = sw.to_str().unwrap();
+        if is_local {
+            let cwd = to_path(work_dir.to_str().unwrap());
+            let cwd = cwd.to_str().unwrap();
 
-        locs.retain(|x| {
-            let s = to_path(x.path.to_str().unwrap());
-            s.to_str().unwrap().starts_with(sw)
-        });
-    }
-    let locs = locs;
+            locs = locs
+                .into_iter()
+                .filter(|x| {
+                    let s = to_path(x.path.to_str().unwrap());
+                    s.to_str().unwrap().starts_with(cwd)
+                })
+                .collect::<Vec<_>>();
+        }
 
-    print_string_locs(&locs);
+        print_string_locs(&locs);
+    })
 }
 
 #[cfg(test)]

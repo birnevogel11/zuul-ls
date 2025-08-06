@@ -9,6 +9,8 @@ use walkdir::WalkDir;
 
 extern crate dirs;
 
+use crate::config::get_config;
+use crate::config::ParseConfigError;
 use crate::config::{get_config_simple, Config};
 
 pub fn to_path(x: &str) -> PathBuf {
@@ -52,7 +54,7 @@ pub fn retrieve_repo_path(path: &Path) -> Option<PathBuf> {
     })
 }
 
-pub fn list_zuul_yaml_paths(work_dir: &Path, config_path: Option<PathBuf>) -> Vec<PathBuf> {
+pub fn list_zuul_yaml_paths_simple(work_dir: &Path, config_path: Option<PathBuf>) -> Vec<PathBuf> {
     let config = get_config_simple(&config_path);
     let repo_dirs = list_repo_dirs(work_dir, config);
 
@@ -63,6 +65,23 @@ pub fn list_zuul_yaml_paths(work_dir: &Path, config_path: Option<PathBuf>) -> Ve
 
     log::debug!("yaml_paths: {:#?}", paths);
     paths
+}
+
+pub fn list_zuul_yaml_paths(
+    work_dir: &Path,
+    config_path: Option<PathBuf>,
+) -> Result<Vec<PathBuf>, ParseConfigError> {
+    let config = get_config(&config_path)?;
+    let repo_dirs = list_repo_dirs(work_dir, Some(config));
+
+    let paths = repo_dirs
+        .iter()
+        .flat_map(|x| list_repo_zuul_yaml_paths(x))
+        .collect::<Vec<_>>();
+
+    log::debug!("yaml_paths: {:#?}", paths);
+
+    Ok(paths)
 }
 
 fn list_repo_dirs(work_dir: &Path, config: Option<Config>) -> Vec<PathBuf> {

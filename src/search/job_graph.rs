@@ -6,7 +6,7 @@ use interner::global::GlobalString;
 
 use crate::parser::zuul::job::Job;
 
-use super::jobs::ZuulJobs;
+use super::jobs::list_jobs_action_cli;
 use super::work_dir_vars::collect_ordered_workdir_jobs;
 
 #[derive(Clone, PartialEq, Debug, Eq, Default)]
@@ -48,8 +48,9 @@ fn render_job_graph_plantuml(job_graph: &ZuulJobGraph) {
 }
 
 pub fn make_job_graph_cli(work_dir: &Path, config_path: Option<PathBuf>) {
-    let zuul_jobs = ZuulJobs::from_raw_input(work_dir, config_path);
-    let jobs = collect_ordered_workdir_jobs(&zuul_jobs, work_dir);
-    let job_graph = make_job_graph(&jobs);
-    render_job_graph_plantuml(&job_graph);
+    list_jobs_action_cli(work_dir, config_path, |zuul_jobs| {
+        let jobs = collect_ordered_workdir_jobs(&zuul_jobs, work_dir);
+        let job_graph = make_job_graph(&jobs);
+        render_job_graph_plantuml(&job_graph);
+    });
 }

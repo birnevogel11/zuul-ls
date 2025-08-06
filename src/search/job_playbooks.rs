@@ -6,6 +6,8 @@ use crate::path::shorten_path;
 use crate::safe_println;
 use crate::search::jobs::ZuulJobs;
 
+use super::jobs::list_jobs_action_cli;
+
 #[derive(Clone, PartialEq, Debug, Eq, Default)]
 pub struct PlaybookInfo {
     name: StringLoc,
@@ -77,10 +79,11 @@ pub fn list_job_playbooks(name: &str, zuul_jobs: &ZuulJobs) -> JobPlaybooks {
 }
 
 pub fn list_jobs_playbooks_cli(job_name: String, work_dir: &Path, config_path: Option<PathBuf>) {
-    let zuul_jobs = ZuulJobs::from_raw_input(work_dir, config_path);
-    let jps = list_job_playbooks(&job_name, &zuul_jobs);
+    list_jobs_action_cli(work_dir, config_path, |zuul_jobs| {
+        let jps = list_job_playbooks(&job_name, &zuul_jobs);
 
-    show_playbooks("pre-run", &jps.pre_run);
-    show_playbooks("run", &jps.run);
-    show_playbooks("post-run", &jps.post_run);
+        show_playbooks("pre-run", &jps.pre_run);
+        show_playbooks("run", &jps.run);
+        show_playbooks("post-run", &jps.post_run);
+    });
 }

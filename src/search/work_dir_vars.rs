@@ -6,7 +6,7 @@ use crate::parser::zuul::job::Job;
 use crate::search::jobs::list_jobs;
 use crate::search::report_print::print_var_info_list;
 
-use super::jobs::ZuulJobs;
+use super::jobs::{list_jobs_action_cli, ZuulJobs};
 
 pub fn collect_ordered_workdir_jobs(jobs: &ZuulJobs, work_dir: &Path) -> Vec<Rc<Job>> {
     let work_dir_str = work_dir.to_str().unwrap();
@@ -33,12 +33,17 @@ pub fn list_work_dir_vars_with_zuul_jobs(zuul_jobs: &ZuulJobs, work_dir: &Path) 
 }
 
 pub fn list_work_dir_vars(work_dir: &Path, config_path: Option<PathBuf>) -> VariableGroup {
-    let zuul_jobs = list_jobs(work_dir, config_path);
-    list_work_dir_vars_with_zuul_jobs(&zuul_jobs, work_dir)
+    // The function is also used by zuul-ls
+    list_jobs(work_dir, config_path)
+        .map(|zuul_jobs| list_work_dir_vars_with_zuul_jobs(&zuul_jobs, work_dir))
+        .unwrap_or_default()
 }
 
 pub fn list_work_dir_vars_cli(work_dir: &Path, config_path: Option<PathBuf>) {
-    let vg = list_work_dir_vars(work_dir, config_path);
-    let vars = vg.to_print_list();
-    print_var_info_list(&vars);
+    // In search CLI, show the parsing errors directly
+    list_jobs_action_cli(work_dir, config_path, |zuul_jobs| {
+        let vg = list_work_dir_vars_with_zuul_jobs(&zuul_jobs, work_dir);
+        let vars = vg.to_print_list();
+        print_var_info_list(&vars);
+    });
 }

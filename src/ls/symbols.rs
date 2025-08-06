@@ -8,7 +8,7 @@ use crate::parser::common::StringLoc;
 use crate::parser::variable::VariableGroup;
 use crate::parser::zuul::ZuulConfig;
 use crate::path::list_role_repo_dirs;
-use crate::path::list_zuul_yaml_paths;
+use crate::path::list_zuul_yaml_paths_simple;
 use crate::path::resolve_work_dir;
 use crate::search::jobs::list_job_locs_by_name;
 use crate::search::jobs::ZuulJobs;
@@ -92,7 +92,7 @@ impl ZuulSymbol {
 
     fn initialize_jobs(&self) {
         let work_dir = resolve_work_dir(None);
-        let yaml_paths = list_zuul_yaml_paths(&work_dir, None);
+        let yaml_paths = list_zuul_yaml_paths_simple(&work_dir, None);
         let zuul_config_elements = ZuulConfig::parse_files(&yaml_paths);
 
         let zuul_jobs = ZuulJobs::from_parsed_jobs(zuul_config_elements.jobs().clone());
