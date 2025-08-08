@@ -68,6 +68,7 @@ impl TokenFileType {
 
         let ls_file_type = [
             ("zuul.d", TokenFileType::ZuulConfig),
+            ("zuul-extra.d", TokenFileType::ZuulConfig),
             ("playbooks", TokenFileType::Playbooks),
         ]
         .into_iter()
