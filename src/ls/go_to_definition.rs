@@ -186,8 +186,28 @@ fn get_definition_list_internal(
             }
         }
         TokenType::Playbook => {
-            let path = to_path(path.to_str().unwrap());
-            if let Some(repo_path) = retrieve_repo_path(&path) {
+            // First check if the key_stack contains "include_tasks" or "import_tasks", which means we should look in the current directory
+            let current_dir_search = token.key_stack.iter().any(|k| 
+                k == "include_tasks" || k == "ansible.builtin.include_tasks" ||
+                k == "import_tasks" || k == "ansible.builtin.import_tasks");
+            
+            let path_str = path.to_str().unwrap();
+            let path_obj = to_path(path_str);
+            
+            // Check relative to the current file directory first if it's an include_tasks
+            if current_dir_search {
+                let parent_dir = path.parent().unwrap_or(Path::new(""));
+                let relative_path = parent_dir.join(value);
+                if relative_path.is_file() {
+                    return Some(GotoDefinitionResponse::Scalar(Location::new(
+                        Url::from_file_path(relative_path).unwrap(),
+                        Range::new(Position::new(0, 0), Position::new(0, 0)),
+                    )));
+                }
+            }
+            
+            // Fall back to repository root search
+            if let Some(repo_path) = retrieve_repo_path(&path_obj) {
                 let playbook_path = repo_path.join(value);
                 if playbook_path.is_file() {
                     return Some(GotoDefinitionResponse::Scalar(Location::new(
